@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Rust (future)
+target/
+Cargo.lock
+
+# Node (future tooling)
+node_modules/
+
+# Local config
+.env
+.env.local
