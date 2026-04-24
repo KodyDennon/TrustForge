@@ -1,0 +1,19 @@
+{
+  "name": "trustforge",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TrustForge: open-source trust fabric for AI-native software, devices, and verifiable action.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "tools/*"
+  ],
+  "scripts": {
+    "validate": "bun run --filter tf-schema validate",
+    "validate:all": "bun run --filter tf-schema validate:all",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun test"
+  },
+  "engines": {
+    "bun": ">=1.3"
+  }
+}

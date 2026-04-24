@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/agent-contract.schema.json",
+  "title": "TrustForge Agent Contract",
+  "description": "Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents. See TF-0006.",
+  "type": "object",
+  "required": ["contract_version", "spec_version", "project"],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "description": "Version of the agent-contract schema itself.",
+      "enum": ["1"]
+    },
+    "spec_version": {
+      "type": "string",
+      "description": "TrustForge spec revision this contract conforms to.",
+      "pattern": "^TF-\\d{4}(-draft|-v\\d+)?$"
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trust_domain": {
+      "type": "string",
+      "description": "The TrustForge trust domain this project belongs to.",
+      "minLength": 1
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "threat_model": { "type": "string", "minLength": 1 },
+        "policy_engine": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["cedar", "rego", "custom", "none"] },
+            "path": { "type": "string", "minLength": 1 }
+          }
+        },
+        "actions_library": {
+          "type": "string",
+          "description": "Standard actions library identifier, e.g. tf-actions-std@1.",
+          "pattern": "^[a-z][a-z0-9-]*@\\d+$"
+        }
+      }
+    },
+    "target_sets": {
+      "type": "object",
+      "description": "Named glob lists, reusable in action rules.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "minItems": 1
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Action" }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Forbidden" }
+    },
+    "integrations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mcp_tools": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "proofrpc_services": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "test_commands": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^tf-[a-z0-9-]+$" },
+          "minItems": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "RiskClass": { "enum": ["R0", "R1", "R2", "R3", "R4", "R5"] },
+    "ProofLevel": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+    "ApprovalRequirement": { "enum": ["none", "conditional", "required", "quorum"] },
+    "ActionName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Dotted identifier, e.g. file.write, shell.exec."
+    },
+    "Action": {
+      "type": "object",
+      "required": ["name", "risk"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/ActionName" },
+        "risk": { "$ref": "#/$defs/RiskClass" },
+        "proof": { "$ref": "#/$defs/ProofLevel" },
+        "approval": { "$ref": "#/$defs/ApprovalRequirement" },
+        "description": { "type": "string" },
+        "allow_targets": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "deny_targets": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "Forbidden": {
+      "type": "object",
+      "required": ["action"],
+      "additionalProperties": false,
+      "properties": {
+        "action": { "$ref": "#/$defs/ActionName" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

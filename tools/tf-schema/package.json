@@ -1,0 +1,22 @@
+{
+  "name": "tf-schema",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge JSON Schema validator and future doc-generator.",
+  "scripts": {
+    "validate": "bun run src/cli.ts validate",
+    "validate:all": "bun run src/cli.ts validate-all",
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.9",
+    "typescript": "^5.6.3"
+  }
+}
