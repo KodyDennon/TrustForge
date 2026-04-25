@@ -9,6 +9,7 @@ pub mod generated;
 
 pub mod actor_id;
 pub mod approval;
+pub mod bridge_oauth;
 pub mod bridge_spiffe;
 pub mod bridges;
 pub mod canonical;

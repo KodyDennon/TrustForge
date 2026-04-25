@@ -20,4 +20,4 @@ export * from "./core/bridges.js";
 export * from "./core/bridge-spiffe.js";
 export * from "./core/bridge-webauthn.js";
 export * from "./core/bridge-mcp.js";
-export * from "./core/bridge-mcp.js";
+export * from "./core/bridge-oauth.js";
