@@ -1,0 +1,98 @@
+# Chain / merkle parity vectors.
+#
+# `events` are sequences of proof events. Both runtimes must:
+#   - verify_chain() either accepts (expect.chain_valid: true) or rejects,
+#   - produce merkle_root == expect.merkle_root,
+#   - produce chain_hash == expect.chain_hash,
+#   - hash event_hash(events[0]) == expect.first_event_hash.
+#
+# Vectors are computed deterministically; if either runtime produces a
+# different value, the failure is a real parity bug.
+
+cases:
+  - name: single-event
+    events:
+      - event_version: "1"
+        id: "evt-1"
+        type: "session.established"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:00:00Z"
+        level: "L1"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "AAAA"
+    expect:
+      chain_valid: true
+      first_event_hash: "sha256:5a0c6e68ec9e6f3321bacbb7e0242b3f4fc2239d179de06836ec3fccdfdbd2a3"
+      merkle_root: "sha256:5a0c6e68ec9e6f3321bacbb7e0242b3f4fc2239d179de06836ec3fccdfdbd2a3"
+      chain_hash: "sha256:0d8b0b3f4e39301e14cafb4b074906716522318db0e11b70c72f72a9e49f8282"
+
+  - name: three-event-chain
+    events:
+      - event_version: "1"
+        id: "evt-a"
+        type: "session.established"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:00:00Z"
+        level: "L1"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "AAAA"
+      - event_version: "1"
+        id: "evt-b"
+        type: "action.proposed"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:01:00Z"
+        level: "L2"
+        parent_hash: "__derive_from_prev__"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "BBBB"
+      - event_version: "1"
+        id: "evt-c"
+        type: "action.approved"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:02:00Z"
+        level: "L2"
+        parent_hash: "__derive_from_prev__"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "CCCC"
+    expect:
+      chain_valid: true
+      first_event_hash: "sha256:3f19e588e223863769ed089ace428af0d5c1bf2a3718b4650384e41e60948065"
+      merkle_root: "sha256:06fe95a3a81249f498701190dc54dfcc7117ab52f2c59bb77902da52b518ced0"
+      chain_hash: "sha256:a41fd48144beab4ca564efde89247bd169679ef5be382fd3b6e86ef38c318634"
+
+  - name: broken-chain-wrong-parent
+    events:
+      - event_version: "1"
+        id: "evt-a"
+        type: "session.established"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:00:00Z"
+        level: "L1"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "AAAA"
+      - event_version: "1"
+        id: "evt-b"
+        type: "action.proposed"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:01:00Z"
+        level: "L2"
+        parent_hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "BBBB"
+    expect:
+      chain_valid: false
+      first_event_hash: "sha256:3f19e588e223863769ed089ace428af0d5c1bf2a3718b4650384e41e60948065"
+      merkle_root: "sha256:93bc19951e1542415c0eb8574b802ec3412fa1dfbb9432514284f6fd0743675d"
+      chain_hash: "sha256:beb0c1ed216118dda029e152be144358cfbda17d69665d94ea10b7b3b54bdd8f"

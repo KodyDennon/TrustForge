@@ -10,6 +10,7 @@ pub mod generated;
 pub mod actor_id;
 pub mod canonical;
 pub mod capability;
+pub mod chain;
 pub mod crypto;
 pub mod delegation;
 pub mod envelope;
