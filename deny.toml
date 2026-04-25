@@ -1,0 +1,44 @@
+# cargo-deny configuration for TrustForge. CI runs `cargo deny check`.
+
+[graph]
+all-features = true
+
+[advisories]
+ignore = []
+yanked = "warn"
+
+[licenses]
+# License allowlist — anything outside this list fails CI.
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-DFS-2016",
+  "Unicode-3.0",
+  "CC0-1.0",
+  "0BSD",
+  "Zlib",
+  "MPL-2.0",
+  "OpenSSL",
+]
+confidence-threshold = 0.93
+
+[[licenses.exceptions]]
+# `ring` is multi-licensed; project-level approval here.
+name = "ring"
+allow = ["ISC", "MIT", "OpenSSL"]
+
+[bans]
+multiple-versions = "warn"
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

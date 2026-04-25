@@ -41,6 +41,8 @@ jobs:
           git diff --exit-code
       - run: bun run tools/tf-schema/src/cli.ts fuzz --iterations 200
       - run: bun run tools/tf-schema/src/cli.ts parity
+      - name: conformance gate (B11)
+        run: bun run tools/tf-conformance/src/cli.ts run
       - name: tf-session smoke test (in-memory + Bun WebSocket carrier)
         run: |
           bun test tools/tf-session/tests/e2e.test.ts
@@ -128,6 +130,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace
+      # cargo fmt + clippy are advisory gates in v0.1.0 — they surface
+      # formatting / lint drift but don't fail CI yet. Promoted to hard
+      # gates after a sweep cleanup pass.
+      - run: cargo fmt --all -- --check || echo "::warning::cargo fmt drift"
+      - run: cargo clippy --workspace --all-targets || echo "::warning::clippy lints"
+      - run: cargo check --workspace --all-targets
       - run: cargo test --workspace
+      # Codegen-diff on the Rust side: regenerating the generated
+      # bindings from schemas + protos must be a no-op against the
+      # committed code. (FIND-057)
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3"
+      - run: bun install --frozen-lockfile
+      - name: rust codegen-diff
+        run: |
+          bun run tools/tf-schema/src/cli.ts codegen --target rust
+          bun run tools/tf-schema/src/cli.ts codegen --target rpc-rust \
+            --spec examples/proofrpc/code-helper.tfrpc.yaml \
+            --out crates/tf-code-helper-example/src/generated
+          bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-rust \
+            --spec examples/agent-contracts/full.yaml
+          git diff --exit-code
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --workspace --all-features
