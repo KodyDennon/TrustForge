@@ -1,0 +1,4 @@
+errors:
+  - path: "/actions/0"
+    keyword: required
+    params_missing: default_risk

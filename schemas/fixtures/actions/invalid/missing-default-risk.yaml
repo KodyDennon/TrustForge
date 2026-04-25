@@ -1,0 +1,6 @@
+actions_library_version: "1"
+library_id: tf-actions-std
+actions:
+  - name: file.read
+    default_proof: L0
+    description: "Read a file."

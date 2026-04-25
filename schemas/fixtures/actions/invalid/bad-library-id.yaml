@@ -1,0 +1,7 @@
+actions_library_version: "1"
+library_id: TF-Actions
+actions:
+  - name: file.read
+    default_risk: R0
+    default_proof: L0
+    description: "Read a file."

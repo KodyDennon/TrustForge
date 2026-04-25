@@ -1,0 +1,22 @@
+actions_library_version: "1"
+library_id: tf-actions-std
+actions:
+  - name: file.read
+    default_risk: R0
+    default_proof: L0
+    approval_default: none
+    description: "Read a file from the project working tree."
+    reversible: true
+  - name: file.write
+    default_risk: R2
+    default_proof: L2
+    approval_default: conditional
+    description: "Create or modify a file in the working tree."
+    reversible: false
+  - name: shell.exec
+    default_risk: R4
+    default_proof: L3
+    approval_default: required
+    description: "Execute an arbitrary shell command."
+    dangerous: true
+    reversible: false
