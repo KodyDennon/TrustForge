@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/approval-ceremony.schema.json",
+  "title": "TrustForge Approval Ceremony",
+  "description": "Discriminated record describing how an approval was (or must be) collected. TF-0004 calls for first-class ceremony types so audit logs say not just \"approved\" but how (passkey tap, YubiKey touch, mobile push, quorum, offline-signed packet, biometric, physical-presence attestation, time-delay).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["ceremony_version", "ceremony_id", "kind"],
+  "properties": {
+    "ceremony_version": {
+      "enum": ["1"],
+      "description": "Version of the ceremony schema itself."
+    },
+    "ceremony_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier emitted alongside the ApprovalResponse."
+    },
+    "request_id": {
+      "type": "string",
+      "description": "ApprovalRequest this ceremony belongs to."
+    },
+    "started_at": { "$ref": "_common.schema.json#/$defs/Timestamp", "description": "When the ceremony began." },
+    "completed_at": { "$ref": "_common.schema.json#/$defs/Timestamp", "description": "When the ceremony resolved." },
+    "responder": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Actor that resolved the ceremony." },
+    "kind": {
+      "enum": [
+        "click",
+        "passkey",
+        "yubikey",
+        "mobile-push",
+        "time-delay",
+        "quorum",
+        "physical-presence",
+        "offline-signed-packet",
+        "biometric"
+      ],
+      "description": "Discriminator naming the ceremony variant."
+    },
+    "credential_id": { "type": "string", "minLength": 1, "description": "Passkey/WebAuthn credential identifier (base64url)." },
+    "rp_id": { "type": "string", "minLength": 1, "description": "WebAuthn relying-party identifier the credential is bound to." },
+    "client_data_hash": { "$ref": "_common.schema.json#/$defs/HashRef", "description": "Hash of the WebAuthn clientDataJSON over which the assertion was signed." },
+    "signature": { "type": "string", "minLength": 1, "description": "Base64-encoded signature over the canonical ApprovalRequest." },
+    "serial": { "type": "string", "description": "YubiKey serial number." },
+    "challenge": { "type": "string", "description": "Challenge string the device signed (HOTP / OATH / OOB code)." },
+    "response": { "type": "string", "description": "Device response over the challenge." },
+    "device_actor": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Actor URI of the device that produced the proof (mobile, biometric sensor, presence sensor)." },
+    "delay_seconds": { "type": "integer", "minimum": 1, "description": "Mandatory cool-down period before the ceremony can complete." },
+    "earliest_completion_at": { "$ref": "_common.schema.json#/$defs/Timestamp", "description": "Earliest wall-clock time the ceremony may complete." },
+    "min_approvers": { "type": "integer", "minimum": 2, "description": "Minimum number of approvers required by a quorum ceremony." },
+    "of": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+      "description": "Eligible approver set for a quorum ceremony."
+    },
+    "approvers": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+      "description": "Subset of `of` that signed approve."
+    },
+    "signatures": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" },
+      "description": "Detached approver signatures over the canonical ApprovalRequest."
+    },
+    "presence_attestation": { "type": "string", "minLength": 1, "description": "Opaque attestation blob from the presence sensor." },
+    "packet_id": { "type": "string", "minLength": 1, "description": "Identifier for the offline-signed packet that carried this approval." },
+    "transport_hint": {
+      "enum": ["usb", "qr-code", "serial", "lora", "file-drop", "manual"],
+      "description": "How the offline packet reached the daemon."
+    },
+    "modality": {
+      "enum": ["fingerprint", "face", "iris", "voice"],
+      "description": "Biometric modality used for the ceremony."
+    },
+    "match_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Biometric match score in [0, 1]." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "passkey" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "credential_id": { "type": "string", "minLength": 1, "description": "Passkey/WebAuthn credential identifier (base64url)." },
+          "rp_id": { "type": "string", "minLength": 1, "description": "WebAuthn relying-party identifier." },
+          "signature": { "type": "string", "minLength": 1, "description": "Base64 of the WebAuthn assertion signature." }
+        },
+        "required": ["credential_id", "rp_id", "signature"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "yubikey" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "challenge": { "type": "string", "description": "Challenge the YubiKey signed." },
+          "response": { "type": "string", "description": "Response the YubiKey produced." }
+        },
+        "required": ["challenge", "response"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "mobile-push" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "device_actor": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Mobile device actor that approved the push." },
+          "challenge": { "type": "string", "description": "Server-issued push challenge." },
+          "signature": { "type": "string", "minLength": 1, "description": "Mobile app signature over the challenge + request id." }
+        },
+        "required": ["device_actor", "challenge", "signature"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "time-delay" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "delay_seconds": { "type": "integer", "minimum": 1, "description": "Mandatory cool-down period." },
+          "earliest_completion_at": { "$ref": "_common.schema.json#/$defs/Timestamp", "description": "Earliest wall-clock time the ceremony may complete." }
+        },
+        "required": ["delay_seconds", "earliest_completion_at"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "quorum" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "min_approvers": { "type": "integer", "minimum": 2, "description": "Minimum number of approvers required." },
+          "of": {
+            "type": "array",
+            "minItems": 2,
+            "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+            "description": "Eligible approver set for the quorum."
+          }
+        },
+        "required": ["min_approvers", "of"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "physical-presence" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "device_actor": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Sensor or kiosk that observed presence." },
+          "presence_attestation": { "type": "string", "minLength": 1, "description": "Opaque attestation blob from the presence sensor." }
+        },
+        "required": ["device_actor", "presence_attestation"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "offline-signed-packet" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "packet_id": { "type": "string", "minLength": 1, "description": "Identifier of the offline packet." },
+          "transport_hint": {
+            "enum": ["usb", "qr-code", "serial", "lora", "file-drop", "manual"],
+            "description": "How the offline packet reached the daemon."
+          },
+          "signature": { "type": "string", "minLength": 1, "description": "Base64 ed25519 signature over the canonical ApprovalRequest." }
+        },
+        "required": ["packet_id", "transport_hint", "signature"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "biometric" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "modality": { "enum": ["fingerprint", "face", "iris", "voice"], "description": "Biometric modality used." },
+          "device_actor": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Sensor that produced the match." }
+        },
+        "required": ["modality", "device_actor"]
+      }
+    }
+  ]
+}

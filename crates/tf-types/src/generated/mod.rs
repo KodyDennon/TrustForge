@@ -11,6 +11,8 @@ pub mod actor_identity;
 pub use actor_identity::*;
 pub mod agent_contract;
 pub use agent_contract::*;
+pub mod approval_ceremony;
+pub use approval_ceremony::*;
 pub mod approval_request;
 pub use approval_request::*;
 pub mod approval_response;

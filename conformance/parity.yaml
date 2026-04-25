@@ -35,6 +35,18 @@ vectors:
   - schema: agent-contract
     fixture: schemas/fixtures/agent-contract/invalid/missing-project.yaml
     expect: invalid
+  - schema: approval-ceremony
+    fixture: schemas/fixtures/approval-ceremony/valid/click.yaml
+    expect: valid
+  - schema: approval-ceremony
+    fixture: schemas/fixtures/approval-ceremony/valid/offline-packet.yaml
+    expect: valid
+  - schema: approval-ceremony
+    fixture: schemas/fixtures/approval-ceremony/valid/quorum.yaml
+    expect: valid
+  - schema: approval-ceremony
+    fixture: schemas/fixtures/approval-ceremony/invalid/quorum-no-of.yaml
+    expect: invalid
   - schema: approval-request
     fixture: schemas/fixtures/approval-request/valid/basic.yaml
     expect: valid

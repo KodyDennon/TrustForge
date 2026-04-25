@@ -9,6 +9,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [actions](./actions.md) | TF-0006 | Catalog of action definitions referenced by TF-0006 agent contracts. |
 | [actor-identity](./actor-identity.md) | TF-0002 | Identity document that binds an actor URI to public keys, authority roots, and validity (TF-0002). |
 | [agent-contract](./agent-contract.md) | TF-0006 | Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents |
+| [approval-ceremony](./approval-ceremony.md) | — | Discriminated record describing how an approval was (or must be) collected |
 | [approval-request](./approval-request.md) | — | A pending approval request raised by the daemon when a guarded action requires explicit human approval. |
 | [approval-response](./approval-response.md) | — | A signed response to an ApprovalRequest. |
 | [bridge-descriptor](./bridge-descriptor.md) | — | Declarative descriptor for a TrustForge compatibility bridge |

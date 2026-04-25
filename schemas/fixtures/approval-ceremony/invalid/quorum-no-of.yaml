@@ -1,0 +1,5 @@
+ceremony_version: "1"
+ceremony_id: cer-4
+kind: quorum
+min_approvers: 2
+# `of` is required and must have at least 2 entries.

@@ -1,0 +1,14 @@
+ceremony_version: "1"
+ceremony_id: cer-2
+kind: quorum
+request_id: req-2
+started_at: "2026-04-24T12:00:00Z"
+completed_at: "2026-04-24T12:05:00Z"
+min_approvers: 2
+of:
+  - tf:actor:human:example.com/alice
+  - tf:actor:human:example.com/bob
+  - tf:actor:human:example.com/carol
+approvers:
+  - tf:actor:human:example.com/alice
+  - tf:actor:human:example.com/bob

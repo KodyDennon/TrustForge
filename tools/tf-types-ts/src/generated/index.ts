@@ -4,6 +4,7 @@ export * from "./_common.js";
 export * from "./actions.js";
 export * from "./actor-identity.js";
 export * from "./agent-contract.js";
+export * from "./approval-ceremony.js";
 export * from "./approval-request.js";
 export * from "./approval-response.js";
 export * from "./bridge-descriptor.js";

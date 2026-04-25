@@ -68,7 +68,12 @@ export function tsTypeOf(node: Node | undefined, currentSchema: string): string 
   if (node.type === "string") return "string";
   if (node.type === "integer" || node.type === "number") return "number";
   if (node.type === "boolean") return "boolean";
-  if (node.type === "array") return `${tsTypeOf(node.items as Node, currentSchema)}[]`;
+  if (node.type === "array") {
+    const inner = tsTypeOf(node.items as Node, currentSchema);
+    // A union inside an array needs parentheses so `A | B[]` doesn't bind
+    // as `A | (B[])`.
+    return inner.includes("|") ? `(${inner})[]` : `${inner}[]`;
+  }
   if (node.type === "object") {
     if (node.additionalProperties && typeof node.additionalProperties === "object") {
       return `Record<string, ${tsTypeOf(node.additionalProperties as Node, currentSchema)}>`;

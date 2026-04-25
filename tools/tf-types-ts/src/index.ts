@@ -16,6 +16,8 @@ export * from "./core/guard.js";
 export * from "./core/expiration.js";
 export * from "./core/trust-overlay.js";
 export * from "./core/policy-engine.js";
+export * from "./core/quorum.js";
+export * from "./core/offline-approval.js";
 export * from "./core/vault.js";
 export * from "./core/approval.js";
 export * from "./core/plugin.js";

@@ -81,11 +81,26 @@ function emitDecl(d: TypeDecl): string {
   }
   if (d.kind === "struct") {
     const fields = d.props.map((p: Prop) => emitField(p));
-    return `${doc}#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]\npub struct ${d.name} {\n${fields.join("\n")}\n}`;
+    const eq = d.props.every((p: Prop) => isEqRustType(p.rustType));
+    const derives = eq
+      ? "Clone, Debug, PartialEq, Eq, Serialize, Deserialize"
+      : "Clone, Debug, PartialEq, Serialize, Deserialize";
+    return `${doc}#[derive(${derives})]\npub struct ${d.name} {\n${fields.join("\n")}\n}`;
   }
   // tagged-union
   const variants = d.variants.map((v: Variant) => emitVariant(v));
-  return `${doc}#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]\n#[serde(tag = "kind")]\npub enum ${d.name} {\n${variants.join("\n")}\n}`;
+  const eq = d.variants.every((v: Variant) =>
+    v.props.every((p: Prop) => isEqRustType(p.rustType)),
+  );
+  const derives = eq
+    ? "Clone, Debug, PartialEq, Eq, Serialize, Deserialize"
+    : "Clone, Debug, PartialEq, Serialize, Deserialize";
+  return `${doc}#[derive(${derives})]\n#[serde(tag = "kind")]\npub enum ${d.name} {\n${variants.join("\n")}\n}`;
+}
+
+/** Returns true iff a type can derive Eq. f32/f64 cannot. */
+function isEqRustType(rt: string): boolean {
+  return !/(\bf32\b|\bf64\b)/.test(rt);
 }
 
 function emitField(p: Prop): string {

@@ -23,7 +23,7 @@ export interface Policy {
 /** When live sessions must re-check this policy during execution. */
 export interface Policy_ContinuousReevaluation {
   /** Events that force a re-evaluation of in-flight authorizations. */
-  triggers: "time" | "delegation_change" | "revocation" | "session_rekey" | "explicit_reauth"[];
+  triggers: ("time" | "delegation_change" | "revocation" | "session_rekey" | "explicit_reauth")[];
 }
 
 /** Policy engine that interprets this manifest. */
