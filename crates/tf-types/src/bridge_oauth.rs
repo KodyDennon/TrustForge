@@ -161,14 +161,7 @@ impl OAuthBridge {
             actor_id,
             actor_type,
             instance_id: None,
-            public_keys: vec![PublicKey {
-                key_id: "oauth-bridge-bearer".to_string(),
-                algorithm: "ed25519".to_string(),
-                public_key: "AA==".to_string(),
-                purpose: PublicKey_Purpose::Signing,
-                valid_from: None,
-                valid_until: None,
-            }],
+            public_keys: vec![project_jwk_to_public_key(jwk)?],
             trust_levels: vec![TrustLevel::T3],
             authority_roots: vec![AuthorityRoot {
                 kind: AuthorityRoot_Kind::Organization,
@@ -326,4 +319,160 @@ pub fn parse_algorithm(name: &str) -> Result<Algorithm, BridgeError> {
             other
         ))),
     }
+}
+
+/// Project a JWK into the TrustForge `PublicKey` shape (raw bytes,
+/// base64-encoded, with the algorithm name normalised to TrustForge's
+/// vocabulary). Mirrors the TS `projectJwkToPublicKey`.
+pub fn project_jwk_to_public_key(jwk: &Jwk) -> Result<PublicKey, BridgeError> {
+    use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+    use base64::Engine;
+    let key_id = jwk
+        .kid
+        .clone()
+        .unwrap_or_else(|| "oauth-bridge-bearer".to_string());
+    match jwk.kty.as_str() {
+        "OKP" => {
+            // Ed25519 — raw 32-byte x.
+            let x = jwk
+                .x
+                .as_ref()
+                .ok_or_else(|| BridgeError::InvalidInput("OKP JWK missing x".into()))?;
+            let bytes = URL_SAFE_NO_PAD
+                .decode(x)
+                .map_err(|e| BridgeError::InvalidInput(format!("base64url x: {}", e)))?;
+            Ok(PublicKey {
+                key_id,
+                algorithm: "ed25519".into(),
+                public_key: STANDARD.encode(bytes),
+                purpose: PublicKey_Purpose::Signing,
+                valid_from: None,
+                valid_until: None,
+            })
+        }
+        "EC" => {
+            let x = jwk
+                .x
+                .as_ref()
+                .ok_or_else(|| BridgeError::InvalidInput("EC JWK missing x".into()))?;
+            let y = jwk
+                .y
+                .as_ref()
+                .ok_or_else(|| BridgeError::InvalidInput("EC JWK missing y".into()))?;
+            let xb = URL_SAFE_NO_PAD
+                .decode(x)
+                .map_err(|e| BridgeError::InvalidInput(format!("base64url x: {}", e)))?;
+            let yb = URL_SAFE_NO_PAD
+                .decode(y)
+                .map_err(|e| BridgeError::InvalidInput(format!("base64url y: {}", e)))?;
+            let mut sec1 = Vec::with_capacity(1 + xb.len() + yb.len());
+            sec1.push(0x04);
+            sec1.extend_from_slice(&xb);
+            sec1.extend_from_slice(&yb);
+            let crv = jwk.crv.as_deref().unwrap_or("");
+            let alg = match crv {
+                "P-256" => "p256",
+                "P-384" => "p384",
+                "P-521" => "p521",
+                _ => "ec",
+            };
+            Ok(PublicKey {
+                key_id,
+                algorithm: alg.into(),
+                public_key: STANDARD.encode(sec1),
+                purpose: PublicKey_Purpose::Signing,
+                valid_from: None,
+                valid_until: None,
+            })
+        }
+        "RSA" => {
+            let n = jwk
+                .n
+                .as_ref()
+                .ok_or_else(|| BridgeError::InvalidInput("RSA JWK missing n".into()))?;
+            let e = jwk
+                .e
+                .as_ref()
+                .ok_or_else(|| BridgeError::InvalidInput("RSA JWK missing e".into()))?;
+            let nb = URL_SAFE_NO_PAD
+                .decode(n)
+                .map_err(|err| BridgeError::InvalidInput(format!("base64url n: {}", err)))?;
+            let eb = URL_SAFE_NO_PAD
+                .decode(e)
+                .map_err(|err| BridgeError::InvalidInput(format!("base64url e: {}", err)))?;
+            let der = encode_rsa_spki(&nb, &eb);
+            Ok(PublicKey {
+                key_id,
+                algorithm: "rsa".into(),
+                public_key: STANDARD.encode(der),
+                purpose: PublicKey_Purpose::Signing,
+                valid_from: None,
+                valid_until: None,
+            })
+        }
+        other => Err(BridgeError::Unsupported(format!(
+            "unsupported JWK kty: {}",
+            other
+        ))),
+    }
+}
+
+fn encode_rsa_spki(n: &[u8], e: &[u8]) -> Vec<u8> {
+    let rsa_public_key = der_sequence(&[der_integer(n), der_integer(e)]);
+    let oid_rsa_encryption: [u8; 11] = [
+        0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+    ];
+    let null_params: [u8; 2] = [0x05, 0x00];
+    let alg_id = der_sequence(&[oid_rsa_encryption.to_vec(), null_params.to_vec()]);
+    let mut bit_string_body = Vec::with_capacity(1 + rsa_public_key.len());
+    bit_string_body.push(0x00);
+    bit_string_body.extend_from_slice(&rsa_public_key);
+    let mut bit_string = Vec::with_capacity(2 + bit_string_body.len());
+    bit_string.push(0x03);
+    bit_string.extend_from_slice(&der_len(bit_string_body.len()));
+    bit_string.extend_from_slice(&bit_string_body);
+    der_sequence(&[alg_id, bit_string])
+}
+
+fn der_sequence(parts: &[Vec<u8>]) -> Vec<u8> {
+    let body: Vec<u8> = parts.iter().flat_map(|p| p.clone()).collect();
+    let mut out = Vec::with_capacity(2 + body.len());
+    out.push(0x30);
+    out.extend_from_slice(&der_len(body.len()));
+    out.extend_from_slice(&body);
+    out
+}
+
+fn der_integer(bytes: &[u8]) -> Vec<u8> {
+    let mut start = 0usize;
+    while start < bytes.len() - 1 && bytes[start] == 0 {
+        start += 1;
+    }
+    let payload = &bytes[start..];
+    let needs_pad = payload[0] & 0x80 != 0;
+    let len = payload.len() + if needs_pad { 1 } else { 0 };
+    let mut out = Vec::with_capacity(2 + len);
+    out.push(0x02);
+    out.extend_from_slice(&der_len(len));
+    if needs_pad {
+        out.push(0x00);
+    }
+    out.extend_from_slice(payload);
+    out
+}
+
+fn der_len(n: usize) -> Vec<u8> {
+    if n < 0x80 {
+        return vec![n as u8];
+    }
+    let mut bytes = Vec::new();
+    let mut v = n;
+    while v > 0 {
+        bytes.insert(0, (v & 0xff) as u8);
+        v >>= 8;
+    }
+    let mut out = Vec::with_capacity(1 + bytes.len());
+    out.push(0x80 | bytes.len() as u8);
+    out.extend_from_slice(&bytes);
+    out
 }

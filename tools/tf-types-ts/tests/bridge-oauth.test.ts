@@ -131,6 +131,64 @@ describe("OAuth bridge — real JWT verification", () => {
     await expect(bridge.verifyToken(token)).rejects.toThrow(BridgeFailure);
   });
 
+  test("ES256 verification ships the real EC point in identity.public_keys", async () => {
+    const { privateKey, jwk } = await makeKeySet("ES256");
+    const bridge = new OAuthBridge({
+      bridgeId: "tf-oauth",
+      trustDomain: "example.com",
+      jwks: { keys: [jwk] } as any,
+      allowedAlgorithms: ["ES256"],
+      issuer: "https://issuer.example.com/",
+      audience: "trustforge",
+    });
+    const token = await mintToken(privateKey, "ES256", jwk.kid!, "user", "");
+    const result = await bridge.verifyToken(token);
+    const pk = result.identity.public_keys[0]!;
+    expect(pk.algorithm).toBe("p256");
+    // Real SEC1 uncompressed point starts with 0x04 and is 65 bytes (1+32+32)
+    const buf = Buffer.from(pk.public_key, "base64");
+    expect(buf.length).toBe(65);
+    expect(buf[0]).toBe(0x04);
+    expect(pk.public_key).not.toBe("AA==");
+  });
+
+  test("EdDSA verification ships the real Ed25519 32-byte key", async () => {
+    const { privateKey, jwk } = await makeKeySet("EdDSA");
+    const bridge = new OAuthBridge({
+      bridgeId: "tf-oauth",
+      trustDomain: "example.com",
+      jwks: { keys: [jwk] } as any,
+      allowedAlgorithms: ["EdDSA"],
+      issuer: "https://issuer.example.com/",
+      audience: "trustforge",
+    });
+    const token = await mintToken(privateKey, "EdDSA", jwk.kid!, "user", "");
+    const result = await bridge.verifyToken(token);
+    const pk = result.identity.public_keys[0]!;
+    expect(pk.algorithm).toBe("ed25519");
+    expect(Buffer.from(pk.public_key, "base64").length).toBe(32);
+  });
+
+  test("RS256 verification ships an SPKI DER for the RSA public key", async () => {
+    const { privateKey, jwk } = await makeKeySet("RS256");
+    const bridge = new OAuthBridge({
+      bridgeId: "tf-oauth",
+      trustDomain: "example.com",
+      jwks: { keys: [jwk] } as any,
+      allowedAlgorithms: ["RS256"],
+      issuer: "https://issuer.example.com/",
+      audience: "trustforge",
+    });
+    const token = await mintToken(privateKey, "RS256", jwk.kid!, "user", "");
+    const result = await bridge.verifyToken(token);
+    const pk = result.identity.public_keys[0]!;
+    expect(pk.algorithm).toBe("rsa");
+    // Should start with the SubjectPublicKeyInfo SEQUENCE tag (0x30)
+    const buf = Buffer.from(pk.public_key, "base64");
+    expect(buf[0]).toBe(0x30);
+    expect(buf.length).toBeGreaterThan(64); // 2048-bit modulus is ≥ 256 bytes
+  });
+
   test("rejects expired tokens", async () => {
     const { privateKey, jwk } = await makeKeySet("ES256");
     const bridge = new OAuthBridge({

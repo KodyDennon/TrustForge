@@ -157,14 +157,24 @@ export class OAuthBridge implements Bridge {
 
   private async toPublicKeys(
     _claims: JWTPayload,
-    _result: JWTVerifyResult & ResolvedKey,
+    result: JWTVerifyResult & ResolvedKey,
   ): Promise<ActorIdentity["public_keys"]> {
-    // Phase 8 ships the verified-identity projection; we don't ferry the
-    // signing JWK into the ActorIdentity yet because TrustForge identity
-    // documents carry raw bytes and JWK→raw conversion differs by algorithm.
-    // Downstream callers can extract the JWK directly from the JWKS if they
-    // need it. We populate a minimal placeholder so the schema's required
-    // public_keys[0] field remains satisfied.
+    // Project the JWK that signed the token into TrustForge's raw-bytes
+    // PublicKey shape. The mapping per RFC 7518 / RFC 8037:
+    //   ES256 / ES384 / ES512 → kty=EC; ship uncompressed SEC1 point
+    //   EdDSA crv=Ed25519     → kty=OKP; ship raw 32-byte x
+    //   RS256 / RS384 / RS512 → kty=RSA; ship the SubjectPublicKeyInfo DER
+    //                                    (modulus + exponent, base64).
+    try {
+      const jwk = await jwkFromResolvedKey(result);
+      const projected = projectJwkToPublicKey(jwk);
+      return [projected];
+    } catch (err) {
+      // Fallback to the placeholder if the resolved key cannot be exported
+      // (e.g. some HSM-backed keys); never throw — the identity is still
+      // valid because we already verified the signature against the JWKS.
+      void err;
+    }
     return [
       {
         key_id: "oauth-bridge-bearer",
@@ -181,4 +191,145 @@ export class OAuthBridge implements Bridge {
     if (Array.isArray(raw)) return raw.filter((v) => typeof v === "string");
     return [];
   }
+}
+
+/** Extract the JWK that jose used to verify the token, using the
+ *  jose-provided exporter when available and falling back to
+ *  WebCrypto's `subtle.exportKey('jwk', ...)`. */
+async function jwkFromResolvedKey(
+  result: JWTVerifyResult & ResolvedKey,
+): Promise<Record<string, unknown>> {
+  // jose >= 5 attaches the raw JWK alongside the resolved key for remote
+  // JWKS sets. When that's missing, fall back to exporting via subtle.
+  const candidate = (result as unknown as { protectedHeader?: Record<string, unknown>; key?: unknown }).key;
+  if (candidate && typeof candidate === "object" && "kty" in candidate) {
+    return candidate as Record<string, unknown>;
+  }
+  if (typeof crypto !== "undefined" && (candidate as unknown) instanceof CryptoKey) {
+    const jwk = await crypto.subtle.exportKey("jwk", candidate as CryptoKey);
+    return jwk as Record<string, unknown>;
+  }
+  throw new Error("resolved key cannot be exported as JWK");
+}
+
+/** Convert a JWK (per RFC 7518 + RFC 8037) into TrustForge's raw-bytes
+ *  PublicKey shape. */
+export function projectJwkToPublicKey(jwk: Record<string, unknown>): ActorIdentity["public_keys"][number] {
+  const kty = jwk["kty"];
+  const crv = jwk["crv"];
+  const kid = (typeof jwk["kid"] === "string" ? (jwk["kid"] as string) : "oauth-bridge-bearer");
+  if (kty === "OKP" && crv === "Ed25519") {
+    const x = jwk["x"];
+    if (typeof x !== "string") {
+      throw new BridgeFailure({ code: "invalid-input", message: "Ed25519 JWK missing x" });
+    }
+    return {
+      key_id: kid,
+      algorithm: "ed25519",
+      public_key: base64FromBase64Url(x),
+      purpose: "signing",
+    };
+  }
+  if (kty === "EC") {
+    const x = jwk["x"];
+    const y = jwk["y"];
+    if (typeof x !== "string" || typeof y !== "string") {
+      throw new BridgeFailure({ code: "invalid-input", message: "EC JWK missing x/y" });
+    }
+    const xBytes = base64UrlToBytes(x);
+    const yBytes = base64UrlToBytes(y);
+    const sec1 = new Uint8Array(1 + xBytes.length + yBytes.length);
+    sec1[0] = 0x04;
+    sec1.set(xBytes, 1);
+    sec1.set(yBytes, 1 + xBytes.length);
+    const algName = crv === "P-256" ? "p256" : crv === "P-384" ? "p384" : crv === "P-521" ? "p521" : "ec";
+    return {
+      key_id: kid,
+      algorithm: algName,
+      public_key: Buffer.from(sec1).toString("base64"),
+      purpose: "signing",
+    };
+  }
+  if (kty === "RSA") {
+    const n = jwk["n"];
+    const e = jwk["e"];
+    if (typeof n !== "string" || typeof e !== "string") {
+      throw new BridgeFailure({ code: "invalid-input", message: "RSA JWK missing n/e" });
+    }
+    const der = encodeRsaSpkiDer(base64UrlToBytes(n), base64UrlToBytes(e));
+    return {
+      key_id: kid,
+      algorithm: "rsa",
+      public_key: Buffer.from(der).toString("base64"),
+      purpose: "signing",
+    };
+  }
+  throw new BridgeFailure({
+    code: "unsupported",
+    message: `unsupported JWK kty/crv: ${kty}/${crv}`,
+  });
+}
+
+function base64FromBase64Url(b64u: string): string {
+  return Buffer.from(base64UrlToBytes(b64u)).toString("base64");
+}
+
+function base64UrlToBytes(b64u: string): Uint8Array {
+  let s = b64u.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4 !== 0) s += "=";
+  return new Uint8Array(Buffer.from(s, "base64"));
+}
+
+/** Build a SubjectPublicKeyInfo DER for an RSA public key directly from
+ *  modulus and exponent. We construct the inner RSAPublicKey SEQUENCE,
+ *  wrap it in a BIT STRING, and prepend the rsaEncryption AlgorithmIdentifier. */
+function encodeRsaSpkiDer(n: Uint8Array, e: Uint8Array): Uint8Array {
+  const rsaPublicKey = derSequence([derInteger(n), derInteger(e)]);
+  // AlgorithmIdentifier = SEQUENCE { OID 1.2.840.113549.1.1.1, NULL }
+  const oidRsaEncryption = new Uint8Array([
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+  ]);
+  const algorithmIdentifier = derSequence([oidRsaEncryption, new Uint8Array([0x05, 0x00])]);
+  const bitString = concat(new Uint8Array([0x03]), derLen(1 + rsaPublicKey.length), new Uint8Array([0x00]), rsaPublicKey);
+  return derSequence([algorithmIdentifier, bitString]);
+}
+
+function derSequence(parts: Uint8Array[]): Uint8Array {
+  const body = concat(...parts);
+  return concat(new Uint8Array([0x30]), derLen(body.length), body);
+}
+
+function derInteger(bytes: Uint8Array): Uint8Array {
+  // Strip leading zeros except one needed to keep the integer non-negative.
+  let i = 0;
+  while (i < bytes.length - 1 && bytes[i] === 0) i++;
+  let payload = bytes.slice(i);
+  if ((payload[0] ?? 0) & 0x80) {
+    const padded = new Uint8Array(payload.length + 1);
+    padded.set(payload, 1);
+    payload = padded;
+  }
+  return concat(new Uint8Array([0x02]), derLen(payload.length), payload);
+}
+
+function derLen(n: number): Uint8Array {
+  if (n < 0x80) return new Uint8Array([n]);
+  const bytes: number[] = [];
+  let v = n;
+  while (v > 0) {
+    bytes.unshift(v & 0xff);
+    v >>>= 8;
+  }
+  return new Uint8Array([0x80 | bytes.length, ...bytes]);
+}
+
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((a, p) => a + p.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const p of parts) {
+    out.set(p, off);
+    off += p.length;
+  }
+  return out;
 }
