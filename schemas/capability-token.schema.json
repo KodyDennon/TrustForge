@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/capability-token.schema.json",
+  "title": "TrustForge Capability Token",
+  "description": "Serialized capability grant carried across actors (TF-0004).",
+  "type": "object",
+  "required": ["token_version", "id", "issuer", "subject", "capability", "issued_at", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "token_version": {
+      "description": "Version of the capability-token schema itself.",
+      "enum": ["1"]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable token identifier, usable by revocations."
+    },
+    "issuer": {
+      "description": "Actor that issued the grant.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "subject": {
+      "description": "Actor the grant is issued to.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "capability": {
+      "description": "Granted capability.",
+      "$ref": "_common.schema.json#/$defs/Capability"
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Additional constraints attached on top of those inside `capability`.",
+      "items": { "$ref": "_common.schema.json#/$defs/Constraint" }
+    },
+    "chain": {
+      "type": "array",
+      "description": "Delegation chain leading to this grant, root at index 0.",
+      "items": { "$ref": "_common.schema.json#/$defs/DelegationLink" }
+    },
+    "issued_at": {
+      "description": "When the token was issued.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "expires_at": {
+      "description": "When the token expires.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "proof_ref": {
+      "description": "Optional hash reference to a proof event recording issuance.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this token (not verified in the foundation phase).",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  }
+}

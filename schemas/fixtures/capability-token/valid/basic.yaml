@@ -1,0 +1,25 @@
+token_version: "1"
+id: tok-2026-04-24-001
+issuer: "tf:actor:organization:example.com"
+subject: "tf:actor:agent:example.com/code-helper"
+capability:
+  name: file.write
+  risk: R2
+  proof_required: L2
+  approval: conditional
+  delegable: false
+  revocable: true
+  expires_at: "2026-05-24T00:00:00Z"
+constraints:
+  - kind: target
+    patterns: ["src/**"]
+  - kind: rate
+    max_per_window: 20
+    window_seconds: 60
+issued_at: "2026-04-24T12:00:00Z"
+expires_at: "2026-05-24T00:00:00Z"
+proof_ref: "sha256:9f2b5c1e7a4d6f8b0e1c3d5a7b9c2e4f6a8b0c1d3e5f7a9b0c2d4e6f8a0b2c4d"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "dGVzdC1zaWduYXR1cmUtYnl0ZXM="

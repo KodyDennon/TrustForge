@@ -1,0 +1,3 @@
+errors:
+  - path: "/issued_at"
+    keyword: pattern

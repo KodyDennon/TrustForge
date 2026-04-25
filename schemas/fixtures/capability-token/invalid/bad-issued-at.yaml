@@ -1,0 +1,12 @@
+token_version: "1"
+id: tok-1
+issuer: "tf:actor:organization:example.com"
+subject: "tf:actor:agent:example.com/a"
+capability:
+  name: file.read
+  risk: R0
+issued_at: "2026-04-24T12:00:00"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "AAAA"
