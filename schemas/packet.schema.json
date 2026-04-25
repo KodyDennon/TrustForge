@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/packet.schema.json",
+  "title": "TrustForge Packet",
+  "description": "Standalone signed/encrypted object that may be delivered offline, relayed, stored, or transferred and verified later. Implements TF-0011 packet mode: packet priority, expiration, route constraints, fragmentation, emergency packets.",
+  "type": "object",
+  "required": [
+    "packet_version",
+    "packet_id",
+    "source",
+    "destination",
+    "priority",
+    "created_at",
+    "payload",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "packet_version": {
+      "enum": ["1"],
+      "description": "Version of the packet schema itself."
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable packet identifier; used for de-duplication, fragmentation reassembly, and audit lookup."
+    },
+    "source": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Originating actor."
+    },
+    "destination": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Final destination actor."
+    },
+    "priority": {
+      "enum": ["P0", "P1", "P2", "P3", "P4", "P5"],
+      "description": "Packet priority class. P0 is reserved for emergency / break-glass and is policy-controlled."
+    },
+    "emergency": {
+      "type": "boolean",
+      "description": "When true, the packet is invoking break-glass emergency authority. Must be scoped, logged, and reviewable per TF-0011."
+    },
+    "created_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "expires_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "ttl_hops": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum number of relay hops the packet may traverse."
+    },
+    "route_constraints": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Optional ordered/unordered hints (\"only-trusted-relays\", \"avoid:internet\", ...)."
+    },
+    "encoding": {
+      "enum": ["json", "cbor"],
+      "description": "Wire encoding of the payload bytes."
+    },
+    "compression": {
+      "enum": ["none", "deflate"],
+      "description": "Optional payload compression."
+    },
+    "payload": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Base64-encoded canonical payload bytes (the body the source signed)."
+    },
+    "session_ref": {
+      "type": "string",
+      "description": "Optional session identifier this packet relates to."
+    },
+    "fragment": {
+      "$ref": "packet-fragment.schema.json",
+      "description": "Set when the packet is itself a fragment of a larger packet."
+    },
+    "signature": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" }
+  }
+}

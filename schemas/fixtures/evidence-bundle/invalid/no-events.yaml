@@ -1,0 +1,15 @@
+evidence_version: "1"
+bundle_id: x
+trust_domain: example.com
+incident:
+  label: "x"
+  started_at: "2026-04-24T12:00:00Z"
+events: []
+policy_decisions: []
+approvals: []
+issued_at: "2026-04-24T12:00:00Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

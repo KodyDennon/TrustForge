@@ -83,6 +83,10 @@ jobs:
           bun test tools/tf-types-ts/tests/hybrid-pq.test.ts
           bun test tools/tf-types-ts/tests/session-migration.test.ts
           bun test tools/tf-types-ts/tests/relay.test.ts
+      - name: sprint-4 sweep (packet + evidence)
+        run: |
+          bun test tools/tf-types-ts/tests/packet.test.ts
+          bun test tools/tf-types-ts/tests/evidence.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

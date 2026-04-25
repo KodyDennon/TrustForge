@@ -1,0 +1,73 @@
+evidence_version: "1"
+bundle_id: incident-2026-04-24-001
+trust_domain: example.com
+incident:
+  label: "scheduled firmware rollout, gateway 7"
+  started_at: "2026-04-24T12:00:00Z"
+  ended_at: "2026-04-24T12:45:00Z"
+  domains: [device-management, firmware-control]
+  description: "Approved firmware push to gateway 7. Quorum approval; L4 evidence sealed for legal."
+actors:
+  - tf:actor:agent:example.com/code-helper
+  - tf:actor:human:example.com/alice
+  - tf:actor:human:example.com/bob
+events:
+  - event_version: "1"
+    id: ev-1
+    type: rpc.call
+    actor_id: tf:actor:agent:example.com/code-helper
+    timestamp: "2026-04-24T12:01:00Z"
+    level: L3
+    signature:
+      algorithm: ed25519
+      signer: tf:actor:agent:example.com/code-helper
+      signature: "AAAA"
+  - event_version: "1"
+    id: ev-2
+    type: approval.approve
+    actor_id: tf:actor:human:example.com/alice
+    timestamp: "2026-04-24T12:05:00Z"
+    level: L3
+    signature:
+      algorithm: ed25519
+      signer: tf:actor:human:example.com/alice
+      signature: "AAAA"
+policy_decisions:
+  - decision_version: "1"
+    policy_engine: native
+    trust_domain: example.com
+    subject: tf:actor:agent:example.com/code-helper
+    action: firmware.install
+    decision: escalate
+    evaluated_at: "2026-04-24T12:00:30Z"
+approvals:
+  - response_version: "1"
+    request_id: req-1
+    decision: approve
+    responder: tf:actor:human:example.com/alice
+    signed_at: "2026-04-24T12:05:00Z"
+    signature:
+      algorithm: ed25519
+      signer: tf:actor:human:example.com/alice
+      signature: "AAAA"
+quorum_outcomes:
+  - request_id: req-1
+    min_approvers: 2
+    of:
+      - tf:actor:human:example.com/alice
+      - tf:actor:human:example.com/bob
+    approvers:
+      - tf:actor:human:example.com/alice
+      - tf:actor:human:example.com/bob
+    decision: approve
+anchors:
+  - kind: rfc3161
+    inclusion_proof:
+      timestamp_response: "(opaque DER)"
+level: L4
+issued_at: "2026-04-24T12:50:00Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

@@ -1,0 +1,3 @@
+errors:
+  - path: "/index"
+    keyword: minimum

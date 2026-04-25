@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/evidence-bundle.schema.json",
+  "title": "TrustForge Evidence Bundle",
+  "description": "Compliance / legal evidence bundle (TF-0012). Captures who acted, what authority they had, what policy allowed/denied the action, what approval was given, whether quorum was met, what proof was generated, when it happened, and whether the event chain is tamper-evident.",
+  "type": "object",
+  "required": [
+    "evidence_version",
+    "bundle_id",
+    "trust_domain",
+    "incident",
+    "events",
+    "policy_decisions",
+    "approvals",
+    "issued_at",
+    "issuer",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "evidence_version": {
+      "enum": ["1"],
+      "description": "Version of the evidence-bundle schema."
+    },
+    "bundle_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this evidence bundle."
+    },
+    "trust_domain": { "$ref": "_common.schema.json#/$defs/TrustDomain" },
+    "incident": {
+      "type": "object",
+      "description": "Incident the bundle is collecting evidence for.",
+      "required": ["label", "started_at"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable incident label."
+        },
+        "started_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+        "ended_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+        "domains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "msp",
+              "healthcare",
+              "finance",
+              "government",
+              "maritime",
+              "critical-infrastructure",
+              "remote-support",
+              "enterprise-ai",
+              "device-management",
+              "firmware-control"
+            ]
+          },
+          "description": "TF-0012 domain tags this evidence applies to."
+        },
+        "description": { "type": "string", "description": "Free-text incident description." }
+      }
+    },
+    "actors": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+      "description": "Distinct actors involved in this incident."
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "proof-event.schema.json" },
+      "description": "Proof events that constitute the audit trail. Order is the original hash-chain order."
+    },
+    "policy_decisions": {
+      "type": "array",
+      "items": { "$ref": "policy-decision.schema.json" },
+      "description": "Policy decisions consulted while the incident unfolded."
+    },
+    "approvals": {
+      "type": "array",
+      "items": { "$ref": "approval-response.schema.json" },
+      "description": "Approval responses captured during the incident."
+    },
+    "ceremonies": {
+      "type": "array",
+      "items": { "$ref": "approval-ceremony.schema.json" },
+      "description": "Ceremony records for each approval (so audits can see how each approval was collected)."
+    },
+    "quorum_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "min_approvers", "approvers"],
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "ApprovalRequest the quorum resolved."
+          },
+          "min_approvers": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of approvers required."
+          },
+          "of": {
+            "type": "array",
+            "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+            "description": "Eligible approver set."
+          },
+          "approvers": {
+            "type": "array",
+            "items": { "$ref": "_common.schema.json#/$defs/ActorId" },
+            "description": "Subset of `of` that signed approve."
+          },
+          "decision": {
+            "enum": ["approve", "deny"],
+            "description": "Final aggregated decision."
+          }
+        }
+      },
+      "description": "Quorum outcomes for any quorum-bound approval that resolved during the incident."
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "enum": ["rfc6962", "sigstore", "rfc3161", "memory", "custom"],
+            "description": "Anchor backend kind."
+          },
+          "url": {
+            "type": "string",
+            "description": "Endpoint URL the anchor was submitted to."
+          },
+          "inclusion_proof": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Backend-specific inclusion-proof blob."
+          }
+        }
+      },
+      "description": "Transparency-log / RFC 3161 anchors that strengthen this evidence."
+    },
+    "encrypted_payload": {
+      "$ref": "proof-bundle-encrypted.schema.json",
+      "description": "Optional L4 sealed evidence — the events array may be empty if the payload is sealed."
+    },
+    "level": {
+      "enum": ["L0", "L1", "L2", "L3", "L4", "L5"],
+      "description": "Highest proof level any single event in this bundle was emitted at."
+    },
+    "issued_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "issuer": { "$ref": "_common.schema.json#/$defs/ActorId" },
+    "signature": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" }
+  }
+}

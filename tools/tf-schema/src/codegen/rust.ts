@@ -47,12 +47,32 @@ export async function generateRust(): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   const models = allModels().sort((a, b) => a.schemaName.localeCompare(b.schemaName));
 
+  // First pass: figure out which generated type names cannot derive Eq
+  // (because they directly contain f32/f64 OR transitively reference
+  // another non-Eq type). Run to a fixed point.
+  const allDecls: TypeDecl[] = models.flatMap((m) => m.decls);
+  const noEq = new Set<string>();
+  for (const d of allDecls) {
+    if (declMentionsFloat(d)) noEq.add(d.name);
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const d of allDecls) {
+      if (noEq.has(d.name)) continue;
+      if (declReferencesAny(d, noEq)) {
+        noEq.add(d.name);
+        changed = true;
+      }
+    }
+  }
+
   for (const m of models) {
     const file = `${rustModuleName(m.schemaName)}.rs`;
     files[file] = HEADER + "use super::*;\n\n" + m.decls
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(emitDecl)
+      .map((d) => emitDecl(d, noEq))
       .join("\n\n") + "\n";
   }
 
@@ -64,7 +84,7 @@ export async function generateRust(): Promise<Record<string, string>> {
   return files;
 }
 
-function emitDecl(d: TypeDecl): string {
+function emitDecl(d: TypeDecl, noEq: Set<string>): string {
   const doc = docComment(d.description);
   if (d.kind === "enum") {
     const variants = d.enumValues.map((v) => {
@@ -81,7 +101,7 @@ function emitDecl(d: TypeDecl): string {
   }
   if (d.kind === "struct") {
     const fields = d.props.map((p: Prop) => emitField(p));
-    const eq = d.props.every((p: Prop) => isEqRustType(p.rustType));
+    const eq = !noEq.has(d.name);
     const derives = eq
       ? "Clone, Debug, PartialEq, Eq, Serialize, Deserialize"
       : "Clone, Debug, PartialEq, Serialize, Deserialize";
@@ -89,18 +109,41 @@ function emitDecl(d: TypeDecl): string {
   }
   // tagged-union
   const variants = d.variants.map((v: Variant) => emitVariant(v));
-  const eq = d.variants.every((v: Variant) =>
-    v.props.every((p: Prop) => isEqRustType(p.rustType)),
-  );
+  const eq = !noEq.has(d.name);
   const derives = eq
     ? "Clone, Debug, PartialEq, Eq, Serialize, Deserialize"
     : "Clone, Debug, PartialEq, Serialize, Deserialize";
   return `${doc}#[derive(${derives})]\n#[serde(tag = "kind")]\npub enum ${d.name} {\n${variants.join("\n")}\n}`;
 }
 
-/** Returns true iff a type can derive Eq. f32/f64 cannot. */
-function isEqRustType(rt: string): boolean {
-  return !/(\bf32\b|\bf64\b)/.test(rt);
+/** Returns true iff the rust type string contains a floating point. */
+function rustTypeContainsFloat(rt: string): boolean {
+  return /(\bf32\b|\bf64\b)/.test(rt);
+}
+
+/** Returns true iff the type string textually references any of the
+ *  banned type names (used for cross-decl Eq propagation). */
+function rustTypeMentions(rt: string, banned: Set<string>): boolean {
+  for (const name of banned) {
+    if (new RegExp(`(?<![A-Za-z0-9_])${name}(?![A-Za-z0-9_])`).test(rt)) return true;
+  }
+  return false;
+}
+
+function declMentionsFloat(d: TypeDecl): boolean {
+  if (d.kind === "struct") return d.props.some((p) => rustTypeContainsFloat(p.rustType));
+  if (d.kind === "alias") return rustTypeContainsFloat(d.rustType);
+  if (d.kind === "tagged-union")
+    return d.variants.some((v) => v.props.some((p) => rustTypeContainsFloat(p.rustType)));
+  return false;
+}
+
+function declReferencesAny(d: TypeDecl, banned: Set<string>): boolean {
+  if (d.kind === "struct") return d.props.some((p) => rustTypeMentions(p.rustType, banned));
+  if (d.kind === "alias") return rustTypeMentions(d.rustType, banned);
+  if (d.kind === "tagged-union")
+    return d.variants.some((v) => v.props.some((p) => rustTypeMentions(p.rustType, banned)));
+  return false;
 }
 
 function emitField(p: Prop): string {

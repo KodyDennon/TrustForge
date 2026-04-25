@@ -137,6 +137,39 @@ vectors:
   - schema: dangerous-actions
     fixture: schemas/fixtures/dangerous-actions/invalid/missing-actions.yaml
     expect: invalid
+  - schema: evidence-bundle
+    fixture: schemas/fixtures/evidence-bundle/valid/incident.yaml
+    expect: valid
+  - schema: evidence-bundle
+    fixture: schemas/fixtures/evidence-bundle/invalid/no-events.yaml
+    expect: invalid
+  - schema: offline-revocation-list
+    fixture: schemas/fixtures/offline-revocation-list/valid/sample.yaml
+    expect: valid
+  - schema: offline-revocation-list
+    fixture: schemas/fixtures/offline-revocation-list/invalid/no-issuer.yaml
+    expect: invalid
+  - schema: packet
+    fixture: schemas/fixtures/packet/valid/emergency-p0.yaml
+    expect: valid
+  - schema: packet
+    fixture: schemas/fixtures/packet/valid/simple.yaml
+    expect: valid
+  - schema: packet
+    fixture: schemas/fixtures/packet/invalid/no-priority.yaml
+    expect: invalid
+  - schema: packet-bundle
+    fixture: schemas/fixtures/packet-bundle/valid/airgap-pair.yaml
+    expect: valid
+  - schema: packet-bundle
+    fixture: schemas/fixtures/packet-bundle/invalid/empty-packets.yaml
+    expect: invalid
+  - schema: packet-fragment
+    fixture: schemas/fixtures/packet-fragment/valid/middle.yaml
+    expect: valid
+  - schema: packet-fragment
+    fixture: schemas/fixtures/packet-fragment/invalid/index-out-of-range.yaml
+    expect: invalid
   - schema: permission-grant
     fixture: schemas/fixtures/permission-grant/valid/allow.yaml
     expect: valid

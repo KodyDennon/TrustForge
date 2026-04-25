@@ -1,0 +1,33 @@
+bundle_version: "1"
+bundle_id: bundle-1
+label: "emergency invoke + post-event quorum review"
+transport_hint: usb
+created_at: "2026-04-24T12:30:00Z"
+packets:
+  - packet_version: "1"
+    packet_id: pkt-emergency-7f3a
+    source: tf:actor:human:example.com/alice
+    destination: tf:actor:service:example.com/tf-daemon
+    priority: P0
+    emergency: true
+    created_at: "2026-04-24T12:00:00Z"
+    payload: "ZW1lcmdlbmN5"
+    signature:
+      algorithm: ed25519
+      signer: tf:actor:human:example.com/alice
+      signature: "AAAA"
+  - packet_version: "1"
+    packet_id: pkt-quorum-review
+    source: tf:actor:human:example.com/bob
+    destination: tf:actor:service:example.com/tf-daemon
+    priority: P3
+    created_at: "2026-04-24T12:25:00Z"
+    payload: "cmV2aWV3"
+    signature:
+      algorithm: ed25519
+      signer: tf:actor:human:example.com/bob
+      signature: "AAAA"
+signature:
+  algorithm: ed25519
+  signer: tf:actor:human:example.com/alice
+  signature: "AAAA"

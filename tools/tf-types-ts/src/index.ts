@@ -13,6 +13,8 @@ export * from "./core/format.js";
 export * from "./core/session.js";
 export * from "./core/session-migration.js";
 export * from "./core/relay.js";
+export * from "./core/packet.js";
+export * from "./core/evidence.js";
 export * from "./core/rpc.js";
 export * from "./core/guard.js";
 export * from "./core/expiration.js";

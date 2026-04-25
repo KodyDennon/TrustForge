@@ -1,0 +1,9 @@
+list_version: "1"
+trust_domain: example.com
+issued_at: "2026-04-24T12:00:00Z"
+valid_until: "2026-04-25T12:00:00Z"
+revoked: []
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

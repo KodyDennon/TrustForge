@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/packet-fragment.schema.json",
+  "title": "TrustForge Packet Fragment",
+  "description": "Fragmentation header attached to a Packet when its payload is too large for the underlying transport (LoRa MTU, BLE characteristic size, etc.). Fragments are reassembled by their destination using `fragment_id` + `index` + `count`.",
+  "type": "object",
+  "required": ["fragment_id", "index", "count", "total_payload_bytes", "payload_digest"],
+  "additionalProperties": false,
+  "properties": {
+    "fragment_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier shared by every fragment that belongs to the same logical packet."
+    },
+    "index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based index of this fragment within the sequence."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of fragments in the sequence."
+    },
+    "total_payload_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Size of the reassembled payload in bytes; reassembly fails if the assembled output differs."
+    },
+    "payload_digest": {
+      "$ref": "_common.schema.json#/$defs/HashRef",
+      "description": "Hash of the reassembled canonical payload; consumers MUST verify this after reassembly."
+    }
+  }
+}

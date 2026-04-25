@@ -30,6 +30,30 @@
         "typescript": "^5.6.3",
       },
     },
+    "tools/tf-evidence": {
+      "name": "tf-evidence",
+      "version": "0.0.0",
+      "dependencies": {
+        "tf-types": "workspace:*",
+        "yaml": "^2.6.0",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.9",
+        "typescript": "^5.6.3",
+      },
+    },
+    "tools/tf-packet": {
+      "name": "tf-packet",
+      "version": "0.0.0",
+      "dependencies": {
+        "tf-types": "workspace:*",
+        "yaml": "^2.6.0",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.9",
+        "typescript": "^5.6.3",
+      },
+    },
     "tools/tf-proof": {
       "name": "tf-proof",
       "version": "0.0.0",
@@ -185,6 +209,10 @@
     "tf-cli": ["tf-cli@workspace:tools/tf-cli"],
 
     "tf-daemon": ["tf-daemon@workspace:tools/tf-daemon"],
+
+    "tf-evidence": ["tf-evidence@workspace:tools/tf-evidence"],
+
+    "tf-packet": ["tf-packet@workspace:tools/tf-packet"],
 
     "tf-proof": ["tf-proof@workspace:tools/tf-proof"],
 

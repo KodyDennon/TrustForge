@@ -1,0 +1,5 @@
+fragment_id: frag-1
+index: 1
+count: 4
+total_payload_bytes: 2048
+payload_digest: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

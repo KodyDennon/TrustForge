@@ -1,0 +1,3 @@
+errors:
+  - path: "/events"
+    keyword: minItems

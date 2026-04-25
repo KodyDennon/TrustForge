@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/offline-revocation-list.schema.json",
+  "title": "TrustForge Offline Revocation List",
+  "description": "Bounded-validity revocation list distributed for offline / constrained deployments (TF-0011 \"offline revocation limits\"). Verifiers refuse to honour packets whose authority appears in this list, but the list itself expires so a stale list cannot be used forever.",
+  "type": "object",
+  "required": [
+    "list_version",
+    "trust_domain",
+    "issued_at",
+    "valid_until",
+    "issuer",
+    "revoked",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "list_version": { "enum": ["1"], "description": "Version of the offline-revocation-list schema." },
+    "trust_domain": { "$ref": "_common.schema.json#/$defs/TrustDomain" },
+    "issued_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "valid_until": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "issuer": { "$ref": "_common.schema.json#/$defs/ActorId" },
+    "revoked": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RevokedEntry" },
+      "description": "Entries listed in this offline revocation list."
+    },
+    "signature": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" }
+  },
+  "$defs": {
+    "RevokedEntry": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["actor", "instance", "capability", "delegation", "key"], "description": "What is being revoked." },
+        "id": { "type": "string", "minLength": 1, "description": "Stable identifier of the revoked object." },
+        "reason": { "type": "string", "description": "Free-text reason." },
+        "revoked_at": { "$ref": "_common.schema.json#/$defs/Timestamp" }
+      }
+    }
+  }
+}

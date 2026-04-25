@@ -1,0 +1,7 @@
+bundle_version: "1"
+bundle_id: empty
+packets: []
+signature:
+  algorithm: ed25519
+  signer: tf:actor:human:example.com/alice
+  signature: "AAAA"
