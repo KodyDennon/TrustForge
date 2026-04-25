@@ -5,7 +5,9 @@
  *   entry.ciphertext = ChaCha20Poly1305(wrap_key, nonce, aad=id||purpose||algorithm, key_bytes)
  */
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, openSync, closeSync, writeFileSync, writeSync, fsyncSync, renameSync, readFileSync } from "node:fs";
+import { dirname, resolve as resolvePath } from "node:path";
+import { canonicalize } from "./canonical.js";
 import { argon2id } from "@noble/hashes/argon2";
 import {
   b64decode,
@@ -62,8 +64,18 @@ export class Vault {
   ) {}
 
   static async createAtPath(path: string, passphrase: string, opts: VaultOptions = {}): Promise<Vault> {
+    // O_CREAT | O_EXCL — refuse to clobber an existing vault.
+    let fd: number;
+    try {
+      fd = openSync(path, "wx", 0o600);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+        throw new VaultError(`vault already exists at ${path}`);
+      }
+      throw err;
+    }
     const salt = opts.salt ?? crypto.getRandomValues(new Uint8Array(16));
-    const m_cost = opts.m_cost ?? 19456; // 19 MiB — argon2id reference recommendation
+    const m_cost = opts.m_cost ?? 19456;
     const t_cost = opts.t_cost ?? 2;
     const p_cost = opts.p_cost ?? 1;
     const wrapKey = deriveKey(passphrase, salt, m_cost, t_cost, p_cost);
@@ -79,7 +91,10 @@ export class Vault {
       cipher: { algorithm: "chacha20poly1305" },
       entries: [],
     };
-    writeFileSync(path, JSON.stringify(data, null, 2) + "\n", { mode: 0o600 });
+    const buf = Buffer.from(JSON.stringify(data, null, 2) + "\n", "utf8");
+    writeSync(fd, buf, 0, buf.length, 0);
+    fsyncSync(fd);
+    closeSync(fd);
     return new Vault(path, wrapKey, data);
   }
 
@@ -155,12 +170,32 @@ export class Vault {
   }
 
   private persist(): void {
-    writeFileSync(this.path, JSON.stringify(this.data, null, 2) + "\n", { mode: 0o600 });
+    // Atomic: write to a temp sibling then rename. A crash mid-write
+    // leaves the original vault intact instead of replacing it with a
+    // truncated file.
+    const dir = dirname(resolvePath(this.path));
+    const tmp = `${this.path}.tmp.${Date.now().toString(36)}.${Math.floor(Math.random() * 1_000_000).toString(36)}`;
+    const buf = Buffer.from(JSON.stringify(this.data, null, 2) + "\n", "utf8");
+    const fd = openSync(tmp, "w", 0o600);
+    try {
+      writeSync(fd, buf, 0, buf.length, 0);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(tmp, this.path);
+    void dir;
   }
 }
 
+/** Canonical AAD for a vault entry: the canonical-JSON encoding of
+ *  `[id, purpose, algorithm]`. Pre-B7 the AAD was JSON.stringify which
+ *  varies (escaping, key order in object form) across runtimes; using
+ *  canonicalize makes the AAD bytes byte-identical to Rust's
+ *  serde_json output for ASCII inputs AND ensures NFC-normalized
+ *  Unicode is handled the same way. */
 function aadFor(id: string, purpose: string, algorithm: string): Uint8Array {
-  return utf8encode(JSON.stringify([id, purpose, algorithm]));
+  return utf8encode(canonicalize([id, purpose, algorithm]));
 }
 
 function deriveKey(

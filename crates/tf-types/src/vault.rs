@@ -118,6 +118,12 @@ impl Vault {
         passphrase: &str,
         opts: &VaultCreateOptions,
     ) -> Result<Self, VaultError> {
+        if path.exists() {
+            return Err(VaultError::Io(format!(
+                "vault already exists at {}",
+                path.display()
+            )));
+        }
         let mut salt = [0u8; 16];
         match opts.salt {
             Some(s) => salt = s,
@@ -261,7 +267,17 @@ impl Vault {
 }
 
 fn aad_for(id: &str, purpose: &str, algorithm: &str) -> Vec<u8> {
-    serde_json::to_vec(&(id, purpose, algorithm)).expect("serialize aad triple")
+    // Canonical-JSON AAD so TS and Rust produce byte-identical
+    // associated data even when id/purpose/algorithm contain non-ASCII
+    // (NFC normalization, sorted-by-bytes for any object form).
+    let value = serde_json::Value::Array(vec![
+        serde_json::Value::String(id.to_string()),
+        serde_json::Value::String(purpose.to_string()),
+        serde_json::Value::String(algorithm.to_string()),
+    ]);
+    crate::canonical::canonicalize(&value)
+        .expect("canonicalize aad triple")
+        .into_bytes()
 }
 
 fn derive_key(
@@ -284,23 +300,38 @@ fn derive_key(
 fn persist(path: &Path, data: &OnDiskVault) -> Result<(), VaultError> {
     let text = serde_json::to_string_pretty(data).map_err(|e| VaultError::Parse(e.to_string()))?;
     let final_text = format!("{}\n", text);
-    #[cfg(unix)]
+    use std::io::Write;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    // Write to a temp sibling, fsync, then rename. Crash-safe: a partial
+    // write never replaces the original vault.
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp = path.with_extension(format!("tmp.{}", nanos));
     {
-        use std::os::unix::fs::OpenOptionsExt;
+        #[cfg(unix)]
+        let mut file = {
+            use std::os::unix::fs::OpenOptionsExt;
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&tmp)
+                .map_err(|e| VaultError::Io(e.to_string()))?
+        };
+        #[cfg(not(unix))]
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .mode(0o600)
-            .open(path)
+            .open(&tmp)
             .map_err(|e| VaultError::Io(e.to_string()))?;
-        use std::io::Write;
         file.write_all(final_text.as_bytes())
             .map_err(|e| VaultError::Io(e.to_string()))?;
+        file.sync_all().map_err(|e| VaultError::Io(e.to_string()))?;
     }
-    #[cfg(not(unix))]
-    {
-        fs::write(path, final_text).map_err(|e| VaultError::Io(e.to_string()))?;
-    }
+    fs::rename(&tmp, path).map_err(|e| VaultError::Io(e.to_string()))?;
     Ok(())
 }
