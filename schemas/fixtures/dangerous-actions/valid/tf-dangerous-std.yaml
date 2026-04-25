@@ -1,7 +1,33 @@
+# Canonical TrustForge dangerous-actions catalog. Kept in sync with
+# schemas/fixtures/dangerous-actions/valid/tf-dangerous-std.yaml.
+#
+# This is the v0.1.0 standard set called for in DECISIONS.md
+# "Standard action schemas" — every action listed there plus the
+# adjacent ones referenced in TF-0011 (emergency / packet) and TF-0008
+# (plugin lifecycle). Applications are free to define their own
+# actions; the catalog exists so that "delete a file" or "send a
+# payment" mean the same thing across implementations.
 dangerous_actions_version: "1"
 catalog_id: tf-dangerous-std
-description: "Standard catalog of dangerous actions shipped with TrustForge."
+description: "Standard catalog of dangerous actions shipped with TrustForge v0.1.0."
 actions:
+  # ---- file system ----------------------------------------------------------
+  - name: file.read
+    danger_tags: [privacy]
+    mandatory_tags: [privacy]
+    default_risk: R2
+    default_approval: conditional
+    default_reversible: true
+    description: "Read a file from the working tree. Privacy-sensitive when paths cover user data."
+
+  - name: file.write
+    danger_tags: [destructive, privacy]
+    mandatory_tags: [destructive]
+    default_risk: R3
+    default_approval: required
+    default_reversible: false
+    description: "Write or overwrite a file on disk. May destroy prior content; not automatically reversible."
+
   - name: file.delete
     danger_tags: [destructive, irreversible]
     mandatory_tags: [irreversible]
@@ -10,6 +36,7 @@ actions:
     default_reversible: false
     description: "Remove a file from the working tree. Irreversible without VCS recovery."
 
+  # ---- process / shell ------------------------------------------------------
   - name: shell.exec
     danger_tags: [destructive, external-network, security-sensitive]
     mandatory_tags: [security-sensitive]
@@ -18,6 +45,24 @@ actions:
     default_reversible: false
     description: "Execute an arbitrary shell command."
 
+  # ---- network --------------------------------------------------------------
+  - name: network.connect
+    danger_tags: [external-network, security-sensitive]
+    mandatory_tags: [external-network]
+    default_risk: R3
+    default_approval: required
+    default_reversible: true
+    description: "Open an outbound network connection. May exfiltrate data."
+
+  - name: email.send
+    danger_tags: [external-network, legal-exposure, privacy]
+    mandatory_tags: [external-network]
+    default_risk: R3
+    default_approval: required
+    default_reversible: false
+    description: "Send email on the operator's behalf. External communication; legally meaningful."
+
+  # ---- secrets / credentials -----------------------------------------------
   - name: secret.read
     danger_tags: [privacy, security-sensitive]
     mandatory_tags: [security-sensitive]
@@ -26,6 +71,48 @@ actions:
     default_reversible: true
     description: "Read a secret from a secret store. Leaves an audit trail."
 
+  - name: secret.write
+    danger_tags: [security-sensitive, irreversible]
+    mandatory_tags: [security-sensitive]
+    default_risk: R4
+    default_approval: required
+    default_reversible: false
+    description: "Mutate a secret in the secret store. Irreversible without backup."
+
+  - name: key.sign
+    danger_tags: [security-sensitive, legal-exposure]
+    mandatory_tags: [security-sensitive]
+    default_risk: R4
+    default_approval: required
+    default_reversible: false
+    description: "Produce a cryptographic signature with a long-lived key. Equivalent to issuing authority."
+
+  # ---- data / records -------------------------------------------------------
+  - name: database.query
+    danger_tags: [privacy]
+    mandatory_tags: [privacy]
+    default_risk: R2
+    default_approval: conditional
+    default_reversible: true
+    description: "Run a database query. Read-side; privacy-sensitive when touching PII tables."
+
+  - name: record.view
+    danger_tags: [privacy]
+    mandatory_tags: [privacy]
+    default_risk: R2
+    default_approval: conditional
+    default_reversible: true
+    description: "View a record in a system of record. Privacy-sensitive when records contain PII or PHI."
+
+  - name: record.modify
+    danger_tags: [destructive, privacy, legal-exposure]
+    mandatory_tags: [destructive]
+    default_risk: R3
+    default_approval: required
+    default_reversible: false
+    description: "Modify a record in a system of record. May affect downstream contracts or legal artefacts."
+
+  # ---- payments / financial -------------------------------------------------
   - name: payment.charge
     danger_tags: [financial, external-network, legal-exposure]
     mandatory_tags: [financial]
@@ -33,3 +120,121 @@ actions:
     default_approval: quorum
     default_reversible: false
     description: "Charge a payment instrument. Legal and financial consequences."
+
+  - name: payment.initiate
+    danger_tags: [financial, external-network, legal-exposure]
+    mandatory_tags: [financial]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Initiate a payment to an external payee. Financial and legal consequences."
+
+  # ---- device / firmware ----------------------------------------------------
+  - name: device.config.update
+    danger_tags: [destructive, security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R4
+    default_approval: required
+    default_reversible: false
+    description: "Mutate a device's persistent configuration. May lock operators out or change posture."
+
+  - name: device.reset
+    danger_tags: [destructive, irreversible]
+    mandatory_tags: [irreversible]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Reset a device to factory state. Irreversible without re-provisioning."
+
+  - name: firmware.install
+    danger_tags: [destructive, irreversible, security-sensitive, legal-exposure]
+    mandatory_tags: [irreversible]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Install or replace device firmware. Irreversible, may brick the device."
+
+  # ---- account / identity lifecycle ----------------------------------------
+  - name: account.create
+    danger_tags: [security-sensitive, legal-exposure]
+    mandatory_tags: [security-sensitive]
+    default_risk: R3
+    default_approval: required
+    default_reversible: true
+    description: "Provision a new account. Creates persistent authority; subject to onboarding policy."
+
+  - name: account.delete
+    danger_tags: [destructive, irreversible, legal-exposure]
+    mandatory_tags: [irreversible]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Delete an account and revoke its authority. Irreversible; may break audit chains."
+
+  # ---- AI / model -----------------------------------------------------------
+  - name: model.invoke
+    danger_tags: [external-network, high-compute, privacy]
+    mandatory_tags: [external-network]
+    default_risk: R3
+    default_approval: conditional
+    default_reversible: true
+    description: "Invoke an AI model. May leak prompts; may cost money; may produce unsafe output."
+
+  - name: agent.delegate
+    danger_tags: [security-sensitive, legal-exposure]
+    mandatory_tags: [security-sensitive]
+    default_risk: R4
+    default_approval: required
+    default_reversible: true
+    description: "Delegate authority to a sub-agent. Creates a downstream chain of responsibility."
+
+  # ---- TrustForge protocol primitives --------------------------------------
+  - name: relay.forward
+    danger_tags: [security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R2
+    default_approval: conditional
+    default_reversible: true
+    description: "Forward a TrustForge packet on behalf of another actor. Forwarding authority ≠ action authority."
+
+  - name: proof.anchor
+    danger_tags: [legal-exposure, external-network]
+    mandatory_tags: [legal-exposure]
+    default_risk: R3
+    default_approval: required
+    default_reversible: false
+    description: "Submit a proof bundle to a transparency log or timestamp authority. Becomes externally observable."
+
+  - name: session.migrate
+    danger_tags: [security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R3
+    default_approval: required
+    default_reversible: true
+    description: "Move a TrustForge session between transports while preserving session lineage."
+
+  - name: approval.request
+    danger_tags: [security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R2
+    default_approval: conditional
+    default_reversible: true
+    description: "Submit a request for human approval. Visible to humans; never silent."
+
+  # ---- emergency / break-glass ---------------------------------------------
+  - name: emergency.invoke
+    danger_tags: [destructive, irreversible, legal-exposure, security-sensitive]
+    mandatory_tags: [legal-exposure]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Invoke break-glass authority. Must be scoped, logged, and reviewable per TF-0011."
+
+  # ---- kernel / privileged --------------------------------------------------
+  - name: kernel.module.load
+    danger_tags: [destructive, security-sensitive, irreversible]
+    mandatory_tags: [security-sensitive]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Load a kernel module. Privileged code execution; can subvert the host."

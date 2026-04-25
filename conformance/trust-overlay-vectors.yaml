@@ -1,0 +1,143 @@
+# Trust-overlay parity vectors. Both `composeTrustLevel` (TS) and
+# `compose_trust_level` (Rust) must produce the listed `level` for the
+# (identity, posture) input.
+
+vectors:
+  - name: bare-identity-keeps-base
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u1"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T2]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture: {}
+    level: T2
+
+  - name: hardware-backed-floor-is-T4
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u2"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T2]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      hardware_backed: true
+    level: T4
+
+  - name: quorum-of-2-raises-to-T5
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u3"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T3]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      quorum_approvers_at_least: 2
+    level: T5
+
+  - name: publicly-anchored-floor-is-T6
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:agent:example.com/a1"
+      actor_type: "agent"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T1]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      publicly_anchored: true
+    level: T6
+
+  - name: compliance-attested-pins-T7
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:service:example.com/s1"
+      actor_type: "service"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T3]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      compliance_attested: true
+    level: T7
+
+  - name: revocation-collapses-to-T0
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u4"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T7]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      recently_revoked: true
+    level: T0
+
+  - name: stale-verification-collapses-to-T0
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u5"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T4]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      recent_verification_seconds: 100000
+      stale_after_seconds: 3600
+    level: T0
+
+  - name: untrusted-relay-path-soft-caps-down-by-one
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u6"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T4]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      untrusted_relay_path: true
+    level: T3
+
+  - name: proof-level-L4-raises-to-T6
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u7"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T2]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture:
+      proof_level_achieved: L4
+    level: T6
+
+  - name: highest-of-multiple-base-levels-wins
+    identity:
+      identity_version: "1"
+      actor_id: "tf:actor:human:example.com/u8"
+      actor_type: "human"
+      public_keys:
+        - { key_id: k, algorithm: ed25519, public_key: "AA==", purpose: signing }
+      trust_levels: [T1, T3, T2]
+      authority_roots: [{ kind: organization, id: example.com }]
+      valid_from: "2026-01-01T00:00:00Z"
+    posture: {}
+    level: T3

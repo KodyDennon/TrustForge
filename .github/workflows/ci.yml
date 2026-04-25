@@ -61,6 +61,12 @@ jobs:
           bun test tools/tf-types-ts/tests/bridge-oauth.test.ts
           bun test tools/tf-types-ts/tests/bridge-tls.test.ts
           bun test tools/tf-types-ts/tests/webauthn-attestation.test.ts
+          bun test tools/tf-types-ts/tests/bridge-parity-vectors.test.ts
+      - name: policy + posture overlays smoke test
+        run: |
+          bun test tools/tf-types-ts/tests/negative-capability.test.ts
+          bun test tools/tf-types-ts/tests/continuous-reauth.test.ts
+          bun test tools/tf-types-ts/tests/trust-overlay.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

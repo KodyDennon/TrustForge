@@ -21,6 +21,7 @@ actions:
     proof: L0
     approval: none
     reversible: true
+    danger_tags: [privacy]
     description: "Read a file from the working tree."
     allow_targets: ["@source", "@tests"]
     deny_targets: ["@secrets"]
@@ -36,7 +37,7 @@ actions:
     proof: L2
     approval: conditional
     reversible: false
-    danger_tags: [destructive]
+    danger_tags: [destructive, privacy]
     reversal_note: "Recoverable via git checkout if committed."
     description: "Modify a file in the working tree."
     allow_targets: ["@source"]
