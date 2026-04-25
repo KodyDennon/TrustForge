@@ -34,7 +34,10 @@ export class RpcCallError extends Error {
 export type RpcFrame =
   | { kind: "rpc-call"; call_id: string; method: string; request: unknown }
   | { kind: "rpc-response"; call_id: string; status: "ok" | "error"; response?: unknown; error?: RpcError }
-  | { kind: "rpc-stream"; call_id: string; seq: number; more: boolean; value?: unknown; error?: RpcError };
+  | { kind: "rpc-stream"; call_id: string; seq: number; more: boolean; value?: unknown; error?: RpcError }
+  /** Client → server stream message used by client-streaming, bidi, command-channel,
+   *  bulk-transfer, telemetry, remote-shell, agent-session method kinds. */
+  | { kind: "rpc-client-stream"; call_id: string; seq: number; more: boolean; value?: unknown; error?: RpcError };
 
 export interface RpcProofEventStub {
   type: "rpc.call";
@@ -83,7 +86,13 @@ function encodeRpc(frame: RpcFrame): SessionFrame {
 function decodeRpc(frame: SessionFrame): RpcFrame | null {
   if (frame.kind !== "data" || !frame.payload || typeof frame.payload !== "object") return null;
   const p = frame.payload as RpcFrame;
-  if (p.kind === "rpc-call" || p.kind === "rpc-response" || p.kind === "rpc-stream") return p;
+  if (
+    p.kind === "rpc-call" ||
+    p.kind === "rpc-response" ||
+    p.kind === "rpc-stream" ||
+    p.kind === "rpc-client-stream"
+  )
+    return p;
   return null;
 }
 
@@ -126,6 +135,143 @@ export class RpcClient {
       });
       this.transport.send(encodeRpc(frame));
     });
+  }
+
+  /** Client-streaming: client emits N requests, server returns 1 response. */
+  async clientStream<Req, Res>(
+    method: string,
+    requests: AsyncIterable<Req>,
+    initial?: Req,
+  ): Promise<Res> {
+    const call_id = newCallId();
+    return new Promise<Res>((resolve, reject) => {
+      this.pending.set(call_id, {
+        kind: "unary",
+        resolve: (v) => resolve(v as Res),
+        reject,
+      });
+      this.transport.send(encodeRpc({ kind: "rpc-call", call_id, method, request: initial ?? null }));
+      void (async () => {
+        let seq = 0;
+        try {
+          for await (const r of requests) {
+            this.transport.send(
+              encodeRpc({ kind: "rpc-client-stream", call_id, seq, more: true, value: r }),
+            );
+            seq += 1;
+          }
+          this.transport.send(
+            encodeRpc({ kind: "rpc-client-stream", call_id, seq, more: false }),
+          );
+        } catch (err) {
+          this.transport.send(
+            encodeRpc({
+              kind: "rpc-client-stream",
+              call_id,
+              seq,
+              more: false,
+              error: { code: "internal", message: (err as Error).message },
+            }),
+          );
+        }
+      })();
+    });
+  }
+
+  /** Bidi-streaming: each side emits N messages independently. The
+   *  returned iterable yields server-side values; the supplied
+   *  AsyncIterable feeds the client-side messages. */
+  bidiStream<Req, Res>(
+    method: string,
+    requests: AsyncIterable<Req>,
+    initial?: Req,
+  ): AsyncIterable<Res> {
+    const call_id = newCallId();
+    const queue: Res[] = [];
+    const awaiters: ((v: IteratorResult<Res>) => void)[] = [];
+    let done = false;
+    let error: RpcCallError | null = null;
+    const pending: PendingStream = {
+      kind: "stream",
+      nextSeq: 0,
+      push: (v) => {
+        const typed = v as Res;
+        if (awaiters.length > 0) awaiters.shift()!({ value: typed, done: false });
+        else queue.push(typed);
+      },
+      done: () => {
+        done = true;
+        while (awaiters.length > 0) awaiters.shift()!({ value: undefined as unknown as Res, done: true });
+      },
+      fail: (err) => {
+        error = err;
+        done = true;
+        while (awaiters.length > 0) awaiters.shift()!({ value: undefined as unknown as Res, done: true });
+      },
+    };
+    this.pending.set(call_id, pending);
+    this.transport.send(encodeRpc({ kind: "rpc-call", call_id, method, request: initial ?? null }));
+    // Pump client side.
+    void (async () => {
+      let seq = 0;
+      try {
+        for await (const r of requests) {
+          this.transport.send(
+            encodeRpc({ kind: "rpc-client-stream", call_id, seq, more: true, value: r }),
+          );
+          seq += 1;
+        }
+        this.transport.send(
+          encodeRpc({ kind: "rpc-client-stream", call_id, seq, more: false }),
+        );
+      } catch (err) {
+        this.transport.send(
+          encodeRpc({
+            kind: "rpc-client-stream",
+            call_id,
+            seq,
+            more: false,
+            error: { code: "internal", message: (err as Error).message },
+          }),
+        );
+      }
+    })();
+    const self = this;
+    return {
+      [Symbol.asyncIterator]() {
+        return {
+          async next(): Promise<IteratorResult<Res>> {
+            if (error) throw error;
+            if (queue.length > 0) return { value: queue.shift()!, done: false };
+            if (done) {
+              self.pending.delete(call_id);
+              return { value: undefined as unknown as Res, done: true };
+            }
+            const next: IteratorResult<Res> = await new Promise((resolve) => awaiters.push(resolve));
+            if (next.done) {
+              if (error) throw error;
+              self.pending.delete(call_id);
+            }
+            return next;
+          },
+          return: async (): Promise<IteratorResult<Res>> => {
+            self.pending.delete(call_id);
+            return { value: undefined as unknown as Res, done: true };
+          },
+        };
+      },
+    };
+  }
+
+  /** Subscribe is a server-streaming variant whose first message is the
+   *  subscription request and whose subsequent messages are events. */
+  subscribe<Req, V>(method: string, request: Req): AsyncIterable<V> {
+    return this.serverStream<Req, V>(method, request);
+  }
+
+  /** Telemetry — push-only client-streaming with no aggregated response. */
+  async telemetry<Req>(method: string, frames: AsyncIterable<Req>): Promise<void> {
+    await this.clientStream<Req, unknown>(method, frames);
   }
 
   async *serverStream<Req, V>(method: string, request: Req): AsyncIterable<V> {
@@ -248,6 +394,23 @@ export type ServerStreamHandler<Req = unknown, V = unknown> = (
   ctx: RpcContext,
 ) => AsyncIterable<V>;
 
+/** Client-streaming handler: receives an AsyncIterable of client
+ *  messages plus the initial request, returns a single aggregated response. */
+export type ClientStreamHandler<Req = unknown, Res = unknown> = (
+  initial: unknown,
+  messages: AsyncIterable<Req>,
+  ctx: RpcContext,
+) => Promise<Res> | Res;
+
+/** Bidi-streaming handler: receives an AsyncIterable of client messages
+ *  plus the initial request and returns an AsyncIterable of server
+ *  messages. The runtime guarantees independent flow control. */
+export type BidiStreamHandler<Req = unknown, Res = unknown> = (
+  initial: unknown,
+  messages: AsyncIterable<Req>,
+  ctx: RpcContext,
+) => AsyncIterable<Res>;
+
 export interface RpcContext {
   callerActor: string;
   method: string;
@@ -256,13 +419,23 @@ export interface RpcContext {
 
 type Handler =
   | { kind: "unary"; capability: string; handler: UnaryHandler }
-  | { kind: "server-streaming"; capability: string; handler: ServerStreamHandler };
+  | { kind: "server-streaming"; capability: string; handler: ServerStreamHandler }
+  | { kind: "client-streaming"; capability: string; handler: ClientStreamHandler }
+  | { kind: "bidi-streaming"; capability: string; handler: BidiStreamHandler };
 
 interface InflightCall {
   method: string;
   capability: string;
   seq: number;
   cancel: () => void;
+  /** Optional client-stream queue for client-streaming / bidi calls. */
+  clientStream?: ClientStreamQueue;
+}
+
+interface ClientStreamQueue {
+  push(value: unknown): void;
+  done(): void;
+  fail(err: RpcError): void;
 }
 
 export interface RpcServerOptions {
@@ -364,9 +537,54 @@ export class RpcServer {
     });
   }
 
+  registerClientStream<Req, Res>(method: string, capability: string, handler: ClientStreamHandler<Req, Res>): void {
+    this.handlers.set(method, {
+      kind: "client-streaming",
+      capability,
+      handler: handler as ClientStreamHandler,
+    });
+  }
+
+  registerBidiStream<Req, Res>(method: string, capability: string, handler: BidiStreamHandler<Req, Res>): void {
+    this.handlers.set(method, {
+      kind: "bidi-streaming",
+      capability,
+      handler: handler as BidiStreamHandler,
+    });
+  }
+
+  /** Subscribe is a server-streaming method with explicit subscribe semantics. */
+  registerSubscribe<Req, V>(method: string, capability: string, handler: ServerStreamHandler<Req, V>): void {
+    this.registerServerStream(method, capability, handler);
+  }
+
+  /** Telemetry is a client-streaming method that aggregates frames into
+   *  a void response. */
+  registerTelemetry<Req>(
+    method: string,
+    capability: string,
+    handler: (initial: unknown, frames: AsyncIterable<Req>, ctx: RpcContext) => Promise<void> | void,
+  ): void {
+    this.registerClientStream<Req, null>(method, capability, async (initial, frames, ctx) => {
+      await handler(initial, frames, ctx);
+      return null;
+    });
+  }
+
   private async onFrame(sessionFrame: SessionFrame): Promise<void> {
     const rpc = decodeRpc(sessionFrame);
-    if (!rpc || rpc.kind !== "rpc-call") return;
+    if (!rpc) return;
+
+    // Route incoming client-stream messages to the matching in-flight call.
+    if (rpc.kind === "rpc-client-stream") {
+      const call = this.inflight.get(rpc.call_id);
+      if (!call?.clientStream) return;
+      if (rpc.error) call.clientStream.fail(rpc.error);
+      else if (rpc.more) call.clientStream.push(rpc.value);
+      else call.clientStream.done();
+      return;
+    }
+    if (rpc.kind !== "rpc-call") return;
 
     const caller = this.opts.callerActor ?? "tf:actor:process:local/anonymous";
     const ctx: RpcContext = {
@@ -391,7 +609,7 @@ export class RpcServer {
         rpc.call_id,
         { code: "internal", message: `capability enforcer threw: ${message}` },
         ctx,
-        registered.kind === "server-streaming",
+        registered.kind === "server-streaming" || registered.kind === "bidi-streaming",
       );
       return;
     }
@@ -400,7 +618,7 @@ export class RpcServer {
         rpc.call_id,
         { code: "permission_denied", message: decision.deny },
         ctx,
-        registered.kind === "server-streaming",
+        registered.kind === "server-streaming" || registered.kind === "bidi-streaming",
       );
       return;
     }
@@ -415,6 +633,115 @@ export class RpcServer {
       } catch (err) {
         const message = (err as Error).message ?? String(err);
         this.sendError(rpc.call_id, { code: "internal", message }, ctx, false);
+      }
+      return;
+    }
+
+    if (registered.kind === "client-streaming" || registered.kind === "bidi-streaming") {
+      // Build an AsyncIterable<unknown> the handler consumes.
+      const queue: unknown[] = [];
+      const awaiters: Array<(v: IteratorResult<unknown>) => void> = [];
+      let streamDone = false;
+      let streamError: RpcError | null = null;
+      const cs: ClientStreamQueue = {
+        push: (v) => {
+          if (awaiters.length > 0) awaiters.shift()!({ value: v, done: false });
+          else queue.push(v);
+        },
+        done: () => {
+          streamDone = true;
+          while (awaiters.length > 0)
+            awaiters.shift()!({ value: undefined, done: true });
+        },
+        fail: (err) => {
+          streamError = err;
+          streamDone = true;
+          while (awaiters.length > 0)
+            awaiters.shift()!({ value: undefined, done: true });
+        },
+      };
+      const iter: AsyncIterable<unknown> = {
+        [Symbol.asyncIterator]() {
+          return {
+            async next(): Promise<IteratorResult<unknown>> {
+              if (streamError) throw new RpcCallError(streamError);
+              if (queue.length > 0) return { value: queue.shift(), done: false };
+              if (streamDone) return { value: undefined, done: true };
+              return new Promise((resolve) => awaiters.push(resolve));
+            },
+          };
+        },
+      };
+      const inflight: InflightCall = {
+        method: rpc.method,
+        capability: registered.capability,
+        seq: 0,
+        cancel: () => {
+          streamDone = true;
+        },
+        clientStream: cs,
+      };
+      this.inflight.set(rpc.call_id, inflight);
+      if (registered.kind === "client-streaming") {
+        try {
+          const res = await registered.handler(rpc.request, iter, ctx);
+          this.transport.send(
+            encodeRpc({ kind: "rpc-response", call_id: rpc.call_id, status: "ok", response: res }),
+          );
+          this.opts.onProofEvent?.({ type: "rpc.call", call_id: rpc.call_id, method: rpc.method, caller, result: "ok" });
+        } catch (err) {
+          const message = (err as Error).message ?? String(err);
+          this.sendError(rpc.call_id, { code: "internal", message }, ctx, false);
+        } finally {
+          this.inflight.delete(rpc.call_id);
+        }
+        return;
+      }
+      // bidi-streaming
+      let seq = 0;
+      let cancelled = false;
+      inflight.cancel = () => {
+        cancelled = true;
+        streamDone = true;
+      };
+      try {
+        for await (const value of registered.handler(rpc.request, iter, ctx)) {
+          if (cancelled) break;
+          this.transport.send(
+            encodeRpc({ kind: "rpc-stream", call_id: rpc.call_id, seq, more: true, value }),
+          );
+          seq += 1;
+          inflight.seq = seq;
+        }
+        if (!cancelled) {
+          this.transport.send(
+            encodeRpc({ kind: "rpc-stream", call_id: rpc.call_id, seq, more: false }),
+          );
+          this.opts.onProofEvent?.({ type: "rpc.call", call_id: rpc.call_id, method: rpc.method, caller, result: "ok" });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = (err as Error).message ?? String(err);
+          this.transport.send(
+            encodeRpc({
+              kind: "rpc-stream",
+              call_id: rpc.call_id,
+              seq,
+              more: false,
+              error: { code: "internal", message },
+            }),
+          );
+          this.opts.onProofEvent?.({
+            type: "rpc.call",
+            call_id: rpc.call_id,
+            method: rpc.method,
+            caller,
+            result: "error",
+            error_code: "internal",
+          });
+        }
+      } finally {
+        this.inflight.delete(rpc.call_id);
       }
       return;
     }

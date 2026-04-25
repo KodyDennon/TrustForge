@@ -33,12 +33,31 @@ import { sha256 } from "@noble/hashes/sha2";
 export const SESSION_VERSION = 0;
 export const SESSION_SUITE = "x25519-hkdf-sha256-chacha20poly1305-ed25519";
 
+/** Suite identifiers a peer can offer. The default classical suite is
+ *  always supported; the hybrid variant adds an ML-DSA signature alongside
+ *  ed25519 so the handshake survives a future quantum break of either. */
+export const SESSION_SUITE_HYBRID_ED25519_MLDSA65 =
+  "x25519-hkdf-sha256-chacha20poly1305-ed25519+ml-dsa-65";
+
+/** All suites the runtime knows how to honour. Order is preference. */
+export const KNOWN_SESSION_SUITES = [
+  SESSION_SUITE,
+  SESSION_SUITE_HYBRID_ED25519_MLDSA65,
+] as const;
+
+export type SessionSuite = (typeof KNOWN_SESSION_SUITES)[number];
+
 export class SessionError extends Error {}
 
 export interface HelloI {
   kind: "hello-i";
   version: number;
+  /** Selected suite (must be present in `supported_suites`). */
   suite: string;
+  /** Suite preference list. Earlier entries are preferred. The default
+   *  classical suite is always implicit so existing peers continue to
+   *  interoperate. */
+  supported_suites?: string[];
   session_id: string; // base64, 16 bytes
   peer_hint: string;
   eph_pub: string; // base64, 32 bytes
@@ -70,6 +89,12 @@ export interface SessionConfig {
   peerHint?: string;
   identityPriv: Uint8Array;
   identityPub: Uint8Array;
+  /** Preferred session suite. Default: SESSION_SUITE. The handshake
+   *  advertises this and `supportedSuites` to the peer. */
+  preferredSuite?: SessionSuite;
+  /** Suite list the initiator is willing to fall back to. Defaults to
+   *  `KNOWN_SESSION_SUITES`. */
+  supportedSuites?: SessionSuite[];
   // Test-only: deterministic ephemeral / session_id.
   ephSeed?: Uint8Array;
   sessionIdSeed?: Uint8Array;
@@ -95,10 +120,14 @@ export class Initiator {
     const sessionIdBytes = this.cfg.sessionIdSeed ?? crypto.getRandomValues(new Uint8Array(16));
     if (sessionIdBytes.length !== 16) throw new SessionError("session_id must be 16 bytes");
     this.ephPriv = eph.privateKey;
+    const preferred = (this.cfg.preferredSuite ?? SESSION_SUITE) as SessionSuite;
+    const supported = this.cfg.supportedSuites ?? Array.from(KNOWN_SESSION_SUITES);
+    if (!supported.includes(preferred)) supported.unshift(preferred);
     this.helloI = {
       kind: "hello-i",
       version: SESSION_VERSION,
-      suite: SESSION_SUITE,
+      suite: preferred,
+      supported_suites: supported,
       session_id: b64encode(sessionIdBytes),
       peer_hint: this.cfg.peerHint ?? "",
       eph_pub: b64encode(eph.publicKey),
@@ -172,7 +201,9 @@ export class Responder {
   async processHelloI(msg: HelloI): Promise<HelloR> {
     if (this.state !== "fresh") throw new SessionError("responder already engaged");
     if (msg.version !== SESSION_VERSION) throw new SessionError(`unsupported version ${msg.version}`);
-    if (msg.suite !== SESSION_SUITE) throw new SessionError(`unsupported suite ${msg.suite}`);
+    if (!(KNOWN_SESSION_SUITES as readonly string[]).includes(msg.suite)) {
+      throw new SessionError(`unsupported suite ${msg.suite}`);
+    }
     const sessionIdBytes = b64decode(msg.session_id);
     if (sessionIdBytes.length !== 16) throw new SessionError("session_id must be 16 bytes");
 

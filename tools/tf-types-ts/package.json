@@ -17,6 +17,7 @@
     "@noble/curves": "^1.6.0",
     "@noble/ed25519": "^2.2.3",
     "@noble/hashes": "^1.8.0",
+    "@noble/post-quantum": "^0.6.1",
     "@peculiar/asn1-schema": "^2.3.13",
     "@peculiar/asn1-x509": "^2.3.13",
     "cbor-x": "^1.6.0",

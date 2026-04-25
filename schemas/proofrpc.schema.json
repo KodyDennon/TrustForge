@@ -40,8 +40,19 @@
           "description": "Method name, camelCase or snake_case, starts with a lowercase letter."
         },
         "kind": {
-          "enum": ["unary", "server-streaming"],
-          "description": "Streaming mode. Unary is one request, one response. Server-streaming is one request, zero or more responses."
+          "enum": [
+            "unary",
+            "server-streaming",
+            "client-streaming",
+            "bidi-streaming",
+            "subscribe",
+            "command-channel",
+            "bulk-transfer",
+            "telemetry",
+            "remote-shell",
+            "agent-session"
+          ],
+          "description": "Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility."
         },
         "description": {
           "type": "string",
@@ -72,6 +83,24 @@
         "approval": {
           "description": "Approval requirement for invocations; defaults to none.",
           "$ref": "_common.schema.json#/$defs/ApprovalRequirement"
+        },
+        "policy_hooks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Names of policy hooks the daemon must consult before this method runs."
+        },
+        "denial": {
+          "type": "string",
+          "description": "Optional human-readable denial reason if the method is forbidden in this trust domain."
+        },
+        "streaming_priority": {
+          "enum": ["P0", "P1", "P2", "P3", "P4", "P5"],
+          "description": "Priority class for streaming methods (TF-0011)."
+        },
+        "conformance_tests": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Conformance vector files this method participates in."
         }
       }
     }

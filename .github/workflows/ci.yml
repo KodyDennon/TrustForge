@@ -77,6 +77,12 @@ jobs:
           bun test tools/tf-types-ts/tests/bundle.test.ts
           bun test tools/tf-types-ts/tests/tf-manifests.test.ts
           bun test tools/tf-daemon/tests/manifests.test.ts
+      - name: sprint-3 sweep (protocol depth)
+        run: |
+          bun test tools/tf-types-ts/tests/rpc-kinds.test.ts
+          bun test tools/tf-types-ts/tests/hybrid-pq.test.ts
+          bun test tools/tf-types-ts/tests/session-migration.test.ts
+          bun test tools/tf-types-ts/tests/relay.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

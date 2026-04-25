@@ -1,0 +1,10 @@
+relay_authority_version: "1"
+relay: tf:actor:relay:example.com/edge-relay-1
+trust_domain: example.com
+kinds: []
+valid_from: "2026-04-24T12:00:00Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

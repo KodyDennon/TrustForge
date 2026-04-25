@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/session-migration.schema.json",
+  "title": "TrustForge Session Migration",
+  "description": "Signed record describing a TrustForge session being moved between transports while preserving session_id, generation, and trust continuity (TF-0003 \"session migration\").",
+  "type": "object",
+  "required": [
+    "migration_version",
+    "session_id",
+    "generation",
+    "from_binding",
+    "to_binding",
+    "migrated_at",
+    "signer",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "migration_version": {
+      "enum": ["1"],
+      "description": "Version of the session-migration schema itself."
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The session id that survives the migration. Must equal the pre-migration session id."
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Migration counter. Increases by 1 per migration; lets receivers detect replays."
+    },
+    "from_binding": { "$ref": "transport-binding.schema.json" },
+    "to_binding": { "$ref": "transport-binding.schema.json" },
+    "preserved_capabilities": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/Capability" },
+      "description": "Capabilities the migration explicitly preserves."
+    },
+    "rotated_keys": {
+      "type": "boolean",
+      "description": "Whether the session keys were rotated as part of the migration."
+    },
+    "migrated_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable reason (transport upgrade, network change, peer reconnect, ...)."
+    },
+    "signer": { "$ref": "_common.schema.json#/$defs/ActorId" },
+    "signature": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" }
+  }
+}

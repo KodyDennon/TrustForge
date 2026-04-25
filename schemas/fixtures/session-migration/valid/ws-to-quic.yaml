@@ -1,0 +1,21 @@
+migration_version: "1"
+session_id: "AAECAwQFBgcICQoLDA0ODw=="
+generation: 1
+from_binding:
+  binding_version: "1"
+  kind: websocket
+  endpoint: "wss://daemon.example.com/tf"
+  established_at: "2026-04-24T12:00:00Z"
+to_binding:
+  binding_version: "1"
+  kind: quic
+  endpoint: "quic://daemon.example.com:7443"
+  established_at: "2026-04-24T12:05:00Z"
+rotated_keys: true
+migrated_at: "2026-04-24T12:05:00Z"
+reason: "client roamed to a faster network; upgrade to QUIC"
+signer: tf:actor:agent:example.com/code-helper
+signature:
+  algorithm: ed25519
+  signer: tf:actor:agent:example.com/code-helper
+  signature: "AAAA"

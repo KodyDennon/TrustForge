@@ -199,3 +199,109 @@ export function chacha20poly1305Decrypt(
     throw new AeadError(`aead authentication failed: ${(e as Error).message}`);
   }
 }
+
+// ---------- ML-DSA (post-quantum signatures) -----------------------------
+
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa.js";
+
+export type MlDsaSuite = "ml-dsa-44" | "ml-dsa-65" | "ml-dsa-87";
+
+export interface MlDsaKeyPair {
+  /** Private (secret) key bytes. Length depends on suite. */
+  readonly privateKey: Uint8Array;
+  /** Public key bytes. Length depends on suite. */
+  readonly publicKey: Uint8Array;
+}
+
+function mldsa(suite: MlDsaSuite) {
+  switch (suite) {
+    case "ml-dsa-44":
+      return ml_dsa44;
+    case "ml-dsa-65":
+      return ml_dsa65;
+    case "ml-dsa-87":
+      return ml_dsa87;
+  }
+}
+
+/** Generate an ML-DSA key pair from a 32-byte seed (or fresh randomness). */
+export function mldsaGenerate(suite: MlDsaSuite, seed?: Uint8Array): MlDsaKeyPair {
+  const seedBytes = seed ?? crypto.getRandomValues(new Uint8Array(32));
+  if (seedBytes.length !== 32) {
+    throw new CryptoError(`ml-dsa seed must be 32 bytes, got ${seedBytes.length}`);
+  }
+  const k = mldsa(suite).keygen(seedBytes);
+  return { privateKey: k.secretKey, publicKey: k.publicKey };
+}
+
+/** Sign a message with ML-DSA. */
+export function mldsaSign(suite: MlDsaSuite, privateKey: Uint8Array, message: Uint8Array): Uint8Array {
+  return mldsa(suite).sign(message, privateKey);
+}
+
+/** Verify an ML-DSA signature. Returns false on any failure mode. */
+export function mldsaVerify(
+  suite: MlDsaSuite,
+  publicKey: Uint8Array,
+  message: Uint8Array,
+  signature: Uint8Array,
+): boolean {
+  try {
+    return mldsa(suite).verify(signature, message, publicKey);
+  } catch {
+    return false;
+  }
+}
+
+// ---------- Hybrid signing -----------------------------------------------
+
+export interface HybridSignature {
+  algorithm: "ed25519";
+  signature: Uint8Array;
+  alt_algorithm: MlDsaSuite;
+  alt_signature: Uint8Array;
+}
+
+export interface HybridKeyPair {
+  classical: Ed25519KeyPair;
+  pq: MlDsaKeyPair;
+  pqSuite: MlDsaSuite;
+}
+
+/** Generate a hybrid (Ed25519 + ML-DSA) key pair. */
+export async function hybridGenerate(suite: MlDsaSuite = "ml-dsa-65"): Promise<HybridKeyPair> {
+  const classical = await ed25519Generate();
+  const pq = mldsaGenerate(suite);
+  return { classical, pq, pqSuite: suite };
+}
+
+/** Produce a hybrid signature: ed25519 sig + ML-DSA sig over the same message.
+ *  Both must verify before the envelope is accepted (`hybridVerify`). */
+export async function hybridSign(
+  pair: HybridKeyPair,
+  message: Uint8Array,
+): Promise<HybridSignature> {
+  const sig = await ed25519Sign(message, pair.classical.privateKey);
+  const altSig = mldsaSign(pair.pqSuite, pair.pq.privateKey, message);
+  return {
+    algorithm: "ed25519",
+    signature: sig,
+    alt_algorithm: pair.pqSuite,
+    alt_signature: altSig,
+  };
+}
+
+/** Verify a hybrid signature. Both classical AND post-quantum sigs must
+ *  validate; either alone is insufficient. */
+export async function hybridVerify(
+  classicalPub: Uint8Array,
+  pqPub: Uint8Array,
+  pqSuite: MlDsaSuite,
+  message: Uint8Array,
+  hybrid: HybridSignature,
+): Promise<boolean> {
+  const ok1 = await ed25519Verify(classicalPub, message, hybrid.signature);
+  if (!ok1) return false;
+  if (hybrid.alt_algorithm !== pqSuite) return false;
+  return mldsaVerify(pqSuite, pqPub, message, hybrid.alt_signature);
+}

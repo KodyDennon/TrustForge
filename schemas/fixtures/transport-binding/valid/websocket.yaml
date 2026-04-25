@@ -1,0 +1,4 @@
+binding_version: "1"
+kind: websocket
+endpoint: "wss://daemon.example.com/tf"
+established_at: "2026-04-24T12:00:00Z"

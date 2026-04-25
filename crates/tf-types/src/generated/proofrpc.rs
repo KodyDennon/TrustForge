@@ -10,7 +10,7 @@ use super::*;
 pub struct Method {
     /// Method name, camelCase or snake_case, starts with a lowercase letter.
     pub name: String,
-    /// Streaming mode. Unary is one request, one response. Server-streaming is one request, zero or more responses.
+    /// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility.
     pub kind: Method_Kind,
     /// What this method does.
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -29,15 +29,60 @@ pub struct Method {
     /// Approval requirement for invocations; defaults to none.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub approval: Option<ApprovalRequirement>,
+    /// Names of policy hooks the daemon must consult before this method runs.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub policy_hooks: Option<Vec<String>>,
+    /// Optional human-readable denial reason if the method is forbidden in this trust domain.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub denial: Option<String>,
+    /// Priority class for streaming methods (TF-0011).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub streaming_priority: Option<Method_StreamingPriority>,
+    /// Conformance vector files this method participates in.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub conformance_tests: Option<Vec<String>>,
 }
 
-/// Streaming mode. Unary is one request, one response. Server-streaming is one request, zero or more responses.
+/// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Method_Kind {
     #[serde(rename = "unary")]
     Unary,
     #[serde(rename = "server-streaming")]
     ServerStreaming,
+    #[serde(rename = "client-streaming")]
+    ClientStreaming,
+    #[serde(rename = "bidi-streaming")]
+    BidiStreaming,
+    #[serde(rename = "subscribe")]
+    Subscribe,
+    #[serde(rename = "command-channel")]
+    CommandChannel,
+    #[serde(rename = "bulk-transfer")]
+    BulkTransfer,
+    #[serde(rename = "telemetry")]
+    Telemetry,
+    #[serde(rename = "remote-shell")]
+    RemoteShell,
+    #[serde(rename = "agent-session")]
+    AgentSession,
+}
+
+/// Priority class for streaming methods (TF-0011).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Method_StreamingPriority {
+    #[serde(rename = "P0")]
+    P0,
+    #[serde(rename = "P1")]
+    P1,
+    #[serde(rename = "P2")]
+    P2,
+    #[serde(rename = "P3")]
+    P3,
+    #[serde(rename = "P4")]
+    P4,
+    #[serde(rename = "P5")]
+    P5,
 }
 
 /// Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust. See TF-0007.

@@ -242,6 +242,15 @@ vectors:
   - schema: proofrpc
     fixture: schemas/fixtures/proofrpc/invalid/missing-methods.yaml
     expect: invalid
+  - schema: relay-authority
+    fixture: schemas/fixtures/relay-authority/valid/forward-only.yaml
+    expect: valid
+  - schema: relay-authority
+    fixture: schemas/fixtures/relay-authority/valid/lora-store-and-forward.yaml
+    expect: valid
+  - schema: relay-authority
+    fixture: schemas/fixtures/relay-authority/invalid/empty-kinds.yaml
+    expect: invalid
   - schema: revocation
     fixture: schemas/fixtures/revocation/valid/basic.yaml
     expect: valid
@@ -254,6 +263,12 @@ vectors:
   - schema: revocation
     fixture: schemas/fixtures/revocation/invalid/missing-target-kind.yaml
     expect: invalid
+  - schema: session-migration
+    fixture: schemas/fixtures/session-migration/valid/ws-to-quic.yaml
+    expect: valid
+  - schema: session-migration
+    fixture: schemas/fixtures/session-migration/invalid/no-generation.yaml
+    expect: invalid
   - schema: threat-model
     fixture: schemas/fixtures/threat-model/valid/basic.yaml
     expect: valid
@@ -265,6 +280,15 @@ vectors:
     expect: invalid
   - schema: threat-model
     fixture: schemas/fixtures/threat-model/invalid/missing-assets.yaml
+    expect: invalid
+  - schema: transport-binding
+    fixture: schemas/fixtures/transport-binding/valid/quic-with-exporter.yaml
+    expect: valid
+  - schema: transport-binding
+    fixture: schemas/fixtures/transport-binding/valid/websocket.yaml
+    expect: valid
+  - schema: transport-binding
+    fixture: schemas/fixtures/transport-binding/invalid/bad-kind.yaml
     expect: invalid
   - schema: vault-file
     fixture: schemas/fixtures/vault-file/valid/empty-vault.yaml

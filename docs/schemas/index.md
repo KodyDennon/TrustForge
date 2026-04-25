@@ -27,6 +27,9 @@ This directory is generated from `schemas/*.schema.json` by
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |
 | [proof-profile](./proof-profile.md) | TF-0005 | Declarative profile describing which proof events to emit and how (TF-0005). |
 | [proofrpc](./proofrpc.md) | — | Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust |
+| [relay-authority](./relay-authority.md) | — | Encodes the distinction between forwarding authority and action authority |
 | [revocation](./revocation.md) | TF-0004 | Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004). |
+| [session-migration](./session-migration.md) | — | Signed record describing a TrustForge session being moved between transports while preserving session_id, generation, and trust continuity (TF-0003 "session migration"). |
 | [threat-model](./threat-model.md) | TF-0006 | Declarative threat-model manifest referenced by TF-0006 and by agent-contract.references.threat_model. |
+| [transport-binding](./transport-binding.md) | — | Describes the underlying transport a TrustForge session is currently bound to |
 | [vault-file](./vault-file.md) | — | Passphrase-encrypted key vault on disk |

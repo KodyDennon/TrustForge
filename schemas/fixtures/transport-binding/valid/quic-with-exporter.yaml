@@ -1,0 +1,7 @@
+binding_version: "1"
+kind: quic
+endpoint: "quic://daemon.example.com:7443"
+exporter_key: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+peer_cert_fingerprint: "01a2b3c4d5e6f70819202122232425262728292a2b2c2d2e2f3031323334353637"
+tls_alpn: "tf/0.1"
+established_at: "2026-04-24T12:01:00Z"

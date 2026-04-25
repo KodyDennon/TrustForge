@@ -1,0 +1,14 @@
+migration_version: "1"
+session_id: "AAECAwQFBgcICQoLDA0ODw=="
+from_binding:
+  binding_version: "1"
+  kind: websocket
+to_binding:
+  binding_version: "1"
+  kind: quic
+migrated_at: "2026-04-24T12:05:00Z"
+signer: tf:actor:agent:example.com/code-helper
+signature:
+  algorithm: ed25519
+  signer: tf:actor:agent:example.com/code-helper
+  signature: "AAAA"
