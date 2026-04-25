@@ -63,8 +63,15 @@ async function cmdCodegen(args: string[]): Promise<number> {
     console.log(`wrote ${names.length} files to ${dest}`);
     return 0;
   }
+  if (target === "rust") {
+    const dest = out ?? "crates/tf-types/src/generated";
+    const { writeRustOutput } = await import("./codegen/rust");
+    const names = await writeRustOutput(dest);
+    console.log(`wrote ${names.length} files to ${dest}`);
+    return 0;
+  }
   console.error(`codegen: unknown or missing target: ${target ?? "(none)"}`);
-  console.error("usage: tf-schema codegen --target ts [--out <dir>]");
+  console.error("usage: tf-schema codegen --target ts|rust [--out <dir>]");
   return 2;
 }
 

@@ -4,3 +4,5 @@
 //! helpers live as sibling modules.
 
 #![deny(unsafe_code)]
+
+pub mod generated;
