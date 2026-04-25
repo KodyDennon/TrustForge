@@ -11,6 +11,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [agent-contract](./agent-contract.md) | TF-0006 | Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents |
 | [capability-token](./capability-token.md) | TF-0004 | Serialized capability grant carried across actors (TF-0004). |
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
+| [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |

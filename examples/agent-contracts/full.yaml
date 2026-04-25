@@ -1,0 +1,66 @@
+contract_version: "1"
+spec_version: TF-0006-draft
+project: example-app-full
+trust_domain: example.com
+
+references:
+  threat_model: .tf/threat-model.yaml
+  policy_engine:
+    kind: cedar
+    path: .tf/policy.cedar
+  actions_library: tf-actions-std@1
+
+target_sets:
+  source: ["src/**"]
+  tests: ["tests/**"]
+  secrets: [".env", "secrets/**"]
+
+actions:
+  - name: file.read
+    risk: R0
+    proof: L0
+    approval: none
+    reversible: true
+    description: "Read a file from the working tree."
+    allow_targets: ["@source", "@tests"]
+    deny_targets: ["@secrets"]
+    parameters:
+      type: object
+      required: [path]
+      additionalProperties: false
+      properties:
+        path: { type: string, minLength: 1 }
+
+  - name: file.write
+    risk: R2
+    proof: L2
+    approval: conditional
+    reversible: false
+    danger_tags: [destructive]
+    reversal_note: "Recoverable via git checkout if committed."
+    description: "Modify a file in the working tree."
+    allow_targets: ["@source"]
+    deny_targets: ["@secrets", "src/auth/**"]
+
+  - name: shell.exec
+    risk: R4
+    proof: L3
+    approval: required
+    reversible: false
+    danger_tags: [destructive, external-network, security-sensitive]
+    reversal_note: "Not directly reversible; may leave process / network side effects."
+    description: "Run an arbitrary shell command."
+    pre_conditions: ["human-present", "no-uncommitted-secrets"]
+
+forbidden:
+  - action: file.delete
+    reason: "This project disallows direct file deletion; use git revert instead."
+
+integrations:
+  test_commands:
+    - "bun test"
+    - "bun run typecheck"
+
+conformance:
+  profiles:
+    - tf-agent-compatible

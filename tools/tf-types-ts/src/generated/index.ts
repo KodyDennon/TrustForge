@@ -6,6 +6,7 @@ export * from "./actor-identity.js";
 export * from "./agent-contract.js";
 export * from "./capability-token.js";
 export * from "./conformance.js";
+export * from "./dangerous-actions.js";
 export * from "./policy.js";
 export * from "./proof-bundle.js";
 export * from "./proof-event.js";

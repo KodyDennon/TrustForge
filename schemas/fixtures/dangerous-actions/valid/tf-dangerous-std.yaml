@@ -1,0 +1,35 @@
+dangerous_actions_version: "1"
+catalog_id: tf-dangerous-std
+description: "Standard catalog of dangerous actions shipped with TrustForge."
+actions:
+  - name: file.delete
+    danger_tags: [destructive, irreversible]
+    mandatory_tags: [irreversible]
+    default_risk: R4
+    default_approval: required
+    default_reversible: false
+    description: "Remove a file from the working tree. Irreversible without VCS recovery."
+
+  - name: shell.exec
+    danger_tags: [destructive, external-network, security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R4
+    default_approval: required
+    default_reversible: false
+    description: "Execute an arbitrary shell command."
+
+  - name: secret.read
+    danger_tags: [privacy, security-sensitive]
+    mandatory_tags: [security-sensitive]
+    default_risk: R3
+    default_approval: required
+    default_reversible: true
+    description: "Read a secret from a secret store. Leaves an audit trail."
+
+  - name: payment.charge
+    danger_tags: [financial, external-network, legal-exposure]
+    mandatory_tags: [financial]
+    default_risk: R5
+    default_approval: quorum
+    default_reversible: false
+    description: "Charge a payment instrument. Legal and financial consequences."

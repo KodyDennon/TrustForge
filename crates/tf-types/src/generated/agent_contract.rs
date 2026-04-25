@@ -17,12 +17,27 @@ pub struct Action {
     /// Human-readable purpose of the action.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub description: Option<String>,
-    /// Glob patterns the action may target.
+    /// Glob patterns or @target-set references the action may target.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub allow_targets: Option<Vec<String>>,
-    /// Glob patterns the action must not target.
+    /// Glob patterns or @target-set references the action must not target.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deny_targets: Option<Vec<String>>,
+    /// Inline JSON Schema describing the parameters this action accepts.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub parameters: Option<serde_json::Value>,
+    /// Hint that this action can be inverted by its counterpart.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub reversible: Option<bool>,
+    /// Structured danger categories; AI agents MUST escalate on destructive / irreversible / financial / security-sensitive tags.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub danger_tags: Option<Vec<DangerTag>>,
+    /// Named gates that must hold before this action may run.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub pre_conditions: Option<Vec<String>>,
+    /// If reversible is false, a note on how the action can be undone out-of-band (e.g. via VCS).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub reversal_note: Option<String>,
 }
 
 /// Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents. See TF-0006.

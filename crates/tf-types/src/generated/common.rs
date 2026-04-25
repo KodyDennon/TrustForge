@@ -132,6 +132,27 @@ pub enum Constraint {
     },
 }
 
+/// Structured danger categories used by agent-contract and dangerous-actions. AI agents must escalate on destructive / irreversible / financial / security-sensitive tags regardless of the declared approval mode.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DangerTag {
+    #[serde(rename = "financial")]
+    Financial,
+    #[serde(rename = "destructive")]
+    Destructive,
+    #[serde(rename = "irreversible")]
+    Irreversible,
+    #[serde(rename = "security-sensitive")]
+    SecuritySensitive,
+    #[serde(rename = "privacy")]
+    Privacy,
+    #[serde(rename = "external-network")]
+    ExternalNetwork,
+    #[serde(rename = "legal-exposure")]
+    LegalExposure,
+    #[serde(rename = "high-compute")]
+    HighCompute,
+}
+
 /// One step in a delegation chain (TF-0004).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DelegationLink {

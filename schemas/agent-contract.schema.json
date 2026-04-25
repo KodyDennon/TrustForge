@@ -144,12 +144,35 @@
         "allow_targets": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Glob patterns the action may target."
+          "description": "Glob patterns or @target-set references the action may target."
         },
         "deny_targets": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Glob patterns the action must not target."
+          "description": "Glob patterns or @target-set references the action must not target."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Inline JSON Schema describing the parameters this action accepts.",
+          "additionalProperties": true
+        },
+        "reversible": {
+          "type": "boolean",
+          "description": "Hint that this action can be inverted by its counterpart."
+        },
+        "danger_tags": {
+          "type": "array",
+          "items": { "$ref": "_common.schema.json#/$defs/DangerTag" },
+          "description": "Structured danger categories; AI agents MUST escalate on destructive / irreversible / financial / security-sensitive tags."
+        },
+        "pre_conditions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Named gates that must hold before this action may run."
+        },
+        "reversal_note": {
+          "type": "string",
+          "description": "If reversible is false, a note on how the action can be undone out-of-band (e.g. via VCS)."
         }
       }
     },

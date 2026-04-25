@@ -62,6 +62,18 @@ vectors:
   - schema: conformance
     fixture: schemas/fixtures/conformance/invalid/empty-profiles.yaml
     expect: invalid
+  - schema: dangerous-actions
+    fixture: schemas/fixtures/dangerous-actions/valid/tf-dangerous-std.yaml
+    expect: valid
+  - schema: dangerous-actions
+    fixture: schemas/fixtures/dangerous-actions/invalid/bad-catalog-id.yaml
+    expect: invalid
+  - schema: dangerous-actions
+    fixture: schemas/fixtures/dangerous-actions/invalid/bad-danger-tag.yaml
+    expect: invalid
+  - schema: dangerous-actions
+    fixture: schemas/fixtures/dangerous-actions/invalid/missing-actions.yaml
+    expect: invalid
   - schema: policy
     fixture: schemas/fixtures/policy/valid/basic.yaml
     expect: valid

@@ -1,0 +1,8 @@
+dangerous_actions_version: "1"
+catalog_id: tf-dangerous-std
+actions:
+  - name: file.delete
+    danger_tags: [nuclear]
+    default_risk: R4
+    default_approval: required
+    description: "x"

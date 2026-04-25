@@ -81,6 +81,12 @@ Discriminated union:
 - `kind: "device_binding"`
   - `device_actor` *(required)*: `ActorId`
 
+### `DangerTag`
+
+Structured danger categories used by agent-contract and dangerous-actions. AI agents must escalate on destructive / irreversible / financial / security-sensitive tags regardless of the declared approval mode.
+
+Enum: `financial`, `destructive`, `irreversible`, `security-sensitive`, `privacy`, `external-network`, `legal-exposure`, `high-compute`
+
 ### `DelegationLink`
 
 One step in a delegation chain (TF-0004).

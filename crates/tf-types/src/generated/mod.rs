@@ -15,6 +15,8 @@ pub mod capability_token;
 pub use capability_token::*;
 pub mod conformance;
 pub use conformance::*;
+pub mod dangerous_actions;
+pub use dangerous_actions::*;
 pub mod policy;
 pub use policy::*;
 pub mod proof_bundle;

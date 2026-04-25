@@ -55,6 +55,19 @@
       "enum": ["E0", "E1", "E2", "E3", "E4", "E5"],
       "description": "Enforcement levels (see DECISIONS.md)."
     },
+    "DangerTag": {
+      "enum": [
+        "financial",
+        "destructive",
+        "irreversible",
+        "security-sensitive",
+        "privacy",
+        "external-network",
+        "legal-exposure",
+        "high-compute"
+      ],
+      "description": "Structured danger categories used by agent-contract and dangerous-actions. AI agents must escalate on destructive / irreversible / financial / security-sensitive tags regardless of the declared approval mode."
+    },
     "ApprovalRequirement": {
       "enum": ["none", "conditional", "required", "quorum"],
       "description": "Default approval requirement modes."

@@ -1,0 +1,8 @@
+dangerous_actions_version: "1"
+catalog_id: TF-Dangerous
+actions:
+  - name: file.delete
+    danger_tags: [destructive]
+    default_risk: R4
+    default_approval: required
+    description: "x"

@@ -33,8 +33,13 @@ Single action declaration.
 | `proof` | [`ProofLevel`](./_common.md#prooflevel) | · |  |
 | `approval` | [`ApprovalRequirement`](./_common.md#approvalrequirement) | · |  |
 | `description` | string | · | Human-readable purpose of the action. |
-| `allow_targets` | array of string (minLength: 1) | · | Glob patterns the action may target. |
-| `deny_targets` | array of string (minLength: 1) | · | Glob patterns the action must not target. |
+| `allow_targets` | array of string (minLength: 1) | · | Glob patterns or @target-set references the action may target. |
+| `deny_targets` | array of string (minLength: 1) | · | Glob patterns or @target-set references the action must not target. |
+| `parameters` | object | · | Inline JSON Schema describing the parameters this action accepts. |
+| `reversible` | boolean | · | Hint that this action can be inverted by its counterpart. |
+| `danger_tags` | array of [`DangerTag`](./_common.md#dangertag) | · | Structured danger categories; AI agents MUST escalate on destructive / irreversible / financial / security-sensitive tags. |
+| `pre_conditions` | array of string (minLength: 1) | · | Named gates that must hold before this action may run. |
+| `reversal_note` | string | · | If reversible is false, a note on how the action can be undone out-of-band (e.g. via VCS). |
 
 ### `Forbidden`
 
