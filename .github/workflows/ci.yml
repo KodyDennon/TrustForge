@@ -18,6 +18,11 @@ jobs:
       - run: bun test
       - run: bun run tools/tf-schema/src/cli.ts validate-all
       - run: bun run tools/tf-schema/src/cli.ts lint
+      - name: agent-contract-check
+        run: |
+          bun run tools/tf-schema/src/cli.ts agent-contract-check \
+            examples/agent-contracts/full.yaml \
+            --catalog examples/dangerous-actions/tf-dangerous-std.yaml
       - name: codegen-diff
         run: |
           bun run tools/tf-schema/src/cli.ts codegen --target ts
@@ -27,6 +32,10 @@ jobs:
             --spec examples/proofrpc/code-helper.tfrpc.yaml
           bun run tools/tf-schema/src/cli.ts codegen --target rpc-rust \
             --spec examples/proofrpc/code-helper.tfrpc.yaml
+          bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-ts \
+            --spec examples/agent-contracts/full.yaml
+          bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-rust \
+            --spec examples/agent-contracts/full.yaml
           bun run tools/tf-schema/src/cli.ts parity
           git diff --exit-code
       - run: bun run tools/tf-schema/src/cli.ts fuzz --iterations 200
