@@ -128,3 +128,95 @@ pub fn b64decode(s: &str) -> Result<Vec<u8>, CryptoError> {
     B64.decode(s.as_bytes())
         .map_err(|e| CryptoError::BadBase64(e.to_string()))
 }
+
+// ---------- X25519 ----------
+
+pub struct X25519KeyPair {
+    pub private: [u8; 32],
+    pub public: [u8; 32],
+}
+
+pub fn x25519_generate<R: rand::RngCore + rand::CryptoRng>(rng: &mut R) -> X25519KeyPair {
+    let secret = x25519_dalek::StaticSecret::random_from_rng(rng);
+    let public = x25519_dalek::PublicKey::from(&secret);
+    X25519KeyPair {
+        private: secret.to_bytes(),
+        public: public.to_bytes(),
+    }
+}
+
+pub fn x25519_from_bytes(seed: &[u8; 32]) -> X25519KeyPair {
+    let secret = x25519_dalek::StaticSecret::from(*seed);
+    let public = x25519_dalek::PublicKey::from(&secret);
+    X25519KeyPair {
+        private: secret.to_bytes(),
+        public: public.to_bytes(),
+    }
+}
+
+pub fn x25519_diffie_hellman(private: &[u8; 32], peer_public: &[u8; 32]) -> [u8; 32] {
+    let secret = x25519_dalek::StaticSecret::from(*private);
+    let peer = x25519_dalek::PublicKey::from(*peer_public);
+    secret.diffie_hellman(&peer).to_bytes()
+}
+
+// ---------- HKDF-SHA256 ----------
+
+pub fn hkdf_sha256(input_key: &[u8], salt: &[u8], info: &[u8], output_len: usize) -> Vec<u8> {
+    let hk = hkdf::Hkdf::<Sha256>::new(Some(salt), input_key);
+    let mut out = vec![0u8; output_len];
+    hk.expand(info, &mut out).expect("output_len <= 255*32");
+    out
+}
+
+// ---------- ChaCha20-Poly1305-IETF ----------
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum AeadError {
+    #[error("aead key must be 32 bytes")]
+    BadKey,
+    #[error("aead nonce must be 12 bytes")]
+    BadNonce,
+    #[error("aead authentication failed")]
+    AuthFailed,
+}
+
+pub fn chacha20poly1305_encrypt(
+    key: &[u8; 32],
+    nonce: &[u8; 12],
+    aad: &[u8],
+    plaintext: &[u8],
+) -> Vec<u8> {
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+    use chacha20poly1305::ChaCha20Poly1305;
+    let cipher = ChaCha20Poly1305::new_from_slice(key).expect("32-byte key");
+    cipher
+        .encrypt(
+            chacha20poly1305::Nonce::from_slice(nonce),
+            Payload {
+                msg: plaintext,
+                aad,
+            },
+        )
+        .expect("encrypt")
+}
+
+pub fn chacha20poly1305_decrypt(
+    key: &[u8; 32],
+    nonce: &[u8; 12],
+    aad: &[u8],
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, AeadError> {
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+    use chacha20poly1305::ChaCha20Poly1305;
+    let cipher = ChaCha20Poly1305::new_from_slice(key).map_err(|_| AeadError::BadKey)?;
+    cipher
+        .decrypt(
+            chacha20poly1305::Nonce::from_slice(nonce),
+            Payload {
+                msg: ciphertext,
+                aad,
+            },
+        )
+        .map_err(|_| AeadError::AuthFailed)
+}

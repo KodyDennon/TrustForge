@@ -133,3 +133,67 @@ export function utf8encode(s: string): Uint8Array {
 export function utf8decode(b: Uint8Array): string {
   return new TextDecoder().decode(b);
 }
+
+// ---------- X25519 ----------
+
+import { x25519 } from "@noble/curves/ed25519";
+
+export interface X25519KeyPair {
+  readonly privateKey: Uint8Array;
+  readonly publicKey: Uint8Array;
+}
+
+export function x25519Generate(seed?: Uint8Array): X25519KeyPair {
+  const privateKey = seed ?? crypto.getRandomValues(new Uint8Array(32));
+  if (privateKey.length !== 32) {
+    throw new CryptoError(`x25519 seed must be 32 bytes, got ${privateKey.length}`);
+  }
+  const publicKey = x25519.getPublicKey(privateKey);
+  return { privateKey: new Uint8Array(privateKey), publicKey };
+}
+
+export function x25519DiffieHellman(privateKey: Uint8Array, peerPublic: Uint8Array): Uint8Array {
+  if (privateKey.length !== 32) throw new CryptoError("x25519 private must be 32 bytes");
+  if (peerPublic.length !== 32) throw new CryptoError("x25519 public must be 32 bytes");
+  return x25519.getSharedSecret(privateKey, peerPublic);
+}
+
+// ---------- HKDF-SHA256 ----------
+
+import { hkdf as nobleHkdf } from "@noble/hashes/hkdf";
+
+export function hkdfSha256(inputKey: Uint8Array, salt: Uint8Array, info: Uint8Array, outputLen: number): Uint8Array {
+  return nobleHkdf(sha256, inputKey, salt, info, outputLen);
+}
+
+// ---------- ChaCha20-Poly1305-IETF ----------
+
+import { chacha20poly1305 } from "@noble/ciphers/chacha";
+
+export class AeadError extends Error {}
+
+export function chacha20poly1305Encrypt(
+  key: Uint8Array,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  plaintext: Uint8Array,
+): Uint8Array {
+  if (key.length !== 32) throw new AeadError("aead key must be 32 bytes");
+  if (nonce.length !== 12) throw new AeadError("aead nonce must be 12 bytes");
+  return chacha20poly1305(key, nonce, aad).encrypt(plaintext);
+}
+
+export function chacha20poly1305Decrypt(
+  key: Uint8Array,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  ciphertext: Uint8Array,
+): Uint8Array {
+  if (key.length !== 32) throw new AeadError("aead key must be 32 bytes");
+  if (nonce.length !== 12) throw new AeadError("aead nonce must be 12 bytes");
+  try {
+    return chacha20poly1305(key, nonce, aad).decrypt(ciphertext);
+  } catch (e) {
+    throw new AeadError(`aead authentication failed: ${(e as Error).message}`);
+  }
+}
