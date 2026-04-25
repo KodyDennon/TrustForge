@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/approval-request.schema.json",
+  "title": "TrustForge Approval Request",
+  "description": "A pending approval request raised by the daemon when a guarded action requires explicit human approval.",
+  "type": "object",
+  "required": ["request_version", "id", "actor", "action", "reason", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "request_version": {
+      "description": "Version of the approval-request schema itself.",
+      "enum": ["1"]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this pending request."
+    },
+    "actor": {
+      "description": "Actor requesting the action.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "action": {
+      "description": "Action name the actor is attempting.",
+      "$ref": "_common.schema.json#/$defs/ActionName"
+    },
+    "target": {
+      "type": "string",
+      "description": "Optional target (path, URL, etc.) the action would affect."
+    },
+    "danger_tags": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/DangerTag" },
+      "description": "Danger categories the guard surfaced for this request."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable explanation of why approval is needed."
+    },
+    "created_at": {
+      "description": "When the request was enqueued.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "expires_at": {
+      "description": "When the request will be auto-denied.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    }
+  }
+}

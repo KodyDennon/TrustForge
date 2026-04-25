@@ -1,0 +1,3 @@
+errors:
+  - path: "/cipher/algorithm"
+    keyword: enum

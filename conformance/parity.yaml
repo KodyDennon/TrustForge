@@ -35,6 +35,30 @@ vectors:
   - schema: agent-contract
     fixture: schemas/fixtures/agent-contract/invalid/missing-project.yaml
     expect: invalid
+  - schema: approval-request
+    fixture: schemas/fixtures/approval-request/valid/basic.yaml
+    expect: valid
+  - schema: approval-request
+    fixture: schemas/fixtures/approval-request/invalid/bad-action.yaml
+    expect: invalid
+  - schema: approval-request
+    fixture: schemas/fixtures/approval-request/invalid/bad-danger-tag.yaml
+    expect: invalid
+  - schema: approval-request
+    fixture: schemas/fixtures/approval-request/invalid/missing-reason.yaml
+    expect: invalid
+  - schema: approval-response
+    fixture: schemas/fixtures/approval-response/valid/basic.yaml
+    expect: valid
+  - schema: approval-response
+    fixture: schemas/fixtures/approval-response/invalid/bad-decision.yaml
+    expect: invalid
+  - schema: approval-response
+    fixture: schemas/fixtures/approval-response/invalid/bad-signed-at.yaml
+    expect: invalid
+  - schema: approval-response
+    fixture: schemas/fixtures/approval-response/invalid/missing-signature.yaml
+    expect: invalid
   - schema: capability-token
     fixture: schemas/fixtures/capability-token/valid/basic.yaml
     expect: valid
@@ -61,6 +85,18 @@ vectors:
     expect: invalid
   - schema: conformance
     fixture: schemas/fixtures/conformance/invalid/empty-profiles.yaml
+    expect: invalid
+  - schema: daemon-config
+    fixture: schemas/fixtures/daemon-config/valid/basic.yaml
+    expect: valid
+  - schema: daemon-config
+    fixture: schemas/fixtures/daemon-config/invalid/bad-listen-kind.yaml
+    expect: invalid
+  - schema: daemon-config
+    fixture: schemas/fixtures/daemon-config/invalid/bad-port.yaml
+    expect: invalid
+  - schema: daemon-config
+    fixture: schemas/fixtures/daemon-config/invalid/missing-vault.yaml
     expect: invalid
   - schema: dangerous-actions
     fixture: schemas/fixtures/dangerous-actions/valid/tf-dangerous-std.yaml
@@ -157,4 +193,16 @@ vectors:
     expect: invalid
   - schema: threat-model
     fixture: schemas/fixtures/threat-model/invalid/missing-assets.yaml
+    expect: invalid
+  - schema: vault-file
+    fixture: schemas/fixtures/vault-file/valid/empty-vault.yaml
+    expect: valid
+  - schema: vault-file
+    fixture: schemas/fixtures/vault-file/invalid/bad-cipher.yaml
+    expect: invalid
+  - schema: vault-file
+    fixture: schemas/fixtures/vault-file/invalid/bad-kdf.yaml
+    expect: invalid
+  - schema: vault-file
+    fixture: schemas/fixtures/vault-file/invalid/missing-entries.yaml
     expect: invalid

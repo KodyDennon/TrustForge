@@ -9,8 +9,11 @@ This directory is generated from `schemas/*.schema.json` by
 | [actions](./actions.md) | TF-0006 | Catalog of action definitions referenced by TF-0006 agent contracts. |
 | [actor-identity](./actor-identity.md) | TF-0002 | Identity document that binds an actor URI to public keys, authority roots, and validity (TF-0002). |
 | [agent-contract](./agent-contract.md) | TF-0006 | Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents |
+| [approval-request](./approval-request.md) | — | A pending approval request raised by the daemon when a guarded action requires explicit human approval. |
+| [approval-response](./approval-response.md) | — | A signed response to an ApprovalRequest. |
 | [capability-token](./capability-token.md) | TF-0004 | Serialized capability grant carried across actors (TF-0004). |
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
+| [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
@@ -19,3 +22,4 @@ This directory is generated from `schemas/*.schema.json` by
 | [proofrpc](./proofrpc.md) | — | Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust |
 | [revocation](./revocation.md) | TF-0004 | Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004). |
 | [threat-model](./threat-model.md) | TF-0006 | Declarative threat-model manifest referenced by TF-0006 and by agent-contract.references.threat_model. |
+| [vault-file](./vault-file.md) | — | Passphrase-encrypted key vault on disk |

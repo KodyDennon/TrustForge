@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/vault-file.schema.json",
+  "title": "TrustForge Vault File",
+  "description": "Passphrase-encrypted key vault on disk. KDF = Argon2id, cipher = ChaCha20-Poly1305.",
+  "type": "object",
+  "required": ["vault_version", "kdf", "cipher", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "vault_version": {
+      "description": "Version of the vault file schema itself.",
+      "enum": ["1"]
+    },
+    "kdf": {
+      "type": "object",
+      "description": "Key-derivation parameters used to turn the passphrase into the 32-byte wrap key.",
+      "required": ["algorithm", "salt", "m_cost", "t_cost", "p_cost"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "enum": ["argon2id"],
+          "description": "KDF algorithm. Only Argon2id is supported in this phase."
+        },
+        "salt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base64-encoded Argon2id salt (at least 16 bytes)."
+        },
+        "m_cost": {
+          "type": "integer",
+          "minimum": 8,
+          "description": "Memory cost in KiB."
+        },
+        "t_cost": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Iteration count."
+        },
+        "p_cost": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Parallelism factor."
+        }
+      }
+    },
+    "cipher": {
+      "type": "object",
+      "description": "AEAD cipher used to seal each entry.",
+      "required": ["algorithm"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "enum": ["chacha20poly1305"],
+          "description": "AEAD algorithm. Only ChaCha20-Poly1305 is supported in this phase."
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "description": "Encrypted entries. Each entry's ciphertext decrypts under the wrap key to raw key bytes.",
+      "items": { "$ref": "#/$defs/VaultEntry" }
+    }
+  },
+  "$defs": {
+    "VaultEntry": {
+      "type": "object",
+      "description": "One encrypted entry.",
+      "required": ["id", "purpose", "algorithm", "nonce", "ciphertext", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this entry within the vault."
+        },
+        "purpose": {
+          "enum": ["signing", "kem", "attestation", "raw"],
+          "description": "What the key is used for."
+        },
+        "algorithm": {
+          "description": "Algorithm this key targets, e.g. ed25519.",
+          "$ref": "_common.schema.json#/$defs/AlgorithmId"
+        },
+        "nonce": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base64-encoded 12-byte AEAD nonce."
+        },
+        "ciphertext": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base64-encoded AEAD ciphertext (includes 16-byte tag)."
+        },
+        "created_at": {
+          "description": "When this entry was written.",
+          "$ref": "_common.schema.json#/$defs/Timestamp"
+        }
+      }
+    }
+  }
+}

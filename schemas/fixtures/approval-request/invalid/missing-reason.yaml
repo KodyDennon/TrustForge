@@ -1,0 +1,5 @@
+request_version: "1"
+id: req-1
+actor: "tf:actor:agent:example.com/x"
+action: shell.exec
+created_at: "2026-04-24T13:00:00Z"

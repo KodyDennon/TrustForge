@@ -1,0 +1,9 @@
+response_version: "1"
+request_id: r
+decision: deny
+responder: "tf:actor:human:example.com/k"
+signed_at: "yesterday"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:human:example.com/k"
+  signature: "AAAA"

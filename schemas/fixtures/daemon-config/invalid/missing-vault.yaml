@@ -1,0 +1,5 @@
+daemon_version: "1"
+self_actor: "tf:actor:service:example.com/d"
+listen: { kind: websocket }
+contract_path: ".tf/agent-contract.yaml"
+proof_log_path: ".tf/proof.tflog"

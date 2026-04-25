@@ -1,0 +1,3 @@
+errors:
+  - path: "/signed_at"
+    keyword: pattern

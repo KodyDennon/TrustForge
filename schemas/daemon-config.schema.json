@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/daemon-config.schema.json",
+  "title": "TrustForge Daemon Config",
+  "description": "Configuration file for a running tf-daemon instance (.tf/daemon.yaml).",
+  "type": "object",
+  "required": ["daemon_version", "self_actor", "listen", "vault", "contract_path", "proof_log_path"],
+  "additionalProperties": false,
+  "properties": {
+    "daemon_version": {
+      "description": "Version of the daemon-config schema itself.",
+      "enum": ["1"]
+    },
+    "self_actor": {
+      "description": "Actor URI the daemon presents during the session handshake.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "listen": {
+      "type": "object",
+      "description": "Transport bind settings for the daemon.",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["websocket"],
+          "description": "Carrier kind. Only WebSocket is supported in this phase."
+        },
+        "bind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bind host for the WebSocket listener."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Port for the WebSocket listener. 0 asks the OS to pick one."
+        }
+      }
+    },
+    "vault": {
+      "type": "object",
+      "description": "On-disk vault location.",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the passphrase-encrypted vault file."
+        }
+      }
+    },
+    "contract_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path to the agent-contract YAML this daemon enforces."
+    },
+    "proof_log_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path to the .tflog file the daemon appends to."
+    },
+    "approval_queue": {
+      "type": "object",
+      "description": "Approval-queue tuning.",
+      "additionalProperties": false,
+      "properties": {
+        "max_pending": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum pending approval requests before new ones are rejected."
+        },
+        "default_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How long to wait for an approval response before defaulting to deny."
+        }
+      }
+    }
+  }
+}

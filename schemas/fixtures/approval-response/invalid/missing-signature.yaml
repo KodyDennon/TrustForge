@@ -1,0 +1,5 @@
+response_version: "1"
+request_id: r
+decision: approve
+responder: "tf:actor:human:example.com/k"
+signed_at: "2026-04-24T13:01:30Z"

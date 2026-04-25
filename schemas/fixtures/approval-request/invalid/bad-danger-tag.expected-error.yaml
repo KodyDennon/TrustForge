@@ -1,0 +1,3 @@
+errors:
+  - path: "/danger_tags/0"
+    keyword: enum

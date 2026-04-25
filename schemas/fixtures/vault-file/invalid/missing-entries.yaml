@@ -1,0 +1,8 @@
+vault_version: "1"
+kdf:
+  algorithm: argon2id
+  salt: "MTIzNDU2Nzg5MDEyMzQ1Ng=="
+  m_cost: 65536
+  t_cost: 3
+  p_cost: 1
+cipher: { algorithm: chacha20poly1305 }

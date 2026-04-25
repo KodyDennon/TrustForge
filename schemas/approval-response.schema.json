@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/approval-response.schema.json",
+  "title": "TrustForge Approval Response",
+  "description": "A signed response to an ApprovalRequest.",
+  "type": "object",
+  "required": ["response_version", "request_id", "decision", "responder", "signed_at", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "response_version": {
+      "description": "Version of the approval-response schema itself.",
+      "enum": ["1"]
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the ApprovalRequest this responds to."
+    },
+    "decision": {
+      "enum": ["approve", "deny"],
+      "description": "The human's decision."
+    },
+    "responder": {
+      "description": "Actor that signed this response.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional free-text note from the responder."
+    },
+    "signed_at": {
+      "description": "When the response was signed.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this response with signature.signature cleared.",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  }
+}
