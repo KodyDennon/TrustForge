@@ -9,8 +9,9 @@ This is the **TrustForge** project. The short form used in identifiers, URIs, CL
 The repo is currently in **Phase 1/2 (core implementation & prototyping)**. Unlike earlier phases, a significant amount of the reference implementation exists in Rust (`crates/`) and TypeScript (`tools/`).
 
 - `crates/tf-types/` — core protocol types, handshake state machines, and compatibility bridges.
+- `crates/tf-session/` — Rust carrier driver for session handshakes (TCP/duplex).
 - `tools/tf-session/` — TS carrier driver for session handshakes (WebSocket/TCP).
-- `tools/tf-daemon/` — the core enforcement daemon.
+- `tools/tf-daemon/` — the core enforcement daemon. Functional site-to-site binary path (TCP/TLS) + HTTP-over-binary bridge.
 - `schemas/` — JSON Schema definitions for all protocol objects.
 - `conformance/` — cross-language parity vectors.
 
