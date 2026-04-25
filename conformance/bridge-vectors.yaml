@@ -14,3 +14,72 @@ spiffe:
   - name: short-path
     spiffe_id: "spiffe://simple.dev/worker"
     actor_id: "tf:actor:service:simple.dev/worker"
+
+# MCP bridge tool-name → action-name normalization parity. Both
+# TS normalizeToolName() and Rust normalize_tool_name() must produce
+# identical action names so MCP-discovered actions resolve identically
+# in both AgentGuards.
+mcp_normalize:
+  - name: dotted-tool-no-prefix
+    tool: "filesystem.read"
+    prefix: ""
+    action: "mcp.filesystem_read"
+
+  - name: simple-with-prefix
+    tool: "read"
+    prefix: "fs"
+    action: "fs.read"
+
+  - name: undecorated-name-prepends-mcp
+    tool: "ping"
+    prefix: ""
+    action: "mcp.ping"
+
+  - name: hyphen-becomes-underscore
+    tool: "system-info"
+    prefix: "tools"
+    action: "tools.system_info"
+
+  - name: special-chars-collapsed
+    tool: "Read File!"
+    prefix: ""
+    action: "mcp.read_file"
+
+  - name: slash-tool-name-collapsed
+    tool: "tools/list"
+    prefix: ""
+    action: "mcp.tools_list"
+
+  - name: dotted-with-prefix
+    tool: "shell.exec"
+    prefix: "mcp"
+    action: "mcp.shell_exec"
+
+# WebAuthn bridge structured-credential → ActorIdentity parity. The
+# bridge in both languages must produce the same actor_id, trust_levels,
+# and authority_roots for the listed credential.
+webauthn:
+  - name: yubikey-with-aaguid
+    credential:
+      credential_id: "credential-identifier-01"
+      public_key: "MCowBQYDK2VwAyEA8wHnF5mJ+0c5KqyGxWXcJ+7p3qGzlHcQmL5ZhqQvJ1o="
+      algorithm: "ed25519"
+      rp_id: "example.com"
+      user_handle: "dXNlci0xMjM"
+      aaguid: "aaaa-bbbb"
+    actor_id: "tf:actor:human:example.com/dXNlci0xMjM"
+    trust_levels: ["T4"]
+    authority_root_kind: "hardware-key"
+    authority_root_id: "aaaa-bbbb"
+
+  - name: passkey-without-aaguid-keeps-unknown-marker
+    credential:
+      credential_id: "ck-1"
+      public_key: "AA=="
+      algorithm: "p256"
+      rp_id: "trustforge.test"
+      user_handle: "user-7"
+    actor_id: "tf:actor:human:trustforge.test/user-7"
+    trust_levels: ["T4"]
+    authority_root_kind: "hardware-key"
+    authority_root_id: "(unknown-aaguid)"

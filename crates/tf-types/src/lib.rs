@@ -9,9 +9,11 @@ pub mod generated;
 
 pub mod actor_id;
 pub mod approval;
+pub mod bridge_mcp;
 pub mod bridge_oauth;
 pub mod bridge_spiffe;
 pub mod bridge_tls;
+pub mod bridge_webauthn;
 pub mod bridges;
 pub mod webauthn_attestation;
 pub mod canonical;
