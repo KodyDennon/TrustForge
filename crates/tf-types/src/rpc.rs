@@ -60,6 +60,78 @@ impl From<RpcError> for RpcCallError {
     }
 }
 
+/// ProofRPC method kind. Mirror of TS `RpcMethodKind`. The proofrpc
+/// schema enumerates all 10 distinct flows; the runtime applies
+/// per-kind invariants (subscribe ack, command-channel credits,
+/// bulk-transfer hash verification, telemetry priority, remote-shell
+/// stream tagging, agent-session delegation chain).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub enum RpcMethodKind {
+    Unary,
+    ServerStreaming,
+    ClientStreaming,
+    BidiStreaming,
+    Subscribe,
+    CommandChannel,
+    BulkTransfer,
+    Telemetry,
+    RemoteShell,
+    AgentSession,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum RemoteShellStream {
+    Stdin,
+    Stdout,
+    Stderr,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum StreamingPriority {
+    P0,
+    P1,
+    P2,
+    P3,
+    P4,
+    P5,
+}
+
+/// Per-frame metadata carried alongside the rpc envelope. Optional;
+/// older counterparts that don't understand a field skip it.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RpcFrameExt {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub method_kind: Option<RpcMethodKind>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub streaming_priority: Option<StreamingPriority>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub subscribe_topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub credit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bulk: Option<RpcBulkExt>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub shell_stream: Option<RemoteShellStream>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub responsibility_chain: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub ack: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RpcBulkExt {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub chunk_index: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub total_chunks: Option<u32>,
+    /// `sha256:<hex>` digest of the concatenated chunks; the receiving
+    /// side recomputes and compares before accepting the receipt.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub expected_hash: Option<String>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum RpcFrame {
@@ -67,6 +139,8 @@ pub enum RpcFrame {
         call_id: String,
         method: String,
         request: Value,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        ext: Option<RpcFrameExt>,
     },
     RpcResponse {
         call_id: String,
@@ -75,8 +149,25 @@ pub enum RpcFrame {
         response: Option<Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<RpcError>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        ext: Option<RpcFrameExt>,
     },
     RpcStream {
+        call_id: String,
+        seq: i64,
+        more: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        value: Option<Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<RpcError>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        ext: Option<RpcFrameExt>,
+    },
+    /// Client → server stream message used by client-streaming, bidi,
+    /// command-channel, bulk-transfer, telemetry, remote-shell and
+    /// agent-session method kinds. Mirror of the TS variant added in
+    /// B13.
+    RpcClientStream {
         call_id: String,
         seq: u64,
         more: bool,
@@ -84,6 +175,8 @@ pub enum RpcFrame {
         value: Option<Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<RpcError>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        ext: Option<RpcFrameExt>,
     },
 }
 
@@ -104,6 +197,14 @@ pub struct RpcProofEventStub {
     pub result: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
+    /// Method kind from the descriptor; lets the daemon apply per-kind
+    /// policy and surfaces the distinction in proof events.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub method_kind: Option<RpcMethodKind>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub streaming_priority: Option<StreamingPriority>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bulk_hash_verified: Option<bool>,
 }
 
 pub trait CapabilityEnforcer: Send + Sync {
@@ -193,6 +294,7 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
                     status,
                     response,
                     error,
+                    ext: _,
                 } => {
                     let mut map = pending_for_listener.lock().unwrap();
                     if let Some(Pending::Unary(tx)) = map.remove(&call_id) {
@@ -215,17 +317,29 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
                     more,
                     value,
                     error,
+                    ext: _,
                 } => {
                     let mut map = pending_for_listener.lock().unwrap();
                     if let Some(entry) = map.get_mut(&call_id) {
                         match entry {
                             Pending::Stream { tx, next_seq } => {
-                                if seq != *next_seq {
+                                // Synthetic ack frames (subscribe / command-channel)
+                                // ride on seq = -1 and don't advance the client's
+                                // sequence counter. Drop them silently here.
+                                if seq < 0 {
+                                    if !more {
+                                        // Closing ack (e.g. unsubscribed) ends the stream.
+                                        map.remove(&call_id);
+                                    }
+                                    return;
+                                }
+                                let seq_u = seq as u64;
+                                if seq_u != *next_seq {
                                     let _ = tx.send(Err(RpcError {
                                         code: RpcErrorCode::Internal,
                                         message: format!(
                                             "stream seq mismatch: expected {}, got {}",
-                                            next_seq, seq
+                                            next_seq, seq_u
                                         ),
                                     }));
                                     map.remove(&call_id);
@@ -247,8 +361,8 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
                         }
                     }
                 }
-                RpcFrame::RpcCall { .. } => {
-                    // client side ignores inbound rpc-call frames
+                RpcFrame::RpcCall { .. } | RpcFrame::RpcClientStream { .. } => {
+                    // client side ignores inbound rpc-call / rpc-client-stream frames
                 }
             }
         }));
@@ -274,6 +388,7 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
             call_id: call_id.clone(),
             method: method.to_owned(),
             request,
+            ext: None,
         }));
         match rx.await {
             Ok(Ok(v)) => Ok(v),
@@ -300,6 +415,7 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
             call_id,
             method: method.to_owned(),
             request,
+            ext: None,
         }));
         rx
     }
@@ -364,6 +480,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                 call_id,
                 method,
                 request,
+                ext: _,
             } = rpc
             else {
                 return;
@@ -399,6 +516,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                         code: RpcErrorCode::NotFound,
                         message: format!("unknown method: {}", method),
                     }),
+                    ext: None,
                 }));
                 return;
             };
@@ -416,6 +534,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                                 code: RpcErrorCode::PermissionDenied,
                                 message: reason,
                             }),
+                            ext: None,
                         }));
                     } else {
                         transport_for_listener.send(encode_rpc(RpcFrame::RpcResponse {
@@ -426,6 +545,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                                 code: RpcErrorCode::PermissionDenied,
                                 message: reason,
                             }),
+                            ext: None,
                         }));
                     }
                     return;
@@ -443,12 +563,14 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                             status: ResponseStatus::Ok,
                             response: Some(v),
                             error: None,
+                            ext: None,
                         })),
                         Err(err) => transport_in_task.send(encode_rpc(RpcFrame::RpcResponse {
                             call_id,
                             status: ResponseStatus::Error,
                             response: None,
                             error: Some(err),
+                            ext: None,
                         })),
                     }
                 });
@@ -458,7 +580,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                     let (tx, mut rx) = mpsc::unbounded_channel::<Result<Value, RpcError>>();
                     let fut = handler(request, ctx, tx);
                     tokio::spawn(fut);
-                    let mut seq: u64 = 0;
+                    let mut seq: i64 = 0;
                     while let Some(item) = rx.recv().await {
                         match item {
                             Ok(v) => {
@@ -468,6 +590,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                                     more: true,
                                     value: Some(v),
                                     error: None,
+                                    ext: None,
                                 }));
                                 seq += 1;
                             }
@@ -478,6 +601,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                                     more: false,
                                     value: None,
                                     error: Some(err),
+                                    ext: None,
                                 }));
                                 return;
                             }
@@ -489,6 +613,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                         more: false,
                         value: None,
                         error: None,
+                        ext: None,
                     }));
                 });
             }
@@ -546,5 +671,98 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
         capability: &str,
     ) -> CapabilityDecision {
         self.enforcer.check(caller, method, capability)
+    }
+}
+
+#[cfg(test)]
+mod method_kind_tests {
+    use super::*;
+
+    #[test]
+    fn rpc_method_kind_serde_kebab_case() {
+        let kinds = [
+            RpcMethodKind::Unary,
+            RpcMethodKind::ServerStreaming,
+            RpcMethodKind::ClientStreaming,
+            RpcMethodKind::BidiStreaming,
+            RpcMethodKind::Subscribe,
+            RpcMethodKind::CommandChannel,
+            RpcMethodKind::BulkTransfer,
+            RpcMethodKind::Telemetry,
+            RpcMethodKind::RemoteShell,
+            RpcMethodKind::AgentSession,
+        ];
+        let json = serde_json::to_string(&kinds).unwrap();
+        assert!(json.contains("unary"));
+        assert!(json.contains("server-streaming"));
+        assert!(json.contains("client-streaming"));
+        assert!(json.contains("bidi-streaming"));
+        assert!(json.contains("subscribe"));
+        assert!(json.contains("command-channel"));
+        assert!(json.contains("bulk-transfer"));
+        assert!(json.contains("telemetry"));
+        assert!(json.contains("remote-shell"));
+        assert!(json.contains("agent-session"));
+        let parsed: Vec<RpcMethodKind> = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, kinds);
+    }
+
+    #[test]
+    fn rpc_frame_ext_round_trip() {
+        let ext = RpcFrameExt {
+            method_kind: Some(RpcMethodKind::BulkTransfer),
+            streaming_priority: Some(StreamingPriority::P1),
+            subscribe_topic: None,
+            credit: Some(8),
+            bulk: Some(RpcBulkExt {
+                chunk_index: Some(3),
+                total_chunks: Some(4),
+                expected_hash: Some("sha256:abcd".into()),
+            }),
+            shell_stream: Some(RemoteShellStream::Stderr),
+            responsibility_chain: Some(vec!["tf:actor:human:example.com/alice".into()]),
+            ack: Some("subscribed".into()),
+        };
+        let json = serde_json::to_string(&ext).unwrap();
+        let parsed: RpcFrameExt = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, ext);
+    }
+
+    #[test]
+    fn rpc_client_stream_frame_serializes_with_kebab_kind() {
+        let frame = RpcFrame::RpcClientStream {
+            call_id: "c1".into(),
+            seq: 0,
+            more: true,
+            value: Some(serde_json::json!("payload")),
+            error: None,
+            ext: Some(RpcFrameExt {
+                method_kind: Some(RpcMethodKind::Telemetry),
+                streaming_priority: Some(StreamingPriority::P3),
+                ..Default::default()
+            }),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "rpc-client-stream");
+        assert_eq!(json["ext"]["method_kind"], "telemetry");
+        assert_eq!(json["ext"]["streaming_priority"], "P3");
+    }
+
+    #[test]
+    fn proof_event_carries_method_kind_when_set() {
+        let ev = RpcProofEventStub {
+            kind: "rpc.call".into(),
+            method: "blob.upload".into(),
+            call_id: "c1".into(),
+            caller: "tf:actor:agent:example.com/x".into(),
+            result: "ok".into(),
+            error_code: None,
+            method_kind: Some(RpcMethodKind::BulkTransfer),
+            streaming_priority: None,
+            bulk_hash_verified: Some(true),
+        };
+        let json = serde_json::to_value(&ev).unwrap();
+        assert_eq!(json["method_kind"], "bulk-transfer");
+        assert_eq!(json["bulk_hash_verified"], true);
     }
 }

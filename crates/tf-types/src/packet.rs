@@ -432,3 +432,153 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }
+
+/* ----------------------------------------------------------------------- */
+/*  LoRa-style channel simulation (mirror of TS `simulateLora`)            */
+/* ----------------------------------------------------------------------- */
+
+#[derive(Clone, Debug, Default)]
+pub struct LoraSimOptions {
+    /// Per-packet drop probability ∈ [0, 1]. Default 0 (lossless).
+    pub packet_loss: Option<f64>,
+    /// Bandwidth in bytes/sec. Default 250.
+    pub bandwidth_bps: Option<f64>,
+    /// Base latency in ms. Default 5000.
+    pub base_latency_ms: Option<f64>,
+}
+
+#[derive(Debug, Default)]
+pub struct LoraSimResult {
+    pub delivered: Vec<Packet>,
+    pub dropped: Vec<Packet>,
+    /// Cumulative simulated latency, ms.
+    pub total_latency_ms: f64,
+}
+
+/// Walk a list of packets through a one-way LoRa-style channel. Drops
+/// packets per `packet_loss`, accumulates latency proportional to size /
+/// `bandwidth_bps`. Pure simulation — no IO. The optional `rng_seed`
+/// argument makes the result deterministic for tests.
+pub fn simulate_lora(
+    packets: &[Packet],
+    opts: LoraSimOptions,
+    rng_seed: Option<u64>,
+) -> LoraSimResult {
+    let loss = opts.packet_loss.unwrap_or(0.0);
+    let bw = opts.bandwidth_bps.unwrap_or(250.0);
+    let base = opts.base_latency_ms.unwrap_or(5000.0);
+    let mut state = rng_seed.unwrap_or(0xdeadbeef_dead_beefu64);
+    let mut next = move || {
+        // xorshift64* — small deterministic PRNG, values in (0,1).
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        let v = (state.wrapping_mul(0x2545_F491_4F6C_DD1Du64) >> 11) as f64
+            / (1u64 << 53) as f64;
+        v
+    };
+    let mut delivered = Vec::with_capacity(packets.len());
+    let mut dropped: Vec<Packet> = Vec::new();
+    let mut total_latency_ms = 0.0_f64;
+    for p in packets {
+        let canonical = serde_json::to_string(p).unwrap_or_default();
+        let size_bytes = canonical.len() as f64;
+        let tx_ms = (size_bytes / bw) * 1000.0;
+        total_latency_ms += base + tx_ms;
+        if next() < loss {
+            dropped.push(p.clone());
+        } else {
+            delivered.push(p.clone());
+        }
+    }
+    LoraSimResult {
+        delivered,
+        dropped,
+        total_latency_ms,
+    }
+}
+
+#[cfg(test)]
+mod lora_tests {
+    use super::*;
+    use rand::rngs::OsRng;
+
+    fn fixture(packet_id: &str) -> Packet {
+        let signer = "tf:actor:agent:example.com/x";
+        let mut signer_seed = [0u8; 32];
+        rand::RngCore::fill_bytes(&mut OsRng, &mut signer_seed);
+        sign_packet(SignPacketArgs {
+            packet_id: packet_id.into(),
+            source: signer.into(),
+            destination: "tf:actor:service:example.com/d".into(),
+            priority: "P3".into(),
+            payload: b"hi",
+            encoding: None,
+            compression: None,
+            emergency: false,
+            expires_at: None,
+            ttl_hops: None,
+            route_constraints: None,
+            session_ref: None,
+            private_key: signer_seed,
+            signer: signer.into(),
+            created_at: Some("2026-04-24T12:00:00Z".into()),
+        })
+        .expect("sign")
+    }
+
+    #[test]
+    fn lossless_channel_delivers_everything() {
+        let packets = vec![fixture("a"), fixture("b"), fixture("c")];
+        let r = simulate_lora(
+            &packets,
+            LoraSimOptions {
+                packet_loss: Some(0.0),
+                bandwidth_bps: Some(250.0),
+                base_latency_ms: Some(5000.0),
+            },
+            Some(1),
+        );
+        assert_eq!(r.delivered.len(), 3);
+        assert_eq!(r.dropped.len(), 0);
+        assert!(r.total_latency_ms > 15_000.0);
+    }
+
+    #[test]
+    fn full_loss_drops_everything() {
+        let packets = vec![fixture("a"), fixture("b")];
+        let r = simulate_lora(
+            &packets,
+            LoraSimOptions {
+                packet_loss: Some(1.0),
+                ..Default::default()
+            },
+            Some(42),
+        );
+        assert_eq!(r.delivered.len(), 0);
+        assert_eq!(r.dropped.len(), 2);
+    }
+
+    #[test]
+    fn deterministic_with_seed() {
+        let packets: Vec<Packet> = (0..10).map(|i| fixture(&format!("pkt-{}", i))).collect();
+        let r1 = simulate_lora(
+            &packets,
+            LoraSimOptions {
+                packet_loss: Some(0.5),
+                ..Default::default()
+            },
+            Some(99),
+        );
+        let r2 = simulate_lora(
+            &packets,
+            LoraSimOptions {
+                packet_loss: Some(0.5),
+                ..Default::default()
+            },
+            Some(99),
+        );
+        assert_eq!(r1.delivered.len(), r2.delivered.len());
+        assert_eq!(r1.dropped.len(), r2.dropped.len());
+    }
+}

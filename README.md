@@ -16,7 +16,7 @@ This is the **0.1.0** release. Every documented profile, bridge, and protocol su
 
 | Sprint | Surface |
 |---|---|
-| Phase 0 — Schemas + types | 24 JSON Schemas with valid/invalid fixtures, TS + Rust codegen, schema linter, fuzz harness, cross-language parity |
+| Phase 0 — Schemas + types | 36 JSON Schemas with valid/invalid fixtures, TS + Rust codegen, schema linter, fuzz harness, cross-language parity |
 | Phase 2 — Proof format | ed25519 (RFC 8032), SHA-256 / BLAKE3, hash-chained events, Merkle roots, `.tflog` + `.tfproof` framing |
 | Phase 3 — Session protocol | X25519 + HKDF-SHA256 + ChaCha20-Poly1305 + ed25519, AEAD frames, in-band rekey, WebSocket carrier |
 | Phase 4 — ProofRPC | Unary + server-streaming + client-streaming + bidi RPC, `.tfrpc.yaml` codegen for TS + Rust |
@@ -40,7 +40,7 @@ docs/
   schemas/                  Generated per-schema Markdown reference
 
 schemas/
-  *.schema.json             24 JSON Schemas
+  *.schema.json             36 JSON Schemas
   fixtures/<name>/{valid,invalid,composite}/
 
 conformance/
@@ -94,7 +94,7 @@ Today this passes with:
 
 - **510 TS tests** across 66 files
 - **232 Rust tests** across `tf-types` + `tf-code-helper-example`
-- **24 schemas** with valid + invalid fixtures, **0 lint issues**, **120+ parity vectors**
+- **36 schemas** with valid + invalid fixtures, **0 lint issues**, **120+ parity vectors**
 - **`tf-conformance run`** green across schema / signature / guard / trust-overlay / bridge / interop / fuzz / profile / security / AI-implementation / label
 
 ### Run the daemon

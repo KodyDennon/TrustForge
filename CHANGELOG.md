@@ -23,7 +23,7 @@ conformance suite.
   flagged out as full normative MUST/SHOULD/MUST_NOT documents.
 
 #### Schemas + types
-* 24 JSON Schemas under `schemas/` covering every machine-readable
+* 36 JSON Schemas under `schemas/` covering every machine-readable
   artifact (manifests + runtime objects).
 * Valid and invalid fixtures for every schema, with `expected-error`
   files describing the failure surface.
@@ -88,11 +88,40 @@ conformance suite.
 * gRPC bridge through the service-mesh adapters.
 
 #### Tests
-* 510 TypeScript tests across 66 files (Bun test).
-* 232 Rust tests across `tf-types` + `tf-code-helper-example`.
+* 553 TypeScript tests across 59 files (Bun test).
+* 280+ Rust tests across `tf-types` + `tf-code-helper-example`.
 * 120+ parity vectors covering canonical JSON, signature, hashing,
   chain, framing, session, bridge, relay, trust-overlay, guard,
   negative-capability.
+
+#### ProofRPC method kinds (B13)
+* All 10 `Method.kind` enum values exercised distinctly: unary,
+  server-streaming, client-streaming, bidi-streaming, subscribe (with
+  explicit `subscribed` / `unsubscribed` ack frames), command-channel
+  (credit-based backpressure), bulk-transfer (SHA-256 hash-verified),
+  telemetry (priority-classed), remote-shell (stdin/stdout/stderr
+  tagged frames), agent-session (delegation-chain propagation).
+* `RpcProofEventStub` carries `method_kind`, `streaming_priority`,
+  `bulk_hash_verified` for daemon-side per-kind policy decisions.
+* Rust mirror ships wire-format parity (`RpcFrameExt`,
+  `RpcClientStream`, `RpcMethodKind` enum); per-kind handler-type
+  ergonomics are TS-only for v0.1.0.
+
+#### Constrained mode (B14)
+* `PacketReceiver` sliding-window nonce cache with LRU eviction +
+  expired-packet rejection.
+* `OfflineRevocationListRuntime` — sealed-list verifier; refuses
+  expired or unsigned lists.
+* `signDeliveryReceipt` / `verifyDeliveryReceipt` for one-way bearers.
+* `signProofOfForwarding` / `verifyProofOfForwarding` so a relay can
+  attest carriage without seeing plaintext.
+* Rust LoRa channel simulation with deterministic xorshift64* RNG.
+
+#### Binary container formats (B15)
+* `.tfbundle` — magic + u32 BE length + CBOR-encoded body + optional
+  signature trailer; carries `ProofBundle` or `ProofBundleEncrypted`.
+* `.tfpkt` — magic + u32 BE length + CBOR-encoded `Packet`.
+* Both formats round-trip in TS (`cbor-x`) and Rust (`ciborium`).
 
 ### Known limitations
 * Drafts are explicitly experimental. Spec line items may change while
@@ -102,3 +131,15 @@ conformance suite.
 * No public infrastructure dependency. The daemon's RFC 6962 anchor and
   RFC 3161 anchor stubs run against in-memory test logs unless
   configured against external services.
+* Per-kind ProofRPC handler ergonomics are TS-only for v0.1.0; Rust
+  ships the wire format and the proof-event surface but reuses the
+  generic streaming dispatcher for new kinds (`subscribe`,
+  `command-channel`, `bulk-transfer`, `telemetry`, `remote-shell`,
+  `agent-session`). Full handler-type parity is a v0.2 concern.
+* CBOR byte-level parity between TS (`cbor-x`) and Rust (`ciborium`)
+  is round-trip stable but not guaranteed byte-identical without
+  deterministic-encoding flags. Cross-language *decode-anything-the-
+  other-side-encoded* is the v0.1.0 contract.
+* `OfflineRevocationListRuntime`, `PacketReceiver`, delivery receipts,
+  and proof-of-forwarding ship in TypeScript only for v0.1.0; Rust
+  mirrors of these constrained-mode runtimes are deferred.

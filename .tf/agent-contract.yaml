@@ -1,0 +1,51 @@
+# Agent contract for the TrustForge repo itself.
+#
+# Repo dogfood: the same kind of contract a downstream project would
+# ship to declare what an AI coding agent is allowed to do inside its
+# tree. Validates against `schemas/agent-contract.schema.json`.
+contract_version: "1"
+spec_version: "TF-0006-draft"
+project: "trustforge"
+trust_domain: "trustforge.dev"
+
+references:
+  threat_model: ".tf/threat-model.yaml"
+  policy_engine:
+    kind: "custom"
+    path: ".tf/policy.yaml"
+
+actions:
+  - name: "fs.read"
+    description: "Read any file in the working tree."
+    risk: "R0"
+    approval: "none"
+  - name: "fs.write"
+    description: "Modify or create files in the working tree."
+    risk: "R1"
+    approval: "conditional"
+  - name: "git.commit"
+    description: "Create a local git commit."
+    risk: "R1"
+    approval: "conditional"
+  - name: "git.push"
+    description: "Push commits to a remote."
+    risk: "R3"
+    approval: "required"
+    danger_tags: ["irreversible", "external-network"]
+  - name: "shell.exec"
+    description: "Run a shell command (test runner, build, etc.)."
+    risk: "R2"
+    approval: "conditional"
+    danger_tags: ["destructive"]
+  - name: "test.run"
+    description: "Run the test suite (`bun test`, `cargo test`)."
+    risk: "R0"
+    approval: "none"
+
+forbidden:
+  - action: "fs.delete_tree"
+    reason: "Recursive deletion is reserved for the operator."
+  - action: "git.force_push"
+    reason: "Force-push must come from a human."
+  - action: "secrets.read"
+    reason: "Repository contains no production secrets."

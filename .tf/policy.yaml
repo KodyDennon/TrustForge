@@ -1,0 +1,55 @@
+# Policy applied alongside the repo agent contract.
+#
+# Validates against `schemas/policy.schema.json`.
+policy_version: "1"
+trust_domain: "trustforge.dev"
+
+rules:
+  - id: "allow.fs-read"
+    effect: "allow"
+    action_pattern: "fs.read"
+    reason: "Read access is unrestricted within the working tree."
+
+  - id: "escalate.fs-write-protected"
+    effect: "escalate"
+    action: "fs.write"
+    target_patterns:
+      - ".github/workflows/*"
+      - "SECURITY.md"
+      - "CHANGELOG.md"
+    approval: "required"
+    reason: "Workflow files and release artefacts must be human-reviewed."
+
+  - id: "allow.fs-write"
+    effect: "allow"
+    action: "fs.write"
+    reason: "General file writes auto-approved within the tree."
+
+  - id: "deny.git-force"
+    effect: "deny"
+    action: "git.force_push"
+    reason: "Force-push is reserved for humans."
+
+  - id: "escalate.git-push"
+    effect: "escalate"
+    action: "git.push"
+    approval: "required"
+    proof_required: "L2"
+
+  - id: "escalate.shell"
+    effect: "escalate"
+    action: "shell.exec"
+    approval: "conditional"
+    reason: "Shell exec proceeds for known-safe commands; everything else escalates."
+
+negative_capabilities:
+  - name: "secrets.read"
+    reason: "Repository contains no production secrets."
+  - name: "fs.delete_tree"
+    target: "**"
+    reason: "Recursive delete reserved for the operator."
+
+continuous_reevaluation:
+  triggers:
+    - "delegation_change"
+    - "revocation"

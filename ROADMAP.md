@@ -1,5 +1,34 @@
 # TrustForge Roadmap
 
+## Status snapshot (v0.1.0 candidate)
+
+The phases below describe the design programme. The current codebase
+implements substantial portions of phases 0 through 10:
+
+- **Phase 0–4** (seed, types, proofs, sessions, RPC) — implemented in
+  both `tools/tf-types-ts/` and `crates/tf-types/`. ProofRPC has all
+  10 distinct method kinds with per-kind dispatch on TS and wire-format
+  parity on Rust.
+- **Phase 5** (agent contract) — schema + validator shipped; `.tf/`
+  conventions in use repo-internally.
+- **Phase 6** (daemon + CLI) — `tools/tf-daemon` and `tools/tf-cli`
+  reach the home-profile feature set; production deployment still
+  requires v0.2 hardening.
+- **Phase 7** (plugins) — child-process sandbox (sandbox-exec on macOS,
+  seccomp on Linux) plus `wasmtime` host integration on Rust.
+- **Phase 8** (bridges) — WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS
+  all shipped on both sides; service-mesh and matrix bridges TS-only.
+- **Phase 9** (constrained/offline) — packets, fragmentation,
+  PacketReceiver nonce cache, OfflineRevocationListRuntime, delivery
+  receipts, proof-of-forwarding, LoRa simulation.
+- **Phase 10** (conformance) — 11 runner categories, schema vectors,
+  signature vectors, AI-implementation suite, compatibility-label
+  runner, CI gate, cargo-deny supply-chain audit.
+
+Anything not listed above is still a v0.2+ concern. This file remains
+authoritative for the design programme; the README and CHANGELOG track
+shipped state.
+
 ## Phase 0: Repository seed
 
 - Write manifesto
