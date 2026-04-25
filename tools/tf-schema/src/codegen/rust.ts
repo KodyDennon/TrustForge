@@ -31,9 +31,10 @@ function rustModuleName(schemaName: string): string {
 }
 
 function safeVariant(s: string): string {
-  const cleaned = s.replace(/[^A-Za-z0-9_]/g, "_");
-  const head = /^[0-9]/.test(cleaned) ? `V${cleaned}` : cleaned;
-  return head.charAt(0).toUpperCase() + head.slice(1);
+  const parts = s.split(/[^A-Za-z0-9]+/).filter((p) => p.length > 0);
+  if (parts.length === 0) return "Unknown";
+  const pascal = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+  return /^[0-9]/.test(pascal) ? `V${pascal}` : pascal;
 }
 
 function docComment(description: string | undefined, indent = ""): string {

@@ -35,13 +35,13 @@ pub enum ActorType {
     #[serde(rename = "tool")]
     Tool,
     #[serde(rename = "model-provider")]
-    Model_provider,
+    ModelProvider,
     #[serde(rename = "policy-engine")]
-    Policy_engine,
+    PolicyEngine,
     #[serde(rename = "proof-anchor")]
-    Proof_anchor,
+    ProofAnchor,
     #[serde(rename = "emergency-authority")]
-    Emergency_authority,
+    EmergencyAuthority,
 }
 
 /// Signature or KEM algorithm identifier, e.g. ed25519, ml-dsa-65, p256.
