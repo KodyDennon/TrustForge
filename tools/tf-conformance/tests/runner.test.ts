@@ -18,8 +18,8 @@ import {
 const ROOT = resolve(import.meta.dir, "..", "..", "..");
 
 describe("tf-conformance — individual runners", () => {
-  test("schema vectors: every fixture parses cleanly", () => {
-    const r = runSchemaVectors(ROOT);
+  test("schema vectors: every fixture parses cleanly", async () => {
+    const r = await runSchemaVectors(ROOT);
     expect(r.failed).toBe(0);
     expect(r.passed).toBeGreaterThan(50);
   });
@@ -41,10 +41,12 @@ describe("tf-conformance — individual runners", () => {
     expect(r.passed).toBeGreaterThan(5);
   });
 
-  test("bridge SPIFFE vectors all match", () => {
+  test("bridge SPIFFE + MCP + WebAuthn vectors all match", () => {
     const r = runBridgeVectors(ROOT);
     expect(r.failed).toBe(0);
-    expect(r.passed).toBe(3);
+    // Post-B10 the runner consumes spiffe (3) + mcp_normalize (7) +
+    // webauthn (2) = 12 cases. Pre-B10 only the 3 spiffe cases ran.
+    expect(r.passed).toBe(12);
   });
 
   test("interop parity manifest references existing fixtures", () => {
@@ -53,8 +55,8 @@ describe("tf-conformance — individual runners", () => {
     expect(r.passed).toBeGreaterThan(50);
   });
 
-  test("fuzz corpus: every invalid fixture handles gracefully", () => {
-    const r = runFuzzCorpus(ROOT);
+  test("fuzz corpus: every invalid fixture handles gracefully", async () => {
+    const r = await runFuzzCorpus(ROOT);
     expect(r.failed).toBe(0);
   });
 

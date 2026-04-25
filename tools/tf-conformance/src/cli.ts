@@ -39,7 +39,7 @@ async function main(): Promise<number> {
 
   switch (cmd) {
     case "schema": {
-      const report = runSchemaVectors(r);
+      const report = await runSchemaVectors(r);
       console.log(canonicalize(report));
       return report.failed === 0 ? 0 : 1;
     }
@@ -69,7 +69,7 @@ async function main(): Promise<number> {
       return report.failed === 0 ? 0 : 1;
     }
     case "fuzz": {
-      const report = runFuzzCorpus(r);
+      const report = await runFuzzCorpus(r);
       console.log(canonicalize(report));
       return report.failed === 0 ? 0 : 1;
     }

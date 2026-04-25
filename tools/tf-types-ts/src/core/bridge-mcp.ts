@@ -35,7 +35,7 @@ export interface McpImportOptions {
 
 const ACTION_NAME_RE = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 
-function normalizeToolName(name: string, prefix?: string): string {
+export function normalizeToolName(name: string, prefix?: string): string {
   const scrubbed = name
     .replace(/[^A-Za-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")

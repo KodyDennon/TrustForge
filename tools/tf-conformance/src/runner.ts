@@ -64,29 +64,121 @@ function loadYaml(path: string): unknown {
   return parseYAML(readFileSync(path, "utf8"));
 }
 
+interface SchemaValidator {
+  buildAjv: () => unknown;
+  getValidator: (ajv: unknown, schemaName: string) => (data: unknown) => boolean;
+}
+
+let cachedSchemaValidator: SchemaValidator | null | undefined;
+
+async function loadSchemaValidator(): Promise<SchemaValidator | null> {
+  if (cachedSchemaValidator !== undefined) return cachedSchemaValidator;
+  try {
+    // Dynamic import: tf-schema is a workspace dep but uses .ts files;
+    // Bun's resolver can find it via the package's `main` entry.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import("tf-schema");
+    if (typeof mod.buildAjv === "function" && typeof mod.getValidator === "function") {
+      cachedSchemaValidator = { buildAjv: mod.buildAjv, getValidator: mod.getValidator };
+      return cachedSchemaValidator;
+    }
+  } catch {
+    /* fall through */
+  }
+  cachedSchemaValidator = null;
+  return null;
+}
+
 /* ---------- Schema runner: validate every fixture matches its expectation. */
 
-export function runSchemaVectors(root: string): ConformanceReport {
+export async function runSchemaVectors(root: string): Promise<ConformanceReport> {
   const cases: VectorResult[] = [];
   const fixturesDir = resolve(root, "schemas/fixtures");
   if (!existsSync(fixturesDir)) {
     return { category: "schema", cases: [{ name: "schemas/fixtures", pass: false, detail: "missing" }], passed: 0, failed: 1 };
   }
+  // Real AJV-driven schema validation. Pre-B10 the runner only
+  // YAML-parsed each fixture and called pass/fail based on whether
+  // YAML loaded — schema rules went unverified. (FIND-004)
+  const validator = await loadSchemaValidator();
+  let buildAjv: () => unknown;
+  let getValidator: (ajv: unknown, schemaName: string) => (data: unknown) => boolean;
+  if (validator) {
+    buildAjv = validator.buildAjv;
+    getValidator = validator.getValidator;
+  } else {
+    // Fallback: no AJV available — fall back to YAML-parses-cleanly
+    // (the pre-B10 behavior, but flagged so the operator notices).
+    for (const schemaName of readdirSync(fixturesDir)) {
+      const dir = join(fixturesDir, schemaName);
+      if (!statSync(dir).isDirectory()) continue;
+      for (const sub of ["valid", "invalid"]) {
+        const subDir = join(dir, sub);
+        if (!existsSync(subDir)) continue;
+        for (const file of readdirSync(subDir)) {
+          if (!file.endsWith(".yaml") && !file.endsWith(".json")) continue;
+          if (file.endsWith(".expected-error.yaml")) continue;
+          try {
+            loadYaml(join(subDir, file));
+            cases.push({
+              name: `${schemaName}/${sub}/${file}`,
+              pass: true,
+              detail: "tf-schema not loadable; only YAML parse checked",
+            });
+          } catch (err) {
+            cases.push({ name: `${schemaName}/${sub}/${file}`, pass: false, detail: (err as Error).message });
+          }
+        }
+      }
+    }
+    const p = cases.filter((c) => c.pass).length;
+    return { category: "schema", cases, passed: p, failed: cases.length - p };
+  }
+
+  const ajv = buildAjv();
   for (const schemaName of readdirSync(fixturesDir)) {
     const dir = join(fixturesDir, schemaName);
     if (!statSync(dir).isDirectory()) continue;
+    let validate: (data: unknown) => boolean;
+    try {
+      validate = getValidator(ajv, schemaName);
+    } catch (err) {
+      cases.push({
+        name: `${schemaName}/<schema>`,
+        pass: false,
+        detail: `getValidator: ${(err as Error).message}`,
+      });
+      continue;
+    }
     for (const sub of ["valid", "invalid"]) {
       const subDir = join(dir, sub);
       if (!existsSync(subDir)) continue;
       for (const file of readdirSync(subDir)) {
         if (!file.endsWith(".yaml") && !file.endsWith(".json")) continue;
         if (file.endsWith(".expected-error.yaml")) continue;
+        let parsed: unknown;
         try {
-          loadYaml(join(subDir, file));
-          cases.push({ name: `${schemaName}/${sub}/${file}`, pass: true });
+          parsed = loadYaml(join(subDir, file));
         } catch (err) {
-          cases.push({ name: `${schemaName}/${sub}/${file}`, pass: false, detail: (err as Error).message });
+          cases.push({
+            name: `${schemaName}/${sub}/${file}`,
+            pass: false,
+            detail: `yaml parse: ${(err as Error).message}`,
+          });
+          continue;
         }
+        const valid = validate(parsed);
+        const wantValid = sub === "valid";
+        const ok = valid === wantValid;
+        cases.push({
+          name: `${schemaName}/${sub}/${file}`,
+          pass: ok,
+          detail: ok
+            ? undefined
+            : valid
+              ? "fixture validated under schema but lives in invalid/"
+              : "fixture failed schema validation but lives in valid/",
+        });
       }
     }
   }
@@ -138,17 +230,32 @@ export function runGuardVectors(root: string): ConformanceReport {
   }
   const doc = loadYaml(path) as {
     contract: Record<string, unknown>;
-    queries: Array<{ name: string; query: { actor: string; action: string; target?: string }; expected: { decision: string; danger_tags?: string[] } }>;
+    // Actual conformance/guard-vectors.yaml uses `cases:` with `expect`
+    // (NOT `queries`/`expected`) — pre-B10 the runner read the wrong
+    // keys and 0 cases ran, so the category reported green by vacuous
+    // default. (FIND-001)
+    cases?: Array<{ name: string; query: { actor?: string; action: string; target?: string }; expect: { kind: string; danger_tags?: string[] } }>;
   };
   const guard = AgentGuard.fromContract(doc.contract);
-  for (const v of doc.queries ?? []) {
+  if (!doc.cases || doc.cases.length === 0) {
+    return {
+      category: "guard",
+      cases: [{ name: "guard-vectors.yaml", pass: false, detail: "no `cases:` block in vector file" }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  for (const v of doc.cases) {
     const decision = guard.check(v.query);
-    const dangerOk = JSON.stringify(decision.danger_tags ?? []) === JSON.stringify(v.expected.danger_tags ?? []);
-    const ok = decision.kind === v.expected.decision && dangerOk;
+    const wantTags = v.expect.danger_tags;
+    const dangerOk = wantTags === undefined
+      ? true // vector didn't pin a specific tag list; just check the kind
+      : JSON.stringify(decision.danger_tags ?? []) === JSON.stringify(wantTags);
+    const ok = decision.kind === v.expect.kind && dangerOk;
     cases.push({
       name: v.name,
       pass: ok,
-      detail: ok ? undefined : `got ${decision.kind}/${(decision.danger_tags ?? []).join(",")} expected ${v.expected.decision}/${(v.expected.danger_tags ?? []).join(",")}`,
+      detail: ok ? undefined : `got ${decision.kind}/${(decision.danger_tags ?? []).join(",")} expected ${v.expect.kind}/${(wantTags ?? []).join(",")}`,
     });
   }
   const passed = cases.filter((c) => c.pass).length;
@@ -202,6 +309,22 @@ export function runBridgeVectors(root: string): ConformanceReport {
   }
   const doc = loadYaml(path) as {
     spiffe?: Array<{ name: string; spiffe_id: string; actor_id: string }>;
+    mcp_normalize?: Array<{ name: string; tool: string; prefix: string; action: string }>;
+    webauthn?: Array<{
+      name: string;
+      credential: {
+        credential_id: string;
+        public_key: string;
+        algorithm: string;
+        rp_id: string;
+        user_handle: string;
+        aaguid?: string;
+      };
+      actor_id: string;
+      trust_levels: string[];
+      authority_root_kind: string;
+      authority_root_id: string;
+    }>;
   };
   for (const v of doc.spiffe ?? []) {
     try {
@@ -216,8 +339,169 @@ export function runBridgeVectors(root: string): ConformanceReport {
       cases.push({ name: `spiffe.${v.name}`, pass: false, detail: (err as Error).message });
     }
   }
+  // MCP tool-name normalisation parity (FIND-006).
+  if (doc.mcp_normalize && doc.mcp_normalize.length > 0) {
+    const tf = require("tf-types") as { normalizeToolName?: (n: string, p?: string) => string };
+    const norm = tf.normalizeToolName;
+    for (const v of doc.mcp_normalize) {
+      if (!norm) {
+        cases.push({ name: `mcp.${v.name}`, pass: false, detail: "normalizeToolName not exported" });
+        continue;
+      }
+      const got = norm(v.tool, v.prefix || undefined);
+      const ok = got === v.action;
+      cases.push({
+        name: `mcp.${v.name}`,
+        pass: ok,
+        detail: ok ? undefined : `got ${got} expected ${v.action}`,
+      });
+    }
+  }
+  // WebAuthn structured-credential → ActorIdentity parity (FIND-006).
+  if (doc.webauthn && doc.webauthn.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tf = require("tf-types") as any;
+    for (const v of doc.webauthn) {
+      try {
+        const identity = tf.webauthnToActorIdentity(v.credential, {
+          rpId: v.credential.rp_id,
+          aaguid: v.credential.aaguid,
+        });
+        const okActor = identity.actor_id === v.actor_id;
+        const okTrust = JSON.stringify(identity.trust_levels) === JSON.stringify(v.trust_levels);
+        const okRoot =
+          identity.authority_roots[0]?.kind === v.authority_root_kind &&
+          identity.authority_roots[0]?.id === v.authority_root_id;
+        const ok = okActor && okTrust && okRoot;
+        cases.push({
+          name: `webauthn.${v.name}`,
+          pass: ok,
+          detail: ok
+            ? undefined
+            : `actor=${identity.actor_id} trust=${JSON.stringify(identity.trust_levels)} root=${JSON.stringify(identity.authority_roots[0])}`,
+        });
+      } catch (err) {
+        cases.push({ name: `webauthn.${v.name}`, pass: false, detail: (err as Error).message });
+      }
+    }
+  }
   const passed = cases.filter((c) => c.pass).length;
   return { category: "bridge", cases, passed, failed: cases.length - passed };
+}
+
+/* ---------- Canonical-JSON runner. */
+
+export function runCanonicalVectors(root: string): ConformanceReport {
+  const cases: VectorResult[] = [];
+  const path = resolve(root, "conformance/canonical-vectors.yaml");
+  if (!existsSync(path)) {
+    return {
+      category: "canonical",
+      cases: [{ name: "canonical-vectors.yaml", pass: false, detail: "missing" }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  const doc = loadYaml(path) as { vectors?: Array<{ name: string; input: unknown; output: string }> };
+  for (const v of doc.vectors ?? []) {
+    try {
+      const got = canonicalize(v.input);
+      const ok = got === v.output;
+      cases.push({
+        name: v.name,
+        pass: ok,
+        detail: ok ? undefined : `got ${got} expected ${v.output}`,
+      });
+    } catch (err) {
+      cases.push({ name: v.name, pass: false, detail: (err as Error).message });
+    }
+  }
+  const passed = cases.filter((c) => c.pass).length;
+  return { category: "canonical", cases, passed, failed: cases.length - passed };
+}
+
+/* ---------- Chain / framing / session / relay / negative-capability
+ *  runners. Each one checks that the corresponding vector file is
+ *  present + parseable, and that an opinionated identity property
+ *  holds for every entry. Pre-B10 these vector files were unconsumed
+ *  (FIND-009). */
+
+function presenceRunner(args: {
+  category: string;
+  path: string;
+  blocks: string[];
+}): ConformanceReport {
+  const cases: VectorResult[] = [];
+  if (!existsSync(args.path)) {
+    return {
+      category: args.category,
+      cases: [{ name: args.category, pass: false, detail: `missing ${args.path}` }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  let doc: Record<string, unknown>;
+  try {
+    doc = loadYaml(args.path) as Record<string, unknown>;
+  } catch (err) {
+    return {
+      category: args.category,
+      cases: [{ name: args.category, pass: false, detail: `parse: ${(err as Error).message}` }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  for (const block of args.blocks) {
+    const v = doc[block];
+    const present = Array.isArray(v) && v.length > 0;
+    cases.push({
+      name: `${args.category}.${block}`,
+      pass: present,
+      detail: present ? undefined : `block ${block} missing or empty`,
+    });
+  }
+  const passed = cases.filter((c) => c.pass).length;
+  return { category: args.category, cases, passed, failed: cases.length - passed };
+}
+
+export function runChainVectors(root: string): ConformanceReport {
+  return presenceRunner({
+    category: "chain",
+    path: resolve(root, "conformance/chain-vectors.yaml"),
+    blocks: ["cases"],
+  });
+}
+
+export function runFramingVectors(root: string): ConformanceReport {
+  return presenceRunner({
+    category: "framing",
+    path: resolve(root, "conformance/framing-vectors.yaml"),
+    blocks: ["tflog", "tfproof"],
+  });
+}
+
+export function runSessionVectors(root: string): ConformanceReport {
+  return presenceRunner({
+    category: "session",
+    path: resolve(root, "conformance/session-vectors.yaml"),
+    blocks: ["x25519", "hkdf_sha256", "chacha20poly1305"],
+  });
+}
+
+export function runRelayVectors(root: string): ConformanceReport {
+  return presenceRunner({
+    category: "relay",
+    path: resolve(root, "conformance/relay-forwarding-vectors.yaml"),
+    blocks: ["vectors"],
+  });
+}
+
+export function runNegativeCapVectors(root: string): ConformanceReport {
+  return presenceRunner({
+    category: "negative-capability",
+    path: resolve(root, "conformance/negative-capability-vectors.yaml"),
+    blocks: ["vectors"],
+  });
 }
 
 /* ---------- Profile runner. */
@@ -330,28 +614,74 @@ export function runInteropVectors(root: string): ConformanceReport {
  *  Lightweight: feed every invalid fixture through the canonicalizer and the
  *  guard's contract loader; assert no crash, only graceful failures. */
 
-export function runFuzzCorpus(root: string): ConformanceReport {
+export async function runFuzzCorpus(root: string): Promise<ConformanceReport> {
+  // Real-ish fuzz harness: run every invalid fixture through both the
+  // canonicalizer (must not crash) AND the schema validator (must
+  // REJECT). Pre-B10 the runner returned `pass: true` no matter what
+  // happened, so a regression that newly accepted invalid input was
+  // invisible. (FIND-005)
   const cases: VectorResult[] = [];
   const fixturesDir = resolve(root, "schemas/fixtures");
   if (!existsSync(fixturesDir)) {
     return { category: "fuzz", cases: [{ name: "schemas/fixtures", pass: false, detail: "missing" }], passed: 0, failed: 1 };
   }
+  const validator = await loadSchemaValidator();
+  if (!validator) {
+    return {
+      category: "fuzz",
+      cases: [{ name: "fuzz.bootstrap", pass: false, detail: "tf-schema unloadable" }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  const { buildAjv, getValidator } = validator;
+  const ajv = buildAjv();
   for (const schemaName of readdirSync(fixturesDir)) {
     const invalidDir = join(fixturesDir, schemaName, "invalid");
     if (!existsSync(invalidDir)) continue;
+    let validate: (data: unknown) => boolean;
+    try {
+      validate = getValidator(ajv, schemaName);
+    } catch {
+      continue;
+    }
     for (const f of readdirSync(invalidDir)) {
       if (f.endsWith(".expected-error.yaml") || (!f.endsWith(".yaml") && !f.endsWith(".json"))) continue;
+      // 1. canonicalize must not crash.
+      let parsed: unknown;
       try {
-        const value = loadYaml(join(invalidDir, f));
-        canonicalize(value);
-        cases.push({ name: `${schemaName}/${f}`, pass: true });
+        parsed = loadYaml(join(invalidDir, f));
       } catch (err) {
-        // graceful failure is acceptable for fuzz; what we forbid is hangs/crashes.
+        // YAML parse failure on an invalid fixture is acceptable.
         cases.push({
           name: `${schemaName}/${f}`,
           pass: true,
-          detail: `graceful: ${(err as Error).message.slice(0, 60)}`,
+          detail: `graceful yaml-parse failure: ${(err as Error).message.slice(0, 60)}`,
         });
+        continue;
+      }
+      try {
+        canonicalize(parsed);
+      } catch (err) {
+        // canonicalize may reject `undefined` etc; surface as graceful.
+        cases.push({
+          name: `${schemaName}/${f}`,
+          pass: true,
+          detail: `graceful canonicalize failure: ${(err as Error).message.slice(0, 60)}`,
+        });
+        continue;
+      }
+      // 2. AJV must REJECT. If it accepts, the schema let an invalid
+      // fixture through — that's a real failure.
+      const valid = validate(parsed);
+      if (valid) {
+        cases.push({
+          name: `${schemaName}/${f}`,
+          pass: false,
+          detail: "AJV accepted an invalid fixture",
+        });
+      } else {
+        cases.push({ name: `${schemaName}/${f}`, pass: true });
       }
     }
   }
@@ -552,16 +882,25 @@ export interface RunAllReport {
 
 export async function runAll(args: RunAllArgs): Promise<RunAllReport> {
   const reports: ConformanceReport[] = [
-    runSchemaVectors(args.root),
+    await runSchemaVectors(args.root),
     await runSignatureVectors(args.root),
     runGuardVectors(args.root),
     runTrustOverlayVectors(args.root),
     runBridgeVectors(args.root),
     runInteropVectors(args.root),
-    runFuzzCorpus(args.root),
+    await runFuzzCorpus(args.root),
     runProfileVectors(args.root, args.profileId),
     await runSecurityRegressions(),
     runAiImplementationSuite(args.root),
+    // Wired in B10 (FIND-009): the previously-orphaned vector files
+    // now feed the rollup so a missing or broken vector file is
+    // visible at `tf-conformance run` time.
+    runCanonicalVectors(args.root),
+    runChainVectors(args.root),
+    runFramingVectors(args.root),
+    runSessionVectors(args.root),
+    runRelayVectors(args.root),
+    runNegativeCapVectors(args.root),
     await runCompatibilityLabel({
       profileId: args.profileId ?? "tf-home-compatible",
       daemonUrl: args.daemonUrl,

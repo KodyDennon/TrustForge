@@ -13,6 +13,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "tf-schema": "workspace:*",
     "tf-types": "workspace:*",
     "yaml": "^2.6.0"
   },

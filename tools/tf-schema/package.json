@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "./src/loader.ts",
+  "exports": {
+    ".": "./src/loader.ts",
+    "./loader": "./src/loader.ts",
+    "./validate": "./src/validate.ts"
+  },
   "description": "TrustForge JSON Schema validator and future doc-generator.",
   "scripts": {
     "validate": "bun run src/cli.ts validate",

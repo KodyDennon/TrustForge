@@ -58,7 +58,7 @@ async function makeSignedNativePlugin(args: MakeManifestArgs): Promise<{
   writeFileSync(entryPath, args.entrySource);
   const actor_id = `tf:actor:plugin:example.com/${args.pluginId ?? "p"}`;
   const manifest: PluginManifest = {
-    plugin_manifest_version: "1",
+    plugin_version: "1",
     plugin_id: args.pluginId ?? "p",
     actor_id,
     kind: "native",
