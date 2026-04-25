@@ -23,6 +23,8 @@ pub mod proof_event;
 pub use proof_event::*;
 pub mod proof_profile;
 pub use proof_profile::*;
+pub mod proofrpc;
+pub use proofrpc::*;
 pub mod revocation;
 pub use revocation::*;
 pub mod threat_model;

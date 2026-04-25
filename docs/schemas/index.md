@@ -15,5 +15,6 @@ This directory is generated from `schemas/*.schema.json` by
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |
 | [proof-profile](./proof-profile.md) | TF-0005 | Declarative profile describing which proof events to emit and how (TF-0005). |
+| [proofrpc](./proofrpc.md) | — | Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust |
 | [revocation](./revocation.md) | TF-0004 | Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004). |
 | [threat-model](./threat-model.md) | TF-0006 | Declarative threat-model manifest referenced by TF-0006 and by agent-contract.references.threat_model. |

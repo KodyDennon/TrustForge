@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/proofrpc.schema.json",
+  "title": "TrustForge ProofRPC Service Descriptor",
+  "description": "Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust. See TF-0007.",
+  "type": "object",
+  "required": ["rpc_version", "service_id", "methods"],
+  "additionalProperties": false,
+  "properties": {
+    "rpc_version": {
+      "description": "Version of the proofrpc service descriptor schema.",
+      "enum": ["1"]
+    },
+    "service_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$",
+      "description": "PascalCase service identifier used by generated client and server types."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the service."
+    },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Methods exposed by this service.",
+      "items": { "$ref": "#/$defs/Method" }
+    }
+  },
+  "$defs": {
+    "Method": {
+      "type": "object",
+      "description": "One RPC method.",
+      "required": ["name", "kind", "request", "response", "capability", "risk"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][A-Za-z0-9_]*$",
+          "description": "Method name, camelCase or snake_case, starts with a lowercase letter."
+        },
+        "kind": {
+          "enum": ["unary", "server-streaming"],
+          "description": "Streaming mode. Unary is one request, one response. Server-streaming is one request, zero or more responses."
+        },
+        "description": {
+          "type": "string",
+          "description": "What this method does."
+        },
+        "request": {
+          "type": "object",
+          "description": "Inline JSON Schema describing the request body. Must be type:object with properties.",
+          "additionalProperties": true
+        },
+        "response": {
+          "type": "object",
+          "description": "Inline JSON Schema describing the response body (or stream element for server-streaming).",
+          "additionalProperties": true
+        },
+        "capability": {
+          "description": "Name of the TrustForge capability required to invoke.",
+          "$ref": "_common.schema.json#/$defs/ActionName"
+        },
+        "risk": {
+          "description": "Risk class assigned to this method.",
+          "$ref": "_common.schema.json#/$defs/RiskClass"
+        },
+        "proof": {
+          "description": "Proof level at which successful calls are emitted.",
+          "$ref": "_common.schema.json#/$defs/ProofLevel"
+        },
+        "approval": {
+          "description": "Approval requirement for invocations; defaults to none.",
+          "$ref": "_common.schema.json#/$defs/ApprovalRequirement"
+        }
+      }
+    }
+  }
+}

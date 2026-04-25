@@ -10,5 +10,6 @@ export * from "./policy.js";
 export * from "./proof-bundle.js";
 export * from "./proof-event.js";
 export * from "./proof-profile.js";
+export * from "./proofrpc.js";
 export * from "./revocation.js";
 export * from "./threat-model.js";

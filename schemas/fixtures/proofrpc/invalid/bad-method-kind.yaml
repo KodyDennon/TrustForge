@@ -1,0 +1,9 @@
+rpc_version: "1"
+service_id: Foo
+methods:
+  - name: foo
+    kind: duplex
+    request: { type: object }
+    response: { type: object }
+    capability: file.read
+    risk: R0

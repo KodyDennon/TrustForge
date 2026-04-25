@@ -1,0 +1,3 @@
+errors:
+  - path: "/methods/0/kind"
+    keyword: enum

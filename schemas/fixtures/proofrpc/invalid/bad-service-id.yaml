@@ -1,0 +1,9 @@
+rpc_version: "1"
+service_id: not_pascal
+methods:
+  - name: foo
+    kind: unary
+    request: { type: object }
+    response: { type: object }
+    capability: file.read
+    risk: R0

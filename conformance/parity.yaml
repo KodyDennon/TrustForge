@@ -110,6 +110,18 @@ vectors:
   - schema: proof-profile
     fixture: schemas/fixtures/proof-profile/invalid/negative-retention.yaml
     expect: invalid
+  - schema: proofrpc
+    fixture: schemas/fixtures/proofrpc/valid/basic.yaml
+    expect: valid
+  - schema: proofrpc
+    fixture: schemas/fixtures/proofrpc/invalid/bad-method-kind.yaml
+    expect: invalid
+  - schema: proofrpc
+    fixture: schemas/fixtures/proofrpc/invalid/bad-service-id.yaml
+    expect: invalid
+  - schema: proofrpc
+    fixture: schemas/fixtures/proofrpc/invalid/missing-methods.yaml
+    expect: invalid
   - schema: revocation
     fixture: schemas/fixtures/revocation/valid/basic.yaml
     expect: valid

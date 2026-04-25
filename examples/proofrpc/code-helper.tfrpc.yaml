@@ -1,0 +1,67 @@
+# Canonical example service used by Phase 4 codegen and parity tests.
+# Kept in sync with schemas/fixtures/proofrpc/valid/basic.yaml.
+rpc_version: "1"
+service_id: CodeHelper
+description: "Example code-helper service used by Phase 4 tests and demos."
+methods:
+  - name: fetchFile
+    kind: unary
+    description: "Return the contents of a file in the project working tree."
+    request:
+      type: object
+      required: [path]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          minLength: 1
+          description: "Repo-relative path."
+    response:
+      type: object
+      required: [path, contents]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          description: "Echoed path."
+        contents:
+          type: string
+          description: "UTF-8 file contents."
+        size:
+          type: integer
+          minimum: 0
+          description: "Byte length of contents."
+    capability: file.read
+    risk: R0
+    proof: L1
+
+  - name: streamDirectory
+    kind: server-streaming
+    description: "Stream directory entries one at a time."
+    request:
+      type: object
+      required: [path]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          minLength: 1
+          description: "Directory path."
+    response:
+      type: object
+      required: [name, kind]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: "Entry name."
+        kind:
+          enum: [file, dir]
+          description: "Entry type."
+        size:
+          type: integer
+          minimum: 0
+          description: "Byte size for files, 0 for dirs."
+    capability: file.read
+    risk: R0
+    proof: L0

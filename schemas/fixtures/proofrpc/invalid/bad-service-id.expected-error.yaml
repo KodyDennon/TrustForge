@@ -1,0 +1,3 @@
+errors:
+  - path: "/service_id"
+    keyword: pattern
