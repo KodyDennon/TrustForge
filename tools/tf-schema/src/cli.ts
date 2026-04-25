@@ -106,6 +106,20 @@ async function cmdCodegen(args: string[]): Promise<number> {
   return 2;
 }
 
+async function cmdAgentContractCheck(args: string[]): Promise<number> {
+  const contract = args.find((a) => !a.startsWith("--"));
+  if (!contract) {
+    console.error("usage: tf-schema agent-contract-check <contract.yaml> [--library <path>] [--catalog <path>]");
+    return 2;
+  }
+  const library = argValue(args, "--library");
+  const catalog = argValue(args, "--catalog");
+  const { checkAgentContract, formatReport } = await import("./agent_contract");
+  const report = await checkAgentContract(contract, { libraryPath: library, catalogPath: catalog });
+  console.log(formatReport(report));
+  return report.ok ? 0 : 1;
+}
+
 async function cmdLint(): Promise<number> {
   const { lintSchemas } = await import("./lint");
   const result = await lintSchemas();
@@ -162,7 +176,9 @@ if (cmd === "validate") {
   exit = await cmdFuzz(rest);
 } else if (cmd === "parity") {
   exit = await cmdParity(rest);
+} else if (cmd === "agent-contract-check") {
+  exit = await cmdAgentContractCheck(rest);
 } else {
-  console.error("usage: tf-schema <validate|validate-all|lint|bundle|codegen|fuzz|parity> [args]");
+  console.error("usage: tf-schema <validate|validate-all|lint|bundle|codegen|fuzz|parity|agent-contract-check> [args]");
 }
 process.exit(exit);
