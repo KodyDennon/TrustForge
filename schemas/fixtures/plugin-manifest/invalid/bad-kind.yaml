@@ -1,0 +1,13 @@
+plugin_version: "1"
+plugin_id: com.example.x
+actor_id: "tf:actor:plugin:x/y"
+kind: shell
+entry: "./x.sh"
+identity_pub: "AA=="
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:plugin:x/y"
+  signature: "AAAA"
+capabilities:
+  - name: file.read
+    risk: R0

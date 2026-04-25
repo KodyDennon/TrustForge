@@ -23,6 +23,8 @@ pub mod daemon_config;
 pub use daemon_config::*;
 pub mod dangerous_actions;
 pub use dangerous_actions::*;
+pub mod plugin_manifest;
+pub use plugin_manifest::*;
 pub mod policy;
 pub use policy::*;
 pub mod proof_bundle;

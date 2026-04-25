@@ -15,6 +15,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
 | [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
+| [plugin-manifest](./plugin-manifest.md) | — | Declarative manifest describing a TrustForge plugin |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |

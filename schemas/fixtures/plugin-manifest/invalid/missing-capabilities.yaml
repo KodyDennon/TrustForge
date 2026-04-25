@@ -1,0 +1,10 @@
+plugin_version: "1"
+plugin_id: com.example.x
+actor_id: "tf:actor:plugin:x/y"
+kind: native
+entry: "./x.js"
+identity_pub: "AA=="
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:plugin:x/y"
+  signature: "AAAA"

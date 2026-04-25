@@ -10,6 +10,7 @@ export * from "./capability-token.js";
 export * from "./conformance.js";
 export * from "./daemon-config.js";
 export * from "./dangerous-actions.js";
+export * from "./plugin-manifest.js";
 export * from "./policy.js";
 export * from "./proof-bundle.js";
 export * from "./proof-event.js";

@@ -1,0 +1,3 @@
+errors:
+  - path: "/plugin_id"
+    keyword: pattern

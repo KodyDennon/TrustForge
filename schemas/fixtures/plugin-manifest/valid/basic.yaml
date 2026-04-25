@@ -1,0 +1,14 @@
+plugin_version: "1"
+plugin_id: com.example.hello
+actor_id: "tf:actor:plugin:example.com/hello"
+kind: native
+entry: "./hello.js"
+identity_pub: "cHVibGljLWtleS1ieXRlcy1nb3Zlcm5hbmNlLTAxMjM="
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:plugin:example.com/hello"
+  signature: "c2lnbmF0dXJlLWJ5dGVzLWdvdmVybmFuY2UtMDEyMw=="
+capabilities:
+  - name: file.read
+    risk: R0
+description: "Demo plugin that exposes a hello method."
