@@ -24,7 +24,7 @@ struct File {
 
 #[test]
 fn parity_against_shared_vectors() {
-    let path = format!("{}/../../canonical-vectors.yaml", env!("CARGO_MANIFEST_DIR"));
+    let path = format!("{}/../../conformance/canonical-vectors.yaml", env!("CARGO_MANIFEST_DIR"));
     let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path, e));
     let file: File = serde_yaml::from_str(&raw).expect("parse canonical-vectors.yaml");
     for v in &file.vectors {

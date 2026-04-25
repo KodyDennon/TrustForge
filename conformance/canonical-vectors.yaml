@@ -1,0 +1,118 @@
+# Canonical-JSON test vectors shared between the TypeScript and Rust
+# implementations of `canonicalize`. Both runtimes must produce the exact
+# `output` string for each `input` value.
+vectors:
+  - name: null-value
+    input: null
+    output: "null"
+
+  - name: bool-true
+    input: true
+    output: "true"
+
+  - name: bool-false
+    input: false
+    output: "false"
+
+  - name: integer
+    input: 42
+    output: "42"
+
+  - name: negative-integer
+    input: -7
+    output: "-7"
+
+  - name: float-half
+    input: 0.5
+    output: "0.5"
+
+  - name: string-ascii
+    input: "hello"
+    output: "\"hello\""
+
+  - name: string-escaped
+    input: "line\nbreak"
+    output: "\"line\\nbreak\""
+
+  - name: empty-object
+    input: {}
+    output: "{}"
+
+  - name: empty-array
+    input: []
+    output: "[]"
+
+  - name: simple-object
+    input: { b: 1, a: 2 }
+    output: "{\"a\":2,\"b\":1}"
+
+  - name: nested-object
+    input: { a: { y: 2, x: 1 } }
+    output: "{\"a\":{\"x\":1,\"y\":2}}"
+
+  - name: nested-arrays
+    input: { xs: [2, 1, 3] }
+    output: "{\"xs\":[2,1,3]}"
+
+  - name: mixed
+    input:
+      z: { b: [3, 2, 1], a: "s" }
+      y: 1
+      x: null
+    output: "{\"x\":null,\"y\":1,\"z\":{\"a\":\"s\",\"b\":[3,2,1]}}"
+
+  # --- B2 additions: edge cases the original vector set missed. -----------
+
+  - name: negative-zero-as-positive-zero
+    input: -0
+    output: "0"
+
+  - name: negative-integer
+    input: -42
+    output: "-42"
+
+  - name: integer-valued-float-prints-as-integer
+    input: 1.0
+    output: "1"
+
+  - name: small-float-with-exponent
+    input: 0.0001
+    output: "0.0001"
+
+  - name: large-integer-up-to-2^53
+    input: 9007199254740991
+    output: "9007199254740991"
+
+  - name: nfc-key-decomposed-equals-composed
+    # The key "café" written with the decomposed form (e + U+0301) MUST
+    # canonicalize to the composed form (U+00E9). With the JS YAML parser
+    # we have to express the key as a plain string — JS still emits NFC
+    # bytes for the canonical-JSON output.
+    input: { "café": 1 }
+    output: "{\"café\":1}"
+
+  - name: utf8-byte-order-key-sort-supplementary-plane
+    # Key "" is at UTF-8 EE 80 80; key "\u{20000}" is at UTF-8
+    # F0 A0 80 80. UTF-8 sort: "" < "\u{20000}". (UTF-16 sort would
+    # disagree: surrogate pair high-byte 0xD840 < 0xE000. The TS canonical
+    # MUST produce UTF-8 order to match Rust.)
+    input: { "": 1, "𠀀": 2 }
+    output: "{\"\":1,\"𠀀\":2}"
+
+  - name: utf8-byte-order-key-sort-bmp-vs-supplementary
+    # Same insight: BMP key 0x7E < supplementary 0xF0+ in UTF-8.
+    input: { "~": 1, "𐀁": 2 }
+    output: "{\"~\":1,\"𐀁\":2}"
+
+  - name: tab-and-newline-string
+    input: "a\tb\nc"
+    output: "\"a\\tb\\nc\""
+
+  - name: control-char-escape
+    # U+0001 must be escaped to \u0001 in JSON.
+    input: "\u0001"
+    output: "\"\\u0001\""
+
+  - name: backslash-and-quote
+    input: "a\\b\"c"
+    output: "\"a\\\\b\\\"c\""

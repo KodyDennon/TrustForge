@@ -53,14 +53,17 @@ export class SessionError extends Error {}
 export interface HelloI {
   kind: "hello-i";
   version: number;
-  /** Selected suite (must be present in `supported_suites`). */
+  /** Initiator's preferred suite (must be in `supported_suites`). */
   suite: string;
-  /** Suite preference list. Earlier entries are preferred. The default
-   *  classical suite is always implicit so existing peers continue to
-   *  interoperate. */
+  /** Suite preference list. Earlier entries are preferred. The classical
+   *  suite is always implicit so existing peers continue to interoperate. */
   supported_suites?: string[];
   session_id: string; // base64, 16 bytes
+  /** Initiator's belief about the responder's actor URI; used for
+   *  wrong-peer detection. Not a self-claim. */
   peer_hint: string;
+  /** Initiator's self-claimed actor URI (advisory; not key-bound). */
+  self_hint?: string;
   eph_pub: string; // base64, 32 bytes
 }
 
@@ -68,12 +71,23 @@ export interface HelloR {
   kind: "hello-r";
   eph_pub: string; // base64
   ident_pub: string; // base64
+  /** Suite the responder selected from the initiator's supported list. */
+  selected_suite?: string;
+  /** Responder's self-claimed actor URI (advisory). */
+  self_hint?: string;
+  /** Hybrid-PQ companion signature; required when negotiated suite is the
+   *  hybrid `*+ml-dsa-65` variant. Both signatures cover the same
+   *  transcript_hash; both must verify. */
+  signature_mldsa?: string;
+  ident_pub_mldsa?: string;
   signature: string; // base64
 }
 
 export interface Auth {
   kind: "auth";
   ident_pub: string; // base64
+  signature_mldsa?: string;
+  ident_pub_mldsa?: string;
   signature: string; // base64
 }
 
@@ -88,6 +102,8 @@ export type SessionFrame =
 export interface SessionConfig {
   selfActor: string;
   peerHint?: string;
+  /** Self-claimed actor URI advertised in HelloI / HelloR `self_hint`. */
+  selfHint?: string;
   identityPriv: Uint8Array;
   identityPub: Uint8Array;
   /** Preferred session suite. Default: SESSION_SUITE. The handshake
@@ -96,6 +112,11 @@ export interface SessionConfig {
   /** Suite list the initiator is willing to fall back to. Defaults to
    *  `KNOWN_SESSION_SUITES`. */
   supportedSuites?: SessionSuite[];
+  /** Optional hybrid-PQ ml-dsa-65 secret key. When present and the
+   *  negotiated suite includes the hybrid variant, the peer signs the
+   *  handshake transcript with both ed25519 and ml-dsa-65. */
+  identityMldsaPriv?: Uint8Array;
+  identityMldsaPub?: Uint8Array;
   // Test-only: deterministic ephemeral / session_id.
   ephSeed?: Uint8Array;
   sessionIdSeed?: Uint8Array;
@@ -129,6 +150,7 @@ export class Initiator {
       version: SESSION_VERSION,
       suite: preferred,
       supported_suites: supported,
+      self_hint: this.cfg.selfHint,
       session_id: b64encode(sessionIdBytes),
       peer_hint: this.cfg.peerHint ?? "",
       eph_pub: b64encode(eph.publicKey),
@@ -170,10 +192,9 @@ export class Initiator {
     const auth: Auth = { ...authUnsigned, signature: b64encode(authSig) };
 
     const peerActor = derivePeerActor(identPub);
-    // The initiator's `peerHint` is its OWN belief about who the responder
-    // should be; it does not become the responder's claim. Self-claim
-    // plumbing arrives with the suite-negotiation wire change (B2). For B1
-    // the responder's claim is unknown to the initiator.
+    // peer_hint on HelloI was the initiator's belief about the responder;
+    // the responder advertises its own actor URI in HelloR.self_hint.
+    const peerClaim = msg.self_hint && msg.self_hint.length > 0 ? msg.self_hint : undefined;
     const session = SessionState.derive({
       role: "initiator",
       sharedSecret: shared,
@@ -181,7 +202,7 @@ export class Initiator {
       transcriptHash: fullTranscriptHash,
       selfActor: this.cfg.selfActor,
       peerActor,
-      peerActorClaim: undefined,
+      peerActorClaim: peerClaim,
     });
     this.session = session;
     this.helloR = msg;
@@ -208,8 +229,19 @@ export class Responder {
   async processHelloI(msg: HelloI): Promise<HelloR> {
     if (this.state !== "fresh") throw new SessionError("responder already engaged");
     if (msg.version !== SESSION_VERSION) throw new SessionError(`unsupported version ${msg.version}`);
-    if (!(KNOWN_SESSION_SUITES as readonly string[]).includes(msg.suite)) {
-      throw new SessionError(`unsupported suite ${msg.suite}`);
+    const ourSupported = (this.cfg.supportedSuites ?? KNOWN_SESSION_SUITES) as readonly string[];
+    let chosen: string;
+    if (msg.supported_suites && msg.supported_suites.length > 0) {
+      const match = msg.supported_suites.find((s) => ourSupported.includes(s));
+      if (!match) {
+        throw new SessionError(
+          `no mutually-supported suite (peer offered ${msg.supported_suites.join(",")}, we support ${ourSupported.join(",")})`,
+        );
+      }
+      chosen = match;
+    } else {
+      if (!ourSupported.includes(msg.suite)) throw new SessionError(`unsupported suite ${msg.suite}`);
+      chosen = msg.suite;
     }
     const sessionIdBytes = b64decode(msg.session_id);
     if (sessionIdBytes.length !== 16) throw new SessionError("session_id must be 16 bytes");
@@ -222,6 +254,8 @@ export class Responder {
       kind: "hello-r",
       eph_pub: b64encode(eph.publicKey),
       ident_pub: b64encode(this.cfg.identityPub),
+      selected_suite: chosen,
+      self_hint: this.cfg.selfHint,
       signature: "",
     };
     const transcript = utf8encode(canonicalize(msg) + canonicalize(helloRUnsigned));
@@ -249,11 +283,12 @@ export class Responder {
 
     const peerIdentPub = b64decode(msg.ident_pub);
     const peerActor = derivePeerActor(peerIdentPub);
-    // peer_hint on HelloI is the initiator's BELIEF about the responder
-    // (used by the initiator to detect wrong-peer connections), NOT the
-    // initiator's self-claim. A dedicated `self_hint` field for self-claims
-    // is added in the suite-negotiation wire change (B2). For B1 the claim
-    // is left undefined; downstream `actor_claim` checks tolerate that.
+    // peer_hint is the initiator's belief about the responder (wrong-peer
+    // detection). The initiator's own self-claim travels in HelloI.self_hint.
+    const peerClaim =
+      this.helloI.self_hint && this.helloI.self_hint.length > 0
+        ? this.helloI.self_hint
+        : undefined;
     const session = SessionState.derive({
       role: "responder",
       sharedSecret: this.sharedSecret,
@@ -261,7 +296,7 @@ export class Responder {
       transcriptHash: fullTranscriptHash,
       selfActor: this.cfg.selfActor,
       peerActor,
-      peerActorClaim: undefined,
+      peerActorClaim: peerClaim,
     });
     this.session = session;
     this.state = "established";

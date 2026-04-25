@@ -1,0 +1,48 @@
+# Cross-language signature parity vectors (B2). Both runtimes:
+#   1. canonicalize the JSON payload exactly as below,
+#   2. sha256 the UTF-8 bytes of that canonical string,
+#   3. ed25519-sign the digest with the listed private key,
+#   4. ed25519-verify the listed signature against the digest with the
+#      listed public key.
+# Both languages MUST produce the listed signature byte-for-byte (ed25519
+# is deterministic per RFC 8032). Both languages MUST verify the signature.
+vectors:
+  - name: ascii-payload
+    private_key_hex: "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+    public_key_hex: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    payload:
+      a: 1
+      b: "hello"
+    canonical: "{\"a\":1,\"b\":\"hello\"}"
+
+  - name: nfc-decomposed-key-canonicalizes-to-composed
+    private_key_hex: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    public_key_hex: "207a067892821e25d770f1fba0c47c11ff4b813e54162ece9eb839e076231ab6"
+    # The key shown here uses the COMPOSED form (U+00E9). The decomposed
+    # form (e + U+0301) MUST canonicalize to bytes identical to this.
+    payload:
+      café: 1
+    canonical: "{\"café\":1}"
+
+  - name: supplementary-plane-key-orders-after-bmp-key
+    private_key_hex: "1111111111111111111111111111111111111111111111111111111111111111"
+    public_key_hex: "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737"
+    payload:
+      "𠀀": 2
+      "": 1
+    # UTF-8 byte order:  (EE 80 80) < 𠀀 (F0 A0 80 80).
+    canonical: "{\"\":1,\"𠀀\":2}"
+
+  - name: integer-valued-float-prints-as-integer
+    private_key_hex: "2222222222222222222222222222222222222222222222222222222222222222"
+    public_key_hex: "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0"
+    payload:
+      x: 1.0
+    canonical: "{\"x\":1}"
+
+  - name: negative-zero-canonicalizes-as-zero
+    private_key_hex: "3333333333333333333333333333333333333333333333333333333333333333"
+    public_key_hex: "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce"
+    payload:
+      x: -0
+    canonical: "{\"x\":0}"

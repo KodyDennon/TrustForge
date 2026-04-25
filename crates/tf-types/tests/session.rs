@@ -30,16 +30,13 @@ fn make_pair_clean() -> Pair {
         peer_hint: Some("tf:actor:agent:example.com/r".into()),
         identity_priv: ipriv,
         identity_pub: ipub,
-        eph_seed: None,
-        session_id_seed: None,
+        ..Default::default()
     });
     let responder = Responder::new(SessionConfig {
         self_actor: "tf:actor:agent:example.com/r".into(),
-        peer_hint: None,
         identity_priv: rpriv,
         identity_pub: rpub,
-        eph_seed: None,
-        session_id_seed: None,
+        ..Default::default()
     });
     Pair { initiator, responder }
 }
@@ -76,7 +73,10 @@ fn handshake_rejects_bad_version() {
 fn handshake_rejects_bad_suite() {
     let mut p = make_pair_clean();
     let mut hello_i = p.initiator.start().unwrap();
+    // Override BOTH the preferred suite and the supported_suites list so
+    // the responder's negotiation logic finds nothing it can speak.
     hello_i.suite = "snake-oil".into();
+    hello_i.supported_suites = Some(vec!["snake-oil".into()]);
     assert!(p.responder.process_hello_i(hello_i).is_err());
 }
 

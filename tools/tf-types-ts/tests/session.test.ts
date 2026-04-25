@@ -60,7 +60,10 @@ describe("handshake", () => {
   test("rejects bad suite", async () => {
     const { initiator, responder } = await makePair();
     const helloI = initiator.start();
+    // Force BOTH the preferred suite and the supported_suites list to a
+    // value the responder can't speak; suite negotiation must reject.
     helloI.suite = "snake-oil-suite";
+    helloI.supported_suites = ["snake-oil-suite"];
     expect(responder.processHelloI(helloI)).rejects.toThrow(SessionError);
   });
 

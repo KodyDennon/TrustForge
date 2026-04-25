@@ -7,7 +7,7 @@ import { canonicalize } from "../src/core/canonical";
 type Vector = { name: string; input: unknown; output: string };
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
-const VECTORS = parseYAML(readFileSync(join(REPO_ROOT, "canonical-vectors.yaml"), "utf8")) as { vectors: Vector[] };
+const VECTORS = parseYAML(readFileSync(join(REPO_ROOT, "conformance", "canonical-vectors.yaml"), "utf8")) as { vectors: Vector[] };
 
 describe("canonical-vectors", () => {
   for (const v of VECTORS.vectors) {

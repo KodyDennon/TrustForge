@@ -17,6 +17,14 @@ use crate::crypto::{
 
 pub const SESSION_VERSION: u32 = 0;
 pub const SESSION_SUITE: &str = "x25519-hkdf-sha256-chacha20poly1305-ed25519";
+pub const SESSION_SUITE_HYBRID_ED25519_MLDSA65: &str =
+    "x25519-hkdf-sha256-chacha20poly1305-ed25519+ml-dsa-65";
+
+/// Suites this build of TrustForge knows how to honour. Order is preference.
+pub const KNOWN_SESSION_SUITES: &[&str] = &[
+    SESSION_SUITE,
+    SESSION_SUITE_HYBRID_ED25519_MLDSA65,
+];
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SessionError {
@@ -39,8 +47,16 @@ impl From<CryptoError> for SessionError {
 pub struct HelloI {
     pub version: u32,
     pub suite: String,
+    /// Suite preference list. Earlier entries are preferred. The default
+    /// classical suite is always implicit so existing peers still
+    /// interoperate.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub supported_suites: Option<Vec<String>>,
     pub session_id: String,
     pub peer_hint: String,
+    /// Initiator's self-claimed actor URI (advisory; not bound to the key).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub self_hint: Option<String>,
     pub eph_pub: String,
 }
 
@@ -49,6 +65,23 @@ pub struct HelloI {
 pub struct HelloR {
     pub eph_pub: String,
     pub ident_pub: String,
+    /// Suite the responder selected from the initiator's supported_suites.
+    /// When omitted, the responder agrees to the suite the initiator named
+    /// in HelloI.suite.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub selected_suite: Option<String>,
+    /// Responder's self-claimed actor URI (advisory).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub self_hint: Option<String>,
+    /// Hybrid-PQ companion signature over the same transcript_hash. When
+    /// present, both the ed25519 `signature` and `signature_mldsa` MUST
+    /// verify for the handshake to be accepted.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub signature_mldsa: Option<String>,
+    /// Public ml-dsa key used to verify `signature_mldsa`. Required when
+    /// `signature_mldsa` is present.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub ident_pub_mldsa: Option<String>,
     pub signature: String,
 }
 
@@ -56,6 +89,12 @@ pub struct HelloR {
 #[serde(tag = "kind", rename = "auth")]
 pub struct Auth {
     pub ident_pub: String,
+    /// Hybrid-PQ companion signature; required when the negotiated suite
+    /// is the hybrid `*+ml-dsa-65` variant.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub signature_mldsa: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub ident_pub_mldsa: Option<String>,
     pub signature: String,
 }
 
@@ -83,13 +122,36 @@ pub enum SessionFrame {
     },
 }
 
+#[derive(Clone, Debug)]
 pub struct SessionConfig {
     pub self_actor: String,
     pub peer_hint: Option<String>,
+    /// Optional self-claimed actor URI advertised in HelloI / HelloR.
+    pub self_hint: Option<String>,
     pub identity_priv: [u8; 32],
     pub identity_pub: [u8; 32],
+    /// Preferred suite. Default: SESSION_SUITE.
+    pub preferred_suite: Option<String>,
+    /// Suites this peer is willing to accept; defaults to KNOWN_SESSION_SUITES.
+    pub supported_suites: Option<Vec<String>>,
     pub eph_seed: Option<[u8; 32]>,
     pub session_id_seed: Option<[u8; 16]>,
+}
+
+impl Default for SessionConfig {
+    fn default() -> Self {
+        Self {
+            self_actor: String::new(),
+            peer_hint: None,
+            self_hint: None,
+            identity_priv: [0u8; 32],
+            identity_pub: [0u8; 32],
+            preferred_suite: None,
+            supported_suites: None,
+            eph_seed: None,
+            session_id_seed: None,
+        }
+    }
 }
 
 pub struct Initiator {
@@ -135,11 +197,26 @@ impl Initiator {
                 buf
             }
         };
+        let preferred = self
+            .cfg
+            .preferred_suite
+            .clone()
+            .unwrap_or_else(|| SESSION_SUITE.to_owned());
+        let mut supported = self
+            .cfg
+            .supported_suites
+            .clone()
+            .unwrap_or_else(|| KNOWN_SESSION_SUITES.iter().map(|s| s.to_string()).collect());
+        if !supported.iter().any(|s| s == &preferred) {
+            supported.insert(0, preferred.clone());
+        }
         let hello_i = HelloI {
             version: SESSION_VERSION,
-            suite: SESSION_SUITE.to_owned(),
+            suite: preferred,
+            supported_suites: Some(supported),
             session_id: b64encode(&session_id_bytes),
             peer_hint: self.cfg.peer_hint.clone().unwrap_or_default(),
+            self_hint: self.cfg.self_hint.clone(),
             eph_pub: b64encode(&eph.public),
         };
         self.state = InitiatorState::AwaitingHelloR {
@@ -177,6 +254,8 @@ impl Initiator {
 
         let auth_unsigned = Auth {
             ident_pub: b64encode(&self.cfg.identity_pub),
+            signature_mldsa: None,
+            ident_pub_mldsa: None,
             signature: String::new(),
         };
         let full_transcript = canonical_concat(&[
@@ -190,14 +269,19 @@ impl Initiator {
         let auth_sig = signer.sign(&full_hash);
         let auth = Auth {
             ident_pub: b64encode(&self.cfg.identity_pub),
+            signature_mldsa: None,
+            ident_pub_mldsa: None,
             signature: b64encode(&auth_sig),
         };
 
         let session_id_bytes = b64decode(&hello_i.session_id)?;
         let peer_actor = derive_peer_actor(&ident_pub)
             .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
-        // peer_hint is the initiator's belief about the responder, not a
-        // self-claim. Self-claim plumbing arrives in B2.
+        // Responder's self-claimed actor URI travels in HelloR.self_hint.
+        let peer_claim = msg
+            .self_hint
+            .clone()
+            .filter(|s| !s.is_empty());
         let session = SessionState::derive_with_claim(
             Role::Initiator,
             &shared,
@@ -205,7 +289,7 @@ impl Initiator {
             &full_hash,
             &self.cfg.self_actor,
             &peer_actor,
-            None,
+            peer_claim,
         );
         self.state = InitiatorState::Established(session.clone());
         Ok((auth, session))
@@ -251,9 +335,32 @@ impl Responder {
         if msg.version != SESSION_VERSION {
             return Err(SessionError::Generic(format!("unsupported version {}", msg.version)));
         }
-        if msg.suite != SESSION_SUITE {
-            return Err(SessionError::Generic(format!("unsupported suite {}", msg.suite)));
-        }
+        // Suite negotiation: pick the first entry of the initiator's
+        // supported_suites that we know AND that we accept; fall back to
+        // msg.suite for legacy peers without supported_suites.
+        let our_supported: Vec<String> = self
+            .cfg
+            .supported_suites
+            .clone()
+            .unwrap_or_else(|| KNOWN_SESSION_SUITES.iter().map(|s| s.to_string()).collect());
+        let chosen = match &msg.supported_suites {
+            Some(client_supports) => client_supports
+                .iter()
+                .find(|s| our_supported.iter().any(|o| o == *s))
+                .cloned()
+                .ok_or_else(|| {
+                    SessionError::Generic(format!(
+                        "no mutually-supported suite (peer offered {:?}, we support {:?})",
+                        client_supports, our_supported
+                    ))
+                })?,
+            None => {
+                if !our_supported.iter().any(|s| s == &msg.suite) {
+                    return Err(SessionError::Generic(format!("unsupported suite {}", msg.suite)));
+                }
+                msg.suite.clone()
+            }
+        };
 
         let eph = make_ephemeral(&self.cfg.eph_seed);
         let peer_eph: [u8; 32] = b64decode(&msg.eph_pub)?
@@ -264,6 +371,10 @@ impl Responder {
         let hello_r_unsigned = HelloR {
             eph_pub: b64encode(&eph.public),
             ident_pub: b64encode(&self.cfg.identity_pub),
+            selected_suite: Some(chosen.clone()),
+            self_hint: self.cfg.self_hint.clone(),
+            signature_mldsa: None,
+            ident_pub_mldsa: None,
             signature: String::new(),
         };
         let transcript = canonical_concat(&[
@@ -316,8 +427,11 @@ impl Responder {
         let session_id_bytes = b64decode(&hello_i.session_id)?;
         let peer_actor = derive_peer_actor(&ident_pub)
             .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
-        // peer_hint is the initiator's belief about the responder, not the
-        // initiator's self-claim. Self-claim plumbing arrives in B2.
+        // Initiator's self-claimed actor URI travels in HelloI.self_hint.
+        let peer_claim = hello_i
+            .self_hint
+            .clone()
+            .filter(|s| !s.is_empty());
         let session = SessionState::derive_with_claim(
             Role::Responder,
             &shared,
@@ -325,7 +439,7 @@ impl Responder {
             &full_hash,
             &self.cfg.self_actor,
             &peer_actor,
-            None,
+            peer_claim,
         );
         self.state = ResponderState::Established(session.clone());
         Ok(session)

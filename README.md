@@ -45,7 +45,8 @@ schemas/
 
 conformance/
   parity.yaml               schema verdict cross-language parity
-  canonical-vectors.yaml    canonical-JSON parity
+  canonical-vectors.yaml    canonical-JSON parity (post-B2)
+  cross-language-signature-vectors.yaml  TS↔Rust sign+verify parity
   signature-vectors.yaml    ed25519 / hash parity
   chain-vectors.yaml        event-hash / merkle / chain-hash parity
   framing-vectors.yaml      .tflog / .tfproof byte parity

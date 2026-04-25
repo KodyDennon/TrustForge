@@ -2,8 +2,10 @@
 //! implementation in `tools/tf-types-ts/src/core/canonical.ts`.
 //!
 //! Rules:
-//!   * Object keys are sorted lexicographically by NFC-normalized codepoint
-//!     sequence, then written as JSON strings.
+//!   * Object keys are sorted by UTF-8 byte order of their NFC-normalized
+//!     form. (Rust's `String::cmp` compares underlying UTF-8 bytes; the
+//!     TS implementation uses an explicit UTF-8 byte comparator instead
+//!     of JS's UTF-16 code-unit `<`.)
 //!   * All string values are NFC-normalized.
 //!   * Finite integers emit as integers (no `.0`); finite non-integer numbers
 //!     emit via Rust's shortest round-trip representation, matching the
@@ -13,7 +15,8 @@
 //!   * No whitespace anywhere in the output.
 //!
 //! Byte-for-byte parity with the TypeScript implementation is enforced by
-//! `canonical-vectors.yaml` in the repo root.
+//! `conformance/canonical-vectors.yaml` and
+//! `conformance/cross-language-signature-vectors.yaml`.
 
 use std::fmt::Write;
 
