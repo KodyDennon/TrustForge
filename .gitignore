@@ -16,3 +16,6 @@ node_modules/
 # Local config
 .env
 .env.local
+
+# Claude Code agent local state
+.claude/
