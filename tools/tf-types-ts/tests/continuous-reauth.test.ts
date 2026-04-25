@@ -63,7 +63,7 @@ describe("Continuous reauthorization", () => {
       },
     );
 
-    const client = new RpcClient(clientT, {});
+    const client = new RpcClient(clientT, { callerActor: "tf:actor:agent:example.com/client" });
     const stream = client.serverStream<unknown, number>("demo.tick", {});
     let received: number[] = [];
     let errorCode: string | undefined;
@@ -102,7 +102,7 @@ describe("Continuous reauthorization", () => {
       continuousReevaluation: { triggers: ["revocation"] },
     });
     server.registerUnary<unknown, number>("demo.echo", "demo.echo", async () => 42);
-    const client = new RpcClient(clientT, {});
+    const client = new RpcClient(clientT, { callerActor: "tf:actor:agent:example.com/client" });
     const result = await client.call<unknown, number>("demo.echo", 0);
     // delegation_change isn't in our trigger list, so this is a no-op
     await server.reevaluate("delegation_change");
