@@ -1,0 +1,20 @@
+profile_version: "1"
+trust_domain: example.com
+default_level: L1
+emit:
+  - event_type: session.established
+    level: L1
+    anchor: local
+    retention_days: 365
+  - event_type: action.approved
+    level: L2
+    anchor: org
+    retention_days: 2555
+  - event_type: compliance.notarized
+    level: L5
+    anchor: transparency
+redaction_rules:
+  - field: "/payload/secrets"
+    policy: drop
+  - field: "/payload/body"
+    policy: hash

@@ -1,0 +1,6 @@
+profile_version: "1"
+trust_domain: example.com
+emit:
+  - event_type: session.established
+    level: L1
+    anchor: blockchain
