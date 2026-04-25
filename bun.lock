@@ -5,6 +5,19 @@
     "": {
       "name": "trustforge",
     },
+    "tools/tf-daemon": {
+      "name": "tf-daemon",
+      "version": "0.0.0",
+      "dependencies": {
+        "tf-session": "workspace:*",
+        "tf-types": "workspace:*",
+        "yaml": "^2.6.0",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.9",
+        "typescript": "^5.6.3",
+      },
+    },
     "tools/tf-proof": {
       "name": "tf-proof",
       "version": "0.0.0",
@@ -91,6 +104,8 @@
     "pure-rand": ["pure-rand@6.1.0", "", {}, "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA=="],
 
     "require-from-string": ["require-from-string@2.0.2", "", {}, "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="],
+
+    "tf-daemon": ["tf-daemon@workspace:tools/tf-daemon"],
 
     "tf-proof": ["tf-proof@workspace:tools/tf-proof"],
 

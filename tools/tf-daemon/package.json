@@ -1,0 +1,20 @@
+{
+  "name": "tf-daemon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge daemon: WebSocket-carried session + guarded RPC + vault + approvals.",
+  "scripts": {
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "tf-session": "workspace:*",
+    "tf-types": "workspace:*",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.9",
+    "typescript": "^5.6.3"
+  }
+}

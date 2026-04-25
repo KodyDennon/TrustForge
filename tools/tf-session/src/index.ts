@@ -76,27 +76,64 @@ export async function attachInitiator(
   const helloI = initiator.start();
   sink.send(jsonBytes(helloI));
 
-  const session = await new Promise<SessionState>((resolve, reject) => {
-    let stage: "awaiting-hello-r" | "established" = "awaiting-hello-r";
+  const frameListeners = new Set<(frame: SessionFrame) => void>();
+  const closeListeners = new Set<() => void>();
+  let session: SessionState | undefined;
+  let stage: "awaiting-hello-r" | "established" = "awaiting-hello-r";
+  const queue: Uint8Array[] = [];
+  let processing = false;
+  let handshakeReject: ((err: Error) => void) | null = null;
+
+  const established = new Promise<SessionState>((resolve, reject) => {
+    handshakeReject = reject;
     source.onMessage(async (bytes) => {
+      queue.push(bytes);
+      if (processing) return;
+      processing = true;
       try {
-        if (stage === "awaiting-hello-r") {
-          const helloR = parseJson<HelloR>(bytes);
-          const { auth, session } = await initiator.processHelloR(helloR);
-          sink.send(jsonBytes(auth));
-          stage = "established";
-          resolve(session);
+        while (queue.length > 0) {
+          const b = queue.shift()!;
+          if (stage === "awaiting-hello-r") {
+            try {
+              const helloR = parseJson<HelloR>(b);
+              const { auth, session: s } = await initiator.processHelloR(helloR);
+              sink.send(jsonBytes(auth));
+              stage = "established";
+              session = s;
+              resolve(s);
+              await new Promise<void>((r) => setTimeout(r, 0));
+            } catch (err) {
+              reject(err as Error);
+              return;
+            }
+          } else {
+            // established: decrypt + dispatch
+            if (!session || session.closed) continue;
+            try {
+              const frame = session.decrypt(b);
+              for (const l of frameListeners) l(frame);
+            } catch {
+              session.closed = true;
+              sink.close();
+              for (const l of closeListeners) l();
+            }
+          }
         }
-      } catch (err) {
-        reject(err);
+      } finally {
+        processing = false;
       }
     });
     source.onClose(() => {
       if (stage === "awaiting-hello-r") reject(new Error("peer closed before handshake"));
+      else if (session && !session.closed) {
+        session.closed = true;
+        for (const l of closeListeners) l();
+      }
     });
   });
 
-  return wrapSession(session, sink, source);
+  await established;
+  return buildEndpoint(session!, sink, frameListeners, closeListeners);
 }
 
 /**
@@ -109,63 +146,81 @@ export async function attachResponder(
 ): Promise<SessionEndpoint> {
   const responder = new Responder(identity);
 
-  const session = await new Promise<SessionState>((resolve, reject) => {
-    let stage: "awaiting-hello-i" | "awaiting-auth" | "established" = "awaiting-hello-i";
+  const frameListeners = new Set<(frame: SessionFrame) => void>();
+  const closeListeners = new Set<() => void>();
+  let session: SessionState | undefined;
+  let stage: "awaiting-hello-i" | "awaiting-auth" | "established" = "awaiting-hello-i";
+  const queue: Uint8Array[] = [];
+  let processing = false;
+
+  const established = new Promise<SessionState>((resolve, reject) => {
     source.onMessage(async (bytes) => {
+      queue.push(bytes);
+      if (processing) return;
+      processing = true;
       try {
-        if (stage === "awaiting-hello-i") {
-          const helloI = parseJson<HelloI>(bytes);
-          const helloR = await responder.processHelloI(helloI);
-          sink.send(jsonBytes(helloR));
-          stage = "awaiting-auth";
-          return;
+        while (queue.length > 0) {
+          const b = queue.shift()!;
+          if (stage === "awaiting-hello-i") {
+            try {
+              const helloI = parseJson<HelloI>(b);
+              const helloR = await responder.processHelloI(helloI);
+              sink.send(jsonBytes(helloR));
+              stage = "awaiting-auth";
+            } catch (err) {
+              reject(err as Error);
+              return;
+            }
+          } else if (stage === "awaiting-auth") {
+            try {
+              const auth = parseJson<Auth>(b);
+              const s = await responder.processAuth(auth);
+              stage = "established";
+              session = s;
+              resolve(s);
+              // Yield so `.then` handlers on `established` get a chance to
+              // register frame listeners before we dispatch queued data frames.
+              await new Promise<void>((r) => setTimeout(r, 0));
+            } catch (err) {
+              reject(err as Error);
+              return;
+            }
+          } else {
+            // established: decrypt + dispatch
+            if (!session || session.closed) continue;
+            try {
+              const frame = session.decrypt(b);
+              for (const l of frameListeners) l(frame);
+            } catch {
+              session.closed = true;
+              sink.close();
+              for (const l of closeListeners) l();
+            }
+          }
         }
-        if (stage === "awaiting-auth") {
-          const auth = parseJson<Auth>(bytes);
-          const session = await responder.processAuth(auth);
-          stage = "established";
-          resolve(session);
-        }
-      } catch (err) {
-        reject(err);
+      } finally {
+        processing = false;
       }
     });
     source.onClose(() => {
       if (stage !== "established") reject(new Error("peer closed before handshake"));
+      else if (session && !session.closed) {
+        session.closed = true;
+        for (const l of closeListeners) l();
+      }
     });
   });
 
-  return wrapSession(session, sink, source);
+  await established;
+  return buildEndpoint(session!, sink, frameListeners, closeListeners);
 }
 
-function wrapSession(
+function buildEndpoint(
   session: SessionState,
   sink: WireSink,
-  source: WireSource,
+  frameListeners: Set<(frame: SessionFrame) => void>,
+  closeListeners: Set<() => void>,
 ): SessionEndpoint {
-  const frameListeners = new Set<(frame: SessionFrame) => void>();
-  const closeListeners = new Set<() => void>();
-
-  source.onMessage((bytes) => {
-    if (session.closed) return;
-    let frame: SessionFrame;
-    try {
-      frame = session.decrypt(bytes);
-    } catch {
-      session.closed = true;
-      sink.close();
-      for (const listener of closeListeners) listener();
-      return;
-    }
-    for (const listener of frameListeners) listener(frame);
-  });
-  source.onClose(() => {
-    if (!session.closed) {
-      session.closed = true;
-      for (const listener of closeListeners) listener();
-    }
-  });
-
   return {
     send(frame: SessionFrame) {
       if (session.closed) throw new Error("session closed");
@@ -186,12 +241,13 @@ function wrapSession(
         }
         session.closed = true;
         sink.close();
-        for (const listener of closeListeners) listener();
+        for (const l of closeListeners) l();
       }
     },
     state: () => session,
   };
 }
+
 
 // ---------- WebSocket adapters ----------
 
