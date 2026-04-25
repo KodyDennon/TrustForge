@@ -12,3 +12,4 @@ export * from "./core/chain.js";
 export * from "./core/format.js";
 export * from "./core/session.js";
 export * from "./core/rpc.js";
+export * from "./core/guard.js";

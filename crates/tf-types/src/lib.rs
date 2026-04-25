@@ -15,6 +15,7 @@ pub mod crypto;
 pub mod delegation;
 pub mod envelope;
 pub mod format;
+pub mod guard;
 pub mod instance_id;
 pub mod revocation;
 pub mod rpc;

@@ -1,0 +1,90 @@
+# AgentGuard cross-language parity vectors.
+# Both TS and Rust guards must produce identical decision.kind + danger_tags
+# for the same (contract, query) pair.
+
+contract:
+  contract_version: "1"
+  spec_version: TF-0006-draft
+  project: guard-vectors
+  trust_domain: example.com
+  target_sets:
+    source: ["src/**"]
+    tests: ["tests/**"]
+    secrets: [".env", "secrets/**"]
+  actions:
+    - name: file.read
+      risk: R0
+      approval: none
+      reversible: true
+      allow_targets: ["@source", "@tests"]
+      deny_targets: ["@secrets"]
+    - name: file.write
+      risk: R2
+      approval: conditional
+      reversible: false
+      danger_tags: [destructive]
+      reversal_note: "git checkout"
+      allow_targets: ["@source"]
+      deny_targets: ["src/auth/**", "@secrets"]
+    - name: shell.exec
+      risk: R4
+      approval: required
+      reversible: false
+      danger_tags: [destructive, external-network, security-sensitive]
+    - name: package.publish
+      risk: R5
+      approval: quorum
+      reversible: false
+      danger_tags: [financial, legal-exposure, irreversible]
+  forbidden:
+    - action: file.delete
+      reason: "No agent may delete files from this repository."
+
+cases:
+  - name: allow-plain-read
+    query: { action: file.read, target: "src/main.ts" }
+    expect:
+      kind: allow
+      danger_tags: []
+
+  - name: deny-secrets
+    query: { action: file.read, target: ".env" }
+    expect:
+      kind: deny
+
+  - name: allow-target-outside-allow
+    query: { action: file.read, target: "infra/deploy.sh" }
+    expect:
+      kind: deny   # not in allow_targets
+
+  - name: escalate-on-destructive
+    query: { action: file.write, target: "src/main.ts" }
+    expect:
+      kind: escalate
+      danger_tags: [destructive]
+
+  - name: deny-write-auth-subpath
+    query: { action: file.write, target: "src/auth/session.ts" }
+    expect:
+      kind: deny
+
+  - name: escalate-on-shell-exec
+    query: { action: shell.exec }
+    expect:
+      kind: escalate
+
+  - name: escalate-on-financial
+    query: { action: package.publish }
+    expect:
+      kind: escalate
+      danger_tags: [financial, legal-exposure, irreversible]
+
+  - name: deny-forbidden
+    query: { action: file.delete, target: "src/main.ts" }
+    expect:
+      kind: deny
+
+  - name: deny-unknown-action
+    query: { action: file.chmod }
+    expect:
+      kind: deny
