@@ -14,3 +14,4 @@ export * from "./core/session.js";
 export * from "./core/rpc.js";
 export * from "./core/guard.js";
 export * from "./core/vault.js";
+export * from "./core/approval.js";
