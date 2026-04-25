@@ -17,6 +17,7 @@ pub mod envelope;
 pub mod format;
 pub mod instance_id;
 pub mod revocation;
+pub mod session;
 pub mod trust_domain;
 
 pub use actor_id::{actor_id_equals, format_actor_id, parse_actor_id, ActorIdParseError, ParsedActorId};

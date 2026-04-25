@@ -10,3 +10,4 @@ export * from "./core/canonical.js";
 export * from "./core/crypto.js";
 export * from "./core/chain.js";
 export * from "./core/format.js";
+export * from "./core/session.js";
