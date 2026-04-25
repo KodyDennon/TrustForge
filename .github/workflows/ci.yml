@@ -58,6 +58,9 @@ jobs:
           bun test tools/tf-types-ts/tests/bridge-spiffe.test.ts
           bun test tools/tf-types-ts/tests/bridge-webauthn.test.ts
           bun test tools/tf-types-ts/tests/bridge-mcp.test.ts
+          bun test tools/tf-types-ts/tests/bridge-oauth.test.ts
+          bun test tools/tf-types-ts/tests/bridge-tls.test.ts
+          bun test tools/tf-types-ts/tests/webauthn-attestation.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

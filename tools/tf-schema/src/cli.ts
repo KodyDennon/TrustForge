@@ -156,7 +156,16 @@ async function cmdLint(): Promise<number> {
 async function cmdFuzz(args: string[]): Promise<number> {
   const { fuzzSchema, fuzzAll } = await import("./fuzz");
   const iterations = Number(argValue(args, "--iterations") ?? 200);
-  const schema = args.find((a) => !a.startsWith("--"));
+  const positional: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a.startsWith("--")) {
+      i++; // skip the flag's value
+      continue;
+    }
+    positional.push(a);
+  }
+  const schema = positional[0];
   if (schema) {
     const r = await fuzzSchema(schema, { iterations });
     console.log(JSON.stringify(r, null, 2));
