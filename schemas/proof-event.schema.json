@@ -60,6 +60,19 @@
       "description": "Free-form context object carried with the event.",
       "additionalProperties": true
     },
+    "provenance": {
+      "type": "object",
+      "description": "Chain of responsibility for this event: who/what authorised, requested, and executed the action. TF-0006 \"chain of responsibility\".",
+      "additionalProperties": false,
+      "properties": {
+        "human": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "Human originator." },
+        "agent": { "$ref": "_common.schema.json#/$defs/ActorId", "description": "AI agent that issued the request." },
+        "instance": { "$ref": "_common.schema.json#/$defs/InstanceId", "description": "Specific running instance of the agent." },
+        "model": { "type": "string", "minLength": 1, "description": "Model identifier (provider-prefixed) the agent invoked, e.g. anthropic:claude-opus-4-7." },
+        "tool": { "type": "string", "minLength": 1, "description": "Tool / function name (e.g. MCP tool) the agent called." },
+        "requested_action": { "$ref": "_common.schema.json#/$defs/ActionName", "description": "Action the agent originally asked to perform." }
+      }
+    },
     "signature": {
       "description": "Signature envelope over the canonical form of this event (not verified in the foundation phase).",
       "$ref": "_common.schema.json#/$defs/SignatureEnvelope"

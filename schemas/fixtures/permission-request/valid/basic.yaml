@@ -1,0 +1,14 @@
+request_version: "1"
+id: pr-1
+agent: tf:actor:agent:example.com/code-helper
+human: tf:actor:human:example.com/alice
+model: anthropic:claude-opus-4-7
+tool: shell.exec
+action: shell.exec
+target: "/usr/bin/ls -la"
+risk: R3
+danger_tags: [destructive, security-sensitive]
+duration_seconds: 300
+reason: list contents of /usr while debugging
+proof_level_offered: L3
+requested_at: "2026-04-24T13:00:00Z"

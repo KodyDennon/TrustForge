@@ -1,0 +1,10 @@
+grant_version: "1"
+request_id: pr-2
+decision: deny
+denial_reason: action.shell.exec is forbidden in this trust domain
+issued_at: "2026-04-24T13:00:30Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: AAAA

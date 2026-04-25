@@ -137,6 +137,21 @@ vectors:
   - schema: dangerous-actions
     fixture: schemas/fixtures/dangerous-actions/invalid/missing-actions.yaml
     expect: invalid
+  - schema: permission-grant
+    fixture: schemas/fixtures/permission-grant/valid/allow.yaml
+    expect: valid
+  - schema: permission-grant
+    fixture: schemas/fixtures/permission-grant/valid/deny.yaml
+    expect: valid
+  - schema: permission-grant
+    fixture: schemas/fixtures/permission-grant/invalid/no-decision.yaml
+    expect: invalid
+  - schema: permission-request
+    fixture: schemas/fixtures/permission-request/valid/basic.yaml
+    expect: valid
+  - schema: permission-request
+    fixture: schemas/fixtures/permission-request/invalid/no-action.yaml
+    expect: invalid
   - schema: plugin-manifest
     fixture: schemas/fixtures/plugin-manifest/valid/basic.yaml
     expect: valid
@@ -184,6 +199,12 @@ vectors:
     expect: invalid
   - schema: proof-bundle
     fixture: schemas/fixtures/proof-bundle/invalid/missing-signature.yaml
+    expect: invalid
+  - schema: proof-bundle-encrypted
+    fixture: schemas/fixtures/proof-bundle-encrypted/valid/single-recipient.yaml
+    expect: valid
+  - schema: proof-bundle-encrypted
+    fixture: schemas/fixtures/proof-bundle-encrypted/invalid/no-wrapped-keys.yaml
     expect: invalid
   - schema: proof-event
     fixture: schemas/fixtures/proof-event/valid/basic.yaml

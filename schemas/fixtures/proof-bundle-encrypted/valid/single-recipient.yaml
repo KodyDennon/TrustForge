@@ -1,0 +1,14 @@
+bundle_version: "1"
+level: L4
+ciphertext: "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1A="
+nonce: "AAECAwQFBgcICQoL"
+wrapped_keys:
+  - recipient: tf:actor:human:example.com/alice
+    recipient_key_id: alice-kem-1
+    ephemeral_public: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+    wrapped: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMA=="
+    wrap_nonce: "AAECAwQFBgcICQoL"
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

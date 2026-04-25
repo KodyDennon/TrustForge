@@ -1,0 +1,19 @@
+grant_version: "1"
+request_id: pr-1
+decision: allow
+capability:
+  name: shell.exec
+  risk: R3
+constraints:
+  - kind: time_window
+    until: "2026-04-24T13:05:00Z"
+  - kind: target
+    patterns: ["/usr/bin/ls *"]
+issued_at: "2026-04-24T13:00:30Z"
+valid_from: "2026-04-24T13:00:30Z"
+valid_until: "2026-04-24T13:05:00Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: AAAA

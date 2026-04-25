@@ -1,0 +1,5 @@
+request_version: "1"
+id: pr-2
+agent: tf:actor:agent:example.com/code-helper
+reason: testing missing action
+requested_at: "2026-04-24T13:00:00Z"

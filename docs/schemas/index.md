@@ -17,10 +17,13 @@ This directory is generated from `schemas/*.schema.json` by
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
 | [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
+| [permission-grant](./permission-grant.md) | — | Daemon-signed reply to a PermissionRequest |
+| [permission-request](./permission-request.md) | — | An AI agent's typed request to acquire authority for a specific action, target, and duration |
 | [plugin-manifest](./plugin-manifest.md) | — | Declarative manifest describing a TrustForge plugin |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
 | [policy-decision](./policy-decision.md) | — | Structured result emitted by a TrustForge PolicyEngine |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
+| [proof-bundle-encrypted](./proof-bundle-encrypted.md) | — | Encrypted variant of .tfbundle (proof level L4) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |
 | [proof-profile](./proof-profile.md) | TF-0005 | Declarative profile describing which proof events to emit and how (TF-0005). |
 | [proofrpc](./proofrpc.md) | — | Declarative RPC service definition consumed by tf-schema codegen --target rpc-ts|rpc-rust |

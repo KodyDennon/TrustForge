@@ -1,0 +1,8 @@
+grant_version: "1"
+request_id: pr-x
+issued_at: "2026-04-24T13:00:00Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: AAAA

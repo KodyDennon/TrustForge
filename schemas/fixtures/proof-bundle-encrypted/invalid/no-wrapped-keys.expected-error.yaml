@@ -1,0 +1,3 @@
+errors:
+  - path: "/wrapped_keys"
+    keyword: minItems

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/permission-request.schema.json",
+  "title": "TrustForge Permission Request",
+  "description": "An AI agent's typed request to acquire authority for a specific action, target, and duration. The daemon validates the request, runs the policy engine, optionally collects approvals, and replies with a PermissionGrant or a denial. See TF-0006 \"dynamic permission negotiation\".",
+  "type": "object",
+  "required": ["request_version", "id", "agent", "action", "reason", "requested_at"],
+  "additionalProperties": false,
+  "properties": {
+    "request_version": {
+      "enum": ["1"],
+      "description": "Version of the permission-request schema itself."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this request; copied into the matching PermissionGrant."
+    },
+    "agent": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Agent actor making the request."
+    },
+    "instance": {
+      "$ref": "_common.schema.json#/$defs/InstanceId",
+      "description": "Specific running instance of the agent."
+    },
+    "human": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Human principal the agent is acting on behalf of."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Provider-prefixed model identifier (e.g. anthropic:claude-opus-4-7)."
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tool the agent intends to invoke once the permission is granted."
+    },
+    "action": {
+      "$ref": "_common.schema.json#/$defs/ActionName",
+      "description": "Dotted action name being requested."
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target the action will operate on (file path, record id, URL, ...)."
+    },
+    "risk": {
+      "$ref": "_common.schema.json#/$defs/RiskClass",
+      "description": "Agent's self-declared risk class for the action."
+    },
+    "danger_tags": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/DangerTag" },
+      "description": "Danger tags the agent already knows apply."
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum lifetime the agent is asking for; the daemon may cap it."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable rationale visible to approvers."
+    },
+    "proof_level_offered": {
+      "$ref": "_common.schema.json#/$defs/ProofLevel",
+      "description": "Highest proof level the agent can produce if challenged."
+    },
+    "requested_at": {
+      "$ref": "_common.schema.json#/$defs/Timestamp",
+      "description": "When the request was created."
+    },
+    "context": {
+      "type": "object",
+      "description": "Free-form context the daemon and approvers can use.",
+      "additionalProperties": true
+    }
+  }
+}

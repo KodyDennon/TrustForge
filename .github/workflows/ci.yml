@@ -67,6 +67,16 @@ jobs:
           bun test tools/tf-types-ts/tests/negative-capability.test.ts
           bun test tools/tf-types-ts/tests/continuous-reauth.test.ts
           bun test tools/tf-types-ts/tests/trust-overlay.test.ts
+      - name: sprint-2 sweep (auth/policy/proof core)
+        run: |
+          bun test tools/tf-types-ts/tests/bridge-gnap.test.ts
+          bun test tools/tf-types-ts/tests/policy-engine.test.ts
+          bun test tools/tf-types-ts/tests/quorum.test.ts
+          bun test tools/tf-types-ts/tests/offline-approval.test.ts
+          bun test tools/tf-types-ts/tests/permission.test.ts
+          bun test tools/tf-types-ts/tests/bundle.test.ts
+          bun test tools/tf-types-ts/tests/tf-manifests.test.ts
+          bun test tools/tf-daemon/tests/manifests.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

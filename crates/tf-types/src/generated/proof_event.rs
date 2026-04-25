@@ -39,6 +39,9 @@ pub struct ProofEvent {
     /// Free-form context object carried with the event.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub context: Option<serde_json::Value>,
+    /// Chain of responsibility for this event: who/what authorised, requested, and executed the action. TF-0006 "chain of responsibility".
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub provenance: Option<ProofEvent_Provenance>,
     /// Signature envelope over the canonical form of this event (not verified in the foundation phase).
     pub signature: SignatureEnvelope,
 }
@@ -48,4 +51,27 @@ pub struct ProofEvent {
 pub enum ProofEvent_EventVersion {
     #[serde(rename = "1")]
     V1,
+}
+
+/// Chain of responsibility for this event: who/what authorised, requested, and executed the action. TF-0006 "chain of responsibility".
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProofEvent_Provenance {
+    /// Human originator.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub human: Option<ActorId>,
+    /// AI agent that issued the request.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub agent: Option<ActorId>,
+    /// Specific running instance of the agent.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub instance: Option<InstanceId>,
+    /// Model identifier (provider-prefixed) the agent invoked, e.g. anthropic:claude-opus-4-7.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub model: Option<String>,
+    /// Tool / function name (e.g. MCP tool) the agent called.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tool: Option<String>,
+    /// Action the agent originally asked to perform.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub requested_action: Option<ActionName>,
 }

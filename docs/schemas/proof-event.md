@@ -21,4 +21,5 @@ Signed record of an important event (TF-0005). Hash-chain verification lives in 
 | `payload_hash` | [`HashRef`](./_common.md#hashref) | · | Hash of the event's associated payload. |
 | `parent_hash` | [`HashRef`](./_common.md#hashref) | · | Hash of the immediately preceding event in the hash-chain. |
 | `context` | object | · | Free-form context object carried with the event. |
+| `provenance` | object | · | Chain of responsibility for this event: who/what authorised, requested, and executed the action. TF-0006 "chain of responsibility". |
 | `signature` | [`SignatureEnvelope`](./_common.md#signatureenvelope) | ✓ | Signature envelope over the canonical form of this event (not verified in the foundation phase). |

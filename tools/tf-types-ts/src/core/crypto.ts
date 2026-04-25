@@ -14,6 +14,8 @@ import * as ed from "@noble/ed25519";
 import { sha256 } from "@noble/hashes/sha2";
 import { blake3 } from "@noble/hashes/blake3";
 
+export { sha256, blake3 };
+
 // The async APIs (signAsync / verifyAsync / getPublicKeyAsync) use the Web
 // Crypto SHA-512 implementation and do not need a sha512 callback. We only
 // use the async APIs in this module.

@@ -1,0 +1,9 @@
+bundle_version: "1"
+level: L4
+ciphertext: "AAA="
+nonce: "AAA="
+wrapped_keys: []
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

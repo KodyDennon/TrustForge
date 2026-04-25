@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/permission-grant.schema.json",
+  "title": "TrustForge Permission Grant",
+  "description": "Daemon-signed reply to a PermissionRequest. When granted, the bearer can present this to the RpcServer to authorize the requested action within the listed constraints; when denied, audits still see the reason and the policy decision the engine produced.",
+  "type": "object",
+  "required": [
+    "grant_version",
+    "request_id",
+    "decision",
+    "issued_at",
+    "issuer",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "grant_version": {
+      "enum": ["1"],
+      "description": "Version of the permission-grant schema itself."
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the PermissionRequest this grant resolves."
+    },
+    "decision": {
+      "enum": ["allow", "deny", "approval-required"],
+      "description": "Outcome of the request."
+    },
+    "capability": {
+      "$ref": "_common.schema.json#/$defs/Capability",
+      "description": "Capability the bearer may exercise. Present only when decision=allow."
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/Constraint" },
+      "description": "Constraints attached to the grant (time window, target glob, quorum, ...)."
+    },
+    "policy_decision": {
+      "$ref": "policy-decision.schema.json",
+      "description": "PolicyDecision the engine produced while evaluating the request."
+    },
+    "ceremony_id": {
+      "type": "string",
+      "description": "Approval ceremony that resolved the request, if any."
+    },
+    "denial_reason": {
+      "type": "string",
+      "description": "Free-text denial reason (decision=deny / approval-required)."
+    },
+    "valid_from": {
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "valid_until": {
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "issued_at": {
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "issuer": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Daemon actor that signed this grant."
+    },
+    "signature": {
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope",
+      "description": "Ed25519 signature over the canonical form of this grant."
+    }
+  }
+}

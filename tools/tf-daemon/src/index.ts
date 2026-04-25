@@ -39,6 +39,14 @@ export interface DaemonRuntimeOptions {
   configPath: string;
   passphrase: string;
   onApprovalRequest?: (req: ApprovalRequest) => void;
+  /** Optional project root containing a `.tf/` directory. When present
+   *  the daemon loads policy.yaml, proof-profile.yaml, conformance.json,
+   *  actions.yaml, codegen.toml, and threat-model.yaml; folds policy
+   *  negative_capabilities into AgentGuard; surfaces the FeatureGate via
+   *  onFeatureGate. */
+  projectRoot?: string;
+  onManifestDiagnostic?: (d: { file: string; reason: string }) => void;
+  onFeatureGate?: (gate: import("tf-types").TfFeatureGate) => void;
   /** Signed plugin manifests to load before the daemon starts accepting
    *  connections. Each manifest is verified and its handlers are registered
    *  on every new RpcServer instance. */
@@ -122,6 +130,21 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     writeFileSync(proofLogPath, new Uint8Array([0x54, 0x46, 0x4c, 0x4f, 0x47, 0x01, 0x00, 0x00]));
   }
 
+  // Load .tf/ manifests when the project root is supplied. Manifests are
+  // best-effort; missing ones are skipped, parse failures are surfaced
+  // through opts.onManifestDiagnostic if the caller cares.
+  const tf = opts.projectRoot
+    ? (await import("tf-types")).loadTfManifests({ rootDir: opts.projectRoot })
+    : undefined;
+  if (tf) {
+    for (const d of tf.diagnostics) {
+      opts.onManifestDiagnostic?.(d);
+    }
+  }
+  const featureGate = tf
+    ? (await import("tf-types")).buildFeatureGate(tf)
+    : undefined;
+
   const vault = await Vault.openAtPath(config.vault.path, opts.passphrase);
   const idEntry = vault.read("daemon-identity");
   const identityPub = await ed25519PublicKey(idEntry.key_bytes);
@@ -129,6 +152,18 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   const guard = AgentGuard.fromContract(contract, {
     onEvent: (ev) => appendEventLine(proofLogPath, ev),
   });
+  // If a .tf/policy.yaml is available, fold its negative_capabilities
+  // into the guard so policy + contract ride together.
+  if (tf?.policy && typeof tf.policy === "object") {
+    const neg = (tf.policy as Record<string, unknown>)["negative_capabilities"];
+    if (Array.isArray(neg)) {
+      guard.setNegativeCapabilities(neg as Parameters<typeof guard.setNegativeCapabilities>[0]);
+    }
+  }
+  // Surface the feature gate so the caller / tests can introspect it.
+  if (featureGate) {
+    opts.onFeatureGate?.(featureGate);
+  }
   const queue = new ApprovalQueue({
     maxPending: config.approval_queue?.max_pending ?? 32,
     defaultTimeoutMs: (config.approval_queue?.default_timeout_seconds ?? 300) * 1000,
@@ -233,6 +268,33 @@ function appendEventLine(path: string, ev: unknown): void {
   new DataView(header.buffer).setUint32(0, payload.length, false);
   appendFileSync(path, Buffer.concat([header, payload]));
 }
+
+/** Wrap an event in a signed envelope before appending. The envelope
+ *  shape mirrors `proof-event.schema.json#signature`: a SignatureEnvelope
+ *  attached to the canonical event under the `signature` key. */
+async function appendSignedEventLine(
+  path: string,
+  ev: Record<string, unknown>,
+  signerPriv: Uint8Array,
+  signer: string,
+): Promise<void> {
+  const tf = await import("tf-types");
+  const eventForSigning = { ...ev };
+  const canonicalSigning = canonicalize(eventForSigning);
+  const digest = tf.sha256(new TextEncoder().encode(canonicalSigning));
+  const sig = await tf.ed25519Sign(digest, signerPriv);
+  const signedEvent = {
+    ...ev,
+    signature: {
+      algorithm: "ed25519",
+      signer,
+      signature: Buffer.from(sig).toString("base64"),
+    },
+  };
+  appendEventLine(path, signedEvent);
+}
+
+export { appendEventLine, appendSignedEventLine };
 
 function wireFromBunServerSocket(ws: import("bun").ServerWebSocket<unknown>) {
   const messageListeners = new Set<(b: Uint8Array) => void>();
