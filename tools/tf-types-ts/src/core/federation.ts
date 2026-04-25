@@ -32,6 +32,7 @@ import type { FederationAttestation } from "../generated/federation-attestation.
 import { canonicalize } from "./canonical.js";
 import { ed25519Sign, ed25519Verify, sha256 } from "./crypto.js";
 import { isWithinWindow } from "./expiration.js";
+import type { RevocationIndex } from "./revocation.js";
 
 export type TrustBundleEntry = FederationAttestation["trust_bundle"][number];
 
@@ -135,13 +136,47 @@ export interface ForeignIdentityCheck {
   trustLevels?: TrustLevel[];
   scope?: ActionName[];
   capabilities?: Capability[];
+  /** Non-fatal observations the verifier wants the caller to surface
+   *  (e.g. trust_bundle entries that were skipped because they used
+   *  a signature algorithm this build doesn't yet verify). */
+  verification_warnings?: string[];
+}
+
+export interface FederatedTrustStoreOptions {
+  /** Optional revocation index consulted at every verifyForeign call.
+   *  Attestations whose attestation_id is revoked are skipped — even
+   *  if they're still in the store and within their validity window.
+   *  Pre-B9 the store had no revocation awareness; an attacker with a
+   *  signed-but-revoked attestation could keep federating until the
+   *  operator manually `remove()`'d it. */
+  revocations?: RevocationIndex;
 }
 
 export class FederatedTrustStore {
   private readonly attestations: Map<string, FederationAttestation> = new Map();
+  private readonly opts: FederatedTrustStoreOptions;
 
-  /** Insert an already-verified attestation. */
-  add(attestation: FederationAttestation): void {
+  constructor(opts: FederatedTrustStoreOptions = {}) {
+    this.opts = opts;
+  }
+
+  /** Insert an attestation AFTER verifying its issuer signature against
+   *  the supplied issuer public key. Pre-B9 callers could insert
+   *  unverified attestations directly; the new shape requires the
+   *  caller to commit to a verified key (use `addUnverified` for
+   *  fixture / replay code that has its own verification). */
+  async add(attestation: FederationAttestation, issuerPublicKey: Uint8Array): Promise<void> {
+    const result = await verifyFederationAttestation({ attestation, issuerPublicKey });
+    if (!result.ok) {
+      throw new Error(`refusing to add attestation: ${result.reason ?? "unknown"}`);
+    }
+    this.attestations.set(attestation.attestation_id, attestation);
+  }
+
+  /** Insert an attestation without re-verifying its signature. ONLY
+   *  use this when the caller has already verified out-of-band (replay
+   *  tooling, test fixtures). */
+  addUnverified(attestation: FederationAttestation): void {
     this.attestations.set(attestation.attestation_id, attestation);
   }
 
@@ -154,18 +189,31 @@ export class FederatedTrustStore {
     return [...this.attestations.values()];
   }
 
-  /** Returns the first attestation whose subject_domain matches and
-   *  whose subject_actor is either unset (whole-domain attestation) or
-   *  equal to `actor`. */
+  /** Return the most-recently-issued (max issued_at) attestation whose
+   *  subject_domain matches and whose subject_actor is either unset
+   *  (whole-domain attestation) or equal to `actor`. Pre-B9 this
+   *  returned the FIRST match, which depended on insertion order.
+   *  Revoked attestations are skipped when a RevocationIndex is wired. */
   findFor(actor: ActorId, subjectDomain: TrustDomain, now?: Timestamp): FederationAttestation | undefined {
     const at = now ?? new Date().toISOString();
+    let best: FederationAttestation | undefined;
     for (const a of this.attestations.values()) {
       if (a.subject_domain !== subjectDomain) continue;
       if (a.subject_actor && a.subject_actor !== actor) continue;
       if (!isWithinWindow({ valid_from: a.issued_at, valid_until: a.valid_until }, at)) continue;
-      return a;
+      if (this.opts.revocations) {
+        if (this.opts.revocations.isRevoked({ id: a.attestation_id, kind: "delegation" }, at)) {
+          continue;
+        }
+      }
+      if (!best) {
+        best = a;
+        continue;
+      }
+      if (a.issued_at > best.issued_at) best = a;
+      else if (a.issued_at === best.issued_at && a.attestation_id > best.attestation_id) best = a;
     }
-    return undefined;
+    return best;
   }
 
   /** Verify a foreign identity:
@@ -187,16 +235,29 @@ export class FederatedTrustStore {
     if (!a) {
       return { ok: false, reason: `no active attestation for ${at} in ${args.subjectDomain}` };
     }
+    const warnings: string[] = [];
     if (args.signed) {
       let matched = false;
       for (const entry of a.trust_bundle) {
         if (entry.kind === "ed25519") {
           const pub = new Uint8Array(Buffer.from(entry.value, "base64"));
-          if (pub.length !== 32) continue;
+          if (pub.length !== 32) {
+            warnings.push(
+              `trust_bundle entry ${entry.key_id ?? "(no kid)"}: ed25519 key wrong length (${pub.length} bytes), skipped`,
+            );
+            continue;
+          }
           if (await ed25519Verify(pub, args.signed.message, args.signed.signature)) {
             matched = true;
             break;
           }
+        } else {
+          // Non-ed25519 entries are surfaced as warnings rather than
+          // silently dropped (BUG-039). Future builds will add ml-dsa
+          // and rsa verification here.
+          warnings.push(
+            `trust_bundle entry ${entry.key_id ?? "(no kid)"}: kind "${entry.kind}" not yet verifiable in this build (only ed25519 is wired)`,
+          );
         }
       }
       if (!matched) {
@@ -204,6 +265,7 @@ export class FederatedTrustStore {
           ok: false,
           reason: "no bundle key matched the foreign actor's signature",
           matchedAttestationId: a.attestation_id,
+          verification_warnings: warnings.length > 0 ? warnings : undefined,
         };
       }
     }
@@ -214,6 +276,7 @@ export class FederatedTrustStore {
       trustLevels: a.trust_levels_granted,
       scope: a.scope,
       capabilities,
+      verification_warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 }

@@ -17,6 +17,17 @@ import type { Capability } from "../generated/_common.js";
 import { BridgeFailure, type Bridge, type BridgeKind } from "./bridges.js";
 import { spiffeToActorId } from "./bridge-spiffe.js";
 import { TlsBridge, type TlsBridgeConfig } from "./bridge-tls.js";
+import { sha256 } from "@noble/hashes/sha2";
+
+/** Build a `sha256:<hex>` fingerprint of a UTF-8 string. Used by mesh
+ *  bridges to fill the public_key slot of an `external-attestation`
+ *  pseudo-key with a non-cryptographic-but-deterministic value. */
+function toHexFingerprint(s: string): string {
+  const digest = sha256(new TextEncoder().encode(s));
+  let hex = "";
+  for (const b of digest) hex += b.toString(16).padStart(2, "0");
+  return `sha256:${hex}`;
+}
 
 export type ServiceMeshKind = "envoy-xfcc" | "istio-authn" | "linkerd-l5d";
 
@@ -95,6 +106,13 @@ export class ServiceMeshBridge implements Bridge {
     }
     if (entry.uri && entry.uri.startsWith("spiffe://")) {
       const actor = spiffeToActorId(entry.uri);
+      // The mesh authenticates this peer at the L4/L5 layer; the
+      // daemon doesn't hold a key for it. We emit an explicit
+      // "external-attestation" entry whose `public_key` value is the
+      // mesh's own attestation hash (the XFCC `hash` if present, else
+      // the canonical SVID URI). Pre-B9 we fabricated a 1-byte zero
+      // ed25519 key — a deceptive identity that schema-validated.
+      const attestationDigest = entry.hash ?? toHexFingerprint(entry.uri);
       const identity: ActorIdentity = {
         identity_version: "1",
         actor_id: actor,
@@ -102,9 +120,9 @@ export class ServiceMeshBridge implements Bridge {
         public_keys: [
           {
             key_id: entry.hash ?? "envoy-xfcc",
-            algorithm: "ed25519",
-            public_key: "AA==",
-            purpose: "signing",
+            algorithm: "external-attestation",
+            public_key: attestationDigest,
+            purpose: "attestation",
           },
         ],
         trust_levels: ["T3"],
@@ -144,9 +162,9 @@ export class ServiceMeshBridge implements Bridge {
       public_keys: [
         {
           key_id: "istio-authn",
-          algorithm: "ed25519",
-          public_key: "AA==",
-          purpose: "signing",
+          algorithm: "external-attestation",
+          public_key: toHexFingerprint(ctx.spiffe_id),
+          purpose: "attestation",
         },
       ],
       trust_levels: ["T3"],
@@ -187,9 +205,9 @@ export class ServiceMeshBridge implements Bridge {
       public_keys: [
         {
           key_id: "linkerd-l5d",
-          algorithm: "ed25519",
-          public_key: "AA==",
-          purpose: "signing",
+          algorithm: "external-attestation",
+          public_key: toHexFingerprint(ctx.client_id),
+          purpose: "attestation",
         },
       ],
       trust_levels: ["T3"],

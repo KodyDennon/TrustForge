@@ -170,19 +170,16 @@ export class OAuthBridge implements Bridge {
       const projected = projectJwkToPublicKey(jwk);
       return [projected];
     } catch (err) {
-      // Fallback to the placeholder if the resolved key cannot be exported
-      // (e.g. some HSM-backed keys); never throw — the identity is still
-      // valid because we already verified the signature against the JWKS.
+      // The signature was already verified against the JWKS above; if
+      // the exporter can't surface the JWK in our shape we surface an
+      // empty key list rather than fabricating a `public_key:"AA=="`
+      // ed25519 entry. Pre-B9 the placeholder ed25519 key passed
+      // schema validation but was a 1-byte zero — a deceptive
+      // identity record. Callers can match against the JWT's
+      // claims-level subject + issuer instead.
       void err;
     }
-    return [
-      {
-        key_id: "oauth-bridge-bearer",
-        algorithm: "ed25519",
-        public_key: "AA==",
-        purpose: "signing",
-      },
-    ];
+    return [];
   }
 
   private extractScopes(claims: JWTPayload): string[] {

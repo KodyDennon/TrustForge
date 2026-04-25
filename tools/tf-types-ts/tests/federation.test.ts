@@ -124,7 +124,7 @@ describe("FederatedTrustStore", () => {
       privateKey: issuer.privateKey,
     });
     const store = new FederatedTrustStore();
-    store.add(att);
+    store.addUnverified(att);
 
     const message = new TextEncoder().encode("partner-signed payload");
     const sig = await ed25519Sign(message, partner.privateKey);
@@ -156,7 +156,7 @@ describe("FederatedTrustStore", () => {
       privateKey: issuer.privateKey,
     });
     const store = new FederatedTrustStore();
-    store.add(att);
+    store.addUnverified(att);
     const message = new TextEncoder().encode("intruder");
     const sig = await ed25519Sign(message, stranger.privateKey);
     const result = await store.verifyForeign({
