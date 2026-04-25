@@ -13,6 +13,7 @@ import { parse as parseYAML } from "yaml";
 import {
   AgentGuard,
   ApprovalQueue,
+  PluginRegistry,
   RpcServer,
   Vault,
   allowAllEnforcer,
@@ -22,6 +23,7 @@ import {
   type CapabilityEnforcer,
   type GuardDecision,
   type GuardEventStub,
+  type PluginHost,
   type RpcProofEventStub,
   type SessionFrame,
 } from "tf-types";
@@ -37,6 +39,13 @@ export interface DaemonRuntimeOptions {
   configPath: string;
   passphrase: string;
   onApprovalRequest?: (req: ApprovalRequest) => void;
+  /** Signed plugin manifests to load before the daemon starts accepting
+   *  connections. Each manifest is verified and its handlers are registered
+   *  on every new RpcServer instance. */
+  plugins?: string[];
+  /** Supplied to the plugin host when loading. Tests wire this to collect
+   *  emitted plugin logs. */
+  pluginHost?: PluginHost;
 }
 
 export interface DaemonHandle {
@@ -47,9 +56,9 @@ export interface DaemonHandle {
 }
 
 /** Build a CapabilityEnforcer that routes guarded actions through the approval
- *  queue. The capability parameter from ProofRPC is used as the action name
- *  (it's the same concept: action capability matches action name in the
- *  contract). */
+ *  queue. On approval-required / escalate the enforcer pushes an
+ *  ApprovalRequest and awaits the response; approve → "allow", deny →
+ *  "permission_denied". */
 function enforcerFromGuard(
   guard: AgentGuard,
   queue: ApprovalQueue,
@@ -58,27 +67,47 @@ function enforcerFromGuard(
   } = {},
 ): CapabilityEnforcer {
   return {
-    check: (caller, method, capability) => {
+    check: async (caller, method, capability) => {
+      const action = capability || method;
       const decision: GuardDecision = guard.check({
         actor: caller,
-        action: capability || method,
+        action,
         target: undefined,
       });
       opts.onEvent?.({
         type: "guard.check",
         actor: caller,
-        action: capability || method,
+        action,
         decision: decision.kind,
         danger_tags: decision.danger_tags,
       });
       switch (decision.kind) {
         case "allow":
           return "allow";
-        case "approval-required":
-        case "escalate":
-          return { deny: `pending approval (${decision.kind})` };
         case "deny":
           return { deny: decision.reason };
+        case "approval-required":
+        case "escalate": {
+          const requestId = `req-${Date.now()}-${Math.floor(Math.random() * 1_000_000).toString(16)}`;
+          try {
+            const response = await queue.push({
+              request_version: "1",
+              id: requestId,
+              actor: caller,
+              action,
+              danger_tags: decision.danger_tags as ApprovalRequest["danger_tags"],
+              reason:
+                decision.kind === "escalate"
+                  ? `escalated: ${"reason" in decision ? decision.reason : "dangerous"}`
+                  : `approval required for ${action}`,
+              created_at: new Date().toISOString(),
+            });
+            if (response.decision === "approve") return "allow";
+            return { deny: response.note ? `approval denied: ${response.note}` : "approval denied" };
+          } catch (err) {
+            return { deny: `approval queue error: ${(err as Error).message}` };
+          }
+        }
       }
     },
   };
@@ -125,6 +154,18 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
 
   const listeners: Array<{ close: () => void }> = [];
 
+  // Optional plugins: load + verify all manifests once; registry instance is
+  // shared across every incoming RpcServer.
+  const pluginHost: PluginHost = opts.pluginHost ?? {
+    log: (msg: unknown) => {
+      appendEventLine(proofLogPath, { type: "plugin.log", message: String(msg) });
+    },
+  };
+  const pluginRegistry = new PluginRegistry();
+  for (const manifestPath of opts.plugins ?? []) {
+    await pluginRegistry.load(manifestPath, pluginHost);
+  }
+
   const listen = config.listen ?? { kind: "websocket", bind: "127.0.0.1", port: 0 };
   const server = Bun.serve({
     port: Number((listen as any).port ?? 0),
@@ -153,9 +194,11 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
             onProofEvent: (ev: RpcProofEventStub) => appendEventLine(proofLogPath, ev),
           });
           listeners.push({ close: () => endpoint.close("daemon shutdown") });
-          // The daemon's default behaviour: expose a tiny "ping" unary so a
-          // client can verify the pipeline without knowing a real method.
+          // Default built-in: a tiny "ping" unary so a client can verify the
+          // pipeline without needing any registered plugin.
           rpc.registerUnary("tf.ping", "tf.ping", async () => ({ pong: true, at: new Date().toISOString() }));
+          // Bind every loaded plugin's declared-capability handlers.
+          pluginRegistry.registerOn(rpc);
         });
       },
       message(ws, message) {

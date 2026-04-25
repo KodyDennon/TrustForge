@@ -45,8 +45,12 @@ export interface RpcProofEventStub {
   error_code?: RpcErrorCode;
 }
 
+export type CapabilityVerdict = "allow" | { deny: string };
+
 export interface CapabilityEnforcer {
-  check(caller: string, method: string, capability: string): "allow" | { deny: string };
+  /** May return synchronously or via a Promise. The RpcServer awaits the
+   *  result so the enforcer can push to an approval queue and await a human. */
+  check(caller: string, method: string, capability: string): CapabilityVerdict | Promise<CapabilityVerdict>;
 }
 
 export const allowAllEnforcer: CapabilityEnforcer = {
@@ -302,7 +306,19 @@ export class RpcServer {
     }
 
     const enforcer = this.opts.enforcer ?? allowAllEnforcer;
-    const decision = enforcer.check(caller, rpc.method, registered.capability);
+    let decision: CapabilityVerdict;
+    try {
+      decision = await Promise.resolve(enforcer.check(caller, rpc.method, registered.capability));
+    } catch (err) {
+      const message = (err as Error).message ?? String(err);
+      this.sendError(
+        rpc.call_id,
+        { code: "internal", message: `capability enforcer threw: ${message}` },
+        ctx,
+        registered.kind === "server-streaming",
+      );
+      return;
+    }
     if (decision !== "allow") {
       this.sendError(
         rpc.call_id,
