@@ -149,6 +149,18 @@ vectors:
   - schema: policy
     fixture: schemas/fixtures/policy/invalid/rule-id-pattern.yaml
     expect: invalid
+  - schema: policy-decision
+    fixture: schemas/fixtures/policy-decision/valid/allow-default.yaml
+    expect: valid
+  - schema: policy-decision
+    fixture: schemas/fixtures/policy-decision/valid/escalate-with-quorum.yaml
+    expect: valid
+  - schema: policy-decision
+    fixture: schemas/fixtures/policy-decision/invalid/missing-decision.yaml
+    expect: invalid
+  - schema: policy-decision
+    fixture: schemas/fixtures/policy-decision/invalid/wrong-engine.yaml
+    expect: invalid
   - schema: proof-bundle
     fixture: schemas/fixtures/proof-bundle/valid/basic.yaml
     expect: valid

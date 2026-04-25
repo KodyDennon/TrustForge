@@ -1,0 +1,7 @@
+decision_version: "1"
+policy_engine: opa-style   # not in the enum
+trust_domain: example.com
+subject: tf:actor:agent:example.com/x
+action: file.read
+decision: allow
+evaluated_at: "2026-04-24T12:00:00Z"

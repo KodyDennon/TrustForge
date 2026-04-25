@@ -29,6 +29,8 @@ pub mod plugin_manifest;
 pub use plugin_manifest::*;
 pub mod policy;
 pub use policy::*;
+pub mod policy_decision;
+pub use policy_decision::*;
 pub mod proof_bundle;
 pub use proof_bundle::*;
 pub mod proof_event;

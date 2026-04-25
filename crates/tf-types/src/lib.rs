@@ -28,6 +28,7 @@ pub mod format;
 pub mod guard;
 pub mod instance_id;
 pub mod plugin;
+pub mod policy_engine;
 pub mod revocation;
 pub mod rpc;
 pub mod session;

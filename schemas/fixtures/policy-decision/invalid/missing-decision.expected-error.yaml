@@ -1,0 +1,4 @@
+errors:
+  - path: ""
+    keyword: required
+    params_missing: decision

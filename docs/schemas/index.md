@@ -18,6 +18,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
 | [plugin-manifest](./plugin-manifest.md) | — | Declarative manifest describing a TrustForge plugin |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
+| [policy-decision](./policy-decision.md) | — | Structured result emitted by a TrustForge PolicyEngine |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |
 | [proof-profile](./proof-profile.md) | TF-0005 | Declarative profile describing which proof events to emit and how (TF-0005). |

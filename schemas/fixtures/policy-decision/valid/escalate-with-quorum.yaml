@@ -1,0 +1,21 @@
+decision_version: "1"
+policy_engine: native
+engine_version: "tf-policy-native-0.1"
+trust_domain: example.com
+subject: tf:actor:agent:example.com/code-helper
+instance: "tf:instance:agent:example.com/code-helper/laptop/abc"
+action: payment.charge
+target: vendor:42
+decision: escalate
+rule_id: escalate.payments
+reason: payments require quorum approval
+approval: quorum
+proof_required: L4
+constraints_applied:
+  - kind: quorum
+    quorum: 2
+    of:
+      - tf:actor:human:example.com/alice
+      - tf:actor:human:example.com/bob
+enforcement_level: E5
+evaluated_at: "2026-04-24T12:30:00Z"

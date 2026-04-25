@@ -10,11 +10,14 @@ import { resolve } from "node:path";
 import { parse as parseYAML } from "yaml";
 import {
   AgentGuard,
+  NativePolicyEngine,
   b64encode,
   canonicalize,
   ed25519Generate,
   ed25519PublicKey,
+  policyEngineForManifest,
 } from "tf-types";
+import type { Policy } from "../../tf-types-ts/src/generated/policy.js";
 
 function arg(args: string[], flag: string): string | undefined {
   const i = args.indexOf(flag);
@@ -22,18 +25,38 @@ function arg(args: string[], flag: string): string | undefined {
 }
 
 async function policySimulate(args: string[]): Promise<number> {
-  const contract = args[0];
+  const file = args[0];
   const action = arg(args, "--action") ?? args[1];
   const target = arg(args, "--target");
-  if (!contract || !action) {
-    console.error("usage: tf policy simulate <contract.yaml> <action> [--target <t>]");
+  const subject = arg(args, "--subject") ?? "tf:actor:process:local/policy-simulator";
+  const policyFlag = arg(args, "--policy");
+  const enforcementFlag = arg(args, "--enforcement-level");
+  if (!file || !action) {
+    console.error(
+      "usage: tf policy simulate <contract.yaml | policy.yaml> <action> [--target <t>] [--subject <actor>] [--policy <policy.yaml>] [--enforcement-level E0..E5]",
+    );
     return 2;
   }
-  const raw = readFileSync(resolve(contract), "utf8");
+  const raw = readFileSync(resolve(file), "utf8");
   const doc = parseYAML(raw) as Record<string, unknown>;
+  const isPolicyManifest = "rules" in doc && "trust_domain" in doc && "policy_version" in doc;
+  if (isPolicyManifest || policyFlag) {
+    const policyDoc = policyFlag
+      ? (parseYAML(readFileSync(resolve(policyFlag), "utf8")) as Policy)
+      : (doc as unknown as Policy);
+    const engine = policyEngineForManifest(policyDoc) as NativePolicyEngine;
+    const decision = engine.evaluate({
+      subject,
+      action,
+      target,
+      enforcementLevel: enforcementFlag as Parameters<NativePolicyEngine["evaluate"]>[0]["enforcementLevel"],
+    });
+    console.log(canonicalize(decision));
+    return decision.decision === "deny" ? 1 : 0;
+  }
   const guard = AgentGuard.fromContract(doc);
   const decision = guard.check({
-    actor: "tf:actor:process:local/policy-simulator",
+    actor: subject,
     action,
     target,
   });

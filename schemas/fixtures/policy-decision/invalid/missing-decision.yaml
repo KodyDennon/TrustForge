@@ -1,0 +1,7 @@
+# Missing the required `decision` field.
+decision_version: "1"
+policy_engine: native
+trust_domain: example.com
+subject: tf:actor:agent:example.com/x
+action: file.read
+evaluated_at: "2026-04-24T12:00:00Z"

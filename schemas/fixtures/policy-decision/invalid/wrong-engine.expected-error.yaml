@@ -1,0 +1,3 @@
+errors:
+  - path: "/policy_engine"
+    keyword: enum

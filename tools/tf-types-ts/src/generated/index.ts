@@ -13,6 +13,7 @@ export * from "./daemon-config.js";
 export * from "./dangerous-actions.js";
 export * from "./plugin-manifest.js";
 export * from "./policy.js";
+export * from "./policy-decision.js";
 export * from "./proof-bundle.js";
 export * from "./proof-event.js";
 export * from "./proof-profile.js";

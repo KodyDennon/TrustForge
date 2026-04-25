@@ -1,0 +1,11 @@
+decision_version: "1"
+policy_engine: native
+trust_domain: example.com
+subject: tf:actor:agent:example.com/code-helper
+action: file.read
+target: src/main.ts
+decision: allow
+rule_id: allow.read.source
+reason: matched rule allow.read.source
+evaluated_at: "2026-04-24T12:00:00Z"
+enforcement_level: E4

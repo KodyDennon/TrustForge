@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/policy-decision.schema.json",
+  "title": "TrustForge Policy Decision",
+  "description": "Structured result emitted by a TrustForge PolicyEngine. Captures the decision, the rule that produced it, the constraints attached, and enough provenance to be replayed in audits and verified after the fact (TF-0004, DECISIONS.md \"AI-readable manifests\").",
+  "type": "object",
+  "required": [
+    "decision_version",
+    "policy_engine",
+    "trust_domain",
+    "subject",
+    "action",
+    "decision",
+    "evaluated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "decision_version": {
+      "description": "Version of the policy-decision schema itself.",
+      "enum": ["1"]
+    },
+    "policy_engine": {
+      "description": "Which engine produced this decision.",
+      "enum": ["cedar", "rego", "custom", "native", "none"]
+    },
+    "engine_version": {
+      "type": "string",
+      "description": "Free-form version label so audits can replay the same engine build."
+    },
+    "trust_domain": { "$ref": "_common.schema.json#/$defs/TrustDomain" },
+    "subject": {
+      "description": "Actor URI the policy was evaluated against.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "instance": {
+      "description": "Optional actor instance URI captured in the decision.",
+      "$ref": "_common.schema.json#/$defs/InstanceId"
+    },
+    "action": {
+      "description": "Action name being authorized.",
+      "$ref": "_common.schema.json#/$defs/ActionName"
+    },
+    "target": {
+      "type": "string",
+      "description": "Target the action operates on (file path, record id, URL, ...)."
+    },
+    "decision": {
+      "description": "Effect produced by the policy engine.",
+      "enum": ["allow", "deny", "escalate", "approval-required", "log-only"]
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "Identifier of the rule that produced the decision."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable explanation of the decision."
+    },
+    "approval": {
+      "$ref": "_common.schema.json#/$defs/ApprovalRequirement"
+    },
+    "proof_required": {
+      "$ref": "_common.schema.json#/$defs/ProofLevel"
+    },
+    "constraints_applied": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/Constraint" },
+      "description": "Constraints the rule attached to this decision."
+    },
+    "negative_capabilities_consulted": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/NegativeCapability" },
+      "description": "Negative capabilities considered while reaching the decision (for audit)."
+    },
+    "enforcement_level": {
+      "$ref": "_common.schema.json#/$defs/EnforcementLevel"
+    },
+    "evaluated_at": {
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "policy_manifest_hash": {
+      "$ref": "_common.schema.json#/$defs/HashRef",
+      "description": "Hash of the policy manifest that was evaluated. Lets auditors replay the decision against the exact manifest."
+    },
+    "context": {
+      "type": "object",
+      "description": "Free-form evaluation-time context (session id, posture flags, quorum approver count, etc.).",
+      "additionalProperties": true
+    }
+  }
+}
