@@ -1,0 +1,20 @@
+profile_version: "1"
+profile_id: tf-home-compatible
+label: "TrustForge home / personal-network profile"
+description: "Lightweight profile for home automation, personal devices, and small mesh networks. Single-operator deployments without quorum or external transparency anchors."
+must:
+  - id: agent-contract
+    spec_ref: TF-0006
+  - id: proof-log
+    spec_ref: TF-0005
+  - id: ed25519
+    spec_ref: SECURITY.md
+  - id: vault
+    spec_ref: TF-0001
+should:
+  - id: webauthn
+    spec_ref: TF-0009
+  - id: shadow-mode
+    spec_ref: DECISIONS.md
+min_enforcement_level: E3
+min_proof_level: L1

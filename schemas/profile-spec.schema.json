@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/profile-spec.schema.json",
+  "title": "TrustForge Profile Specification",
+  "description": "Declarative profile specification (TF-0010 conformance label + TF-0001 'profiles control complexity'). A profile lists the MUST and SHOULD features a deployment claiming the label has to satisfy. The runtime FeatureGate consults this so daemons can refuse to start when a claimed profile demands a feature that isn't enabled.",
+  "type": "object",
+  "required": ["profile_version", "profile_id", "label", "must", "should"],
+  "additionalProperties": false,
+  "properties": {
+    "profile_version": {
+      "enum": ["1"],
+      "description": "Version of the profile-spec schema."
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^tf-[a-z][a-z0-9-]*-compatible$",
+      "description": "Conformance-label identifier, e.g. tf-home-compatible."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable profile label."
+    },
+    "description": {
+      "type": "string",
+      "description": "Free-text description of when this profile applies."
+    },
+    "must": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Feature" },
+      "description": "Mandatory features. A daemon claiming this profile MUST satisfy every entry."
+    },
+    "should": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Feature" },
+      "description": "Recommended features."
+    },
+    "must_not": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Feature" },
+      "description": "Features the profile forbids (e.g. constrained profile MUST NOT enable WebSocket-only listener)."
+    },
+    "min_enforcement_level": {
+      "enum": ["E0", "E1", "E2", "E3", "E4", "E5"],
+      "description": "Minimum EnforcementLevel the daemon must run at when claiming this profile."
+    },
+    "min_proof_level": {
+      "$ref": "_common.schema.json#/$defs/ProofLevel",
+      "description": "Minimum proof level for actions emitted under this profile."
+    },
+    "required_bridges": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Bridge kinds the profile requires (e.g. ['spiffe', 'webauthn'])."
+    },
+    "required_anchors": {
+      "type": "array",
+      "items": { "enum": ["rfc6962", "sigstore", "rfc3161", "memory", "custom"] },
+      "description": "Transparency anchor kinds the profile requires."
+    }
+  },
+  "$defs": {
+    "Feature": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*$",
+          "description": "Stable feature identifier the FeatureGate exposes (e.g. policy-engine, transparency-anchor.rfc6962)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description."
+        },
+        "spec_ref": {
+          "type": "string",
+          "description": "TF-XXXX or DECISIONS.md reference."
+        }
+      }
+    }
+  }
+}

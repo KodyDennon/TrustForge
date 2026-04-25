@@ -23,6 +23,7 @@ export * from "./permission-request.js";
 export * from "./plugin-manifest.js";
 export * from "./policy.js";
 export * from "./policy-decision.js";
+export * from "./profile-spec.js";
 export * from "./proof-bundle.js";
 export * from "./proof-bundle-encrypted.js";
 export * from "./proof-event.js";

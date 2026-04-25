@@ -1,0 +1,20 @@
+profile_version: "1"
+profile_id: tf-constrained-compatible
+label: "TrustForge constrained / LoRa / offline profile"
+description: "Air-gapped, LoRa, BLE, serial, and store-and-forward deployments. Packet mode is required; live WebSocket transport is forbidden."
+must:
+  - id: packet-mode
+    spec_ref: TF-0011
+  - id: fragment-reassembly
+    spec_ref: TF-0011
+  - id: offline-revocation-list
+    spec_ref: TF-0011
+  - id: emergency-authority
+must_not:
+  - id: transport.websocket-only
+  - id: transparency-anchor.always-online
+should:
+  - id: cbor-encoding
+  - id: deflate-compression
+min_enforcement_level: E3
+min_proof_level: L1

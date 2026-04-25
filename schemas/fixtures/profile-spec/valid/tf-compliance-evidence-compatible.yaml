@@ -1,0 +1,18 @@
+profile_version: "1"
+profile_id: tf-compliance-evidence-compatible
+label: "TrustForge compliance / legal-evidence profile"
+description: "MSP, healthcare, finance, government, maritime, critical-infra. Verifiable records of who acted, what authority, what policy, what approval, signed log events, L4/L5 evidence bundles, transparency anchors."
+must:
+  - id: policy-engine
+  - id: quorum-collector
+  - id: signed-log-events
+  - id: evidence-bundle
+  - id: l4-encrypted-bundle
+  - id: l5-rfc3161-anchor
+  - id: continuous-reauth
+should:
+  - id: redaction
+  - id: federation
+required_anchors: [rfc6962, rfc3161]
+min_enforcement_level: E4
+min_proof_level: L3

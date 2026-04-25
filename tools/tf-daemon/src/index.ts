@@ -47,6 +47,12 @@ export interface DaemonRuntimeOptions {
   projectRoot?: string;
   onManifestDiagnostic?: (d: { file: string; reason: string }) => void;
   onFeatureGate?: (gate: import("tf-types").TfFeatureGate) => void;
+  /** Called once with the profile-gate verdict if the daemon-config
+   *  claims a conformance profile. */
+  onProfileVerdict?: (v: import("tf-types").ProfileVerdict) => void;
+  /** When false, the daemon boots even if the claimed profile's MUST
+   *  features are not all satisfied. Default true. */
+  refuseOnProfileFailure?: boolean;
   /** Signed plugin manifests to load before the daemon starts accepting
    *  connections. Each manifest is verified and its handlers are registered
    *  on every new RpcServer instance. */
@@ -149,8 +155,11 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   const idEntry = vault.read("daemon-identity");
   const identityPub = await ed25519PublicKey(idEntry.key_bytes);
 
+  const enforcementLevel = ((config as unknown as { enforcement_level?: string }).enforcement_level ?? "E4") as
+    | "E0" | "E1" | "E2" | "E3" | "E4" | "E5";
   const guard = AgentGuard.fromContract(contract, {
     onEvent: (ev) => appendEventLine(proofLogPath, ev),
+    enforcementLevel,
   });
   // If a .tf/policy.yaml is available, fold its negative_capabilities
   // into the guard so policy + contract ride together.
@@ -163,6 +172,41 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   // Surface the feature gate so the caller / tests can introspect it.
   if (featureGate) {
     opts.onFeatureGate?.(featureGate);
+  }
+  // Profile gating: when the daemon config claims a conformance
+  // profile, evaluate it against the runtime feature inventory and
+  // refuse to boot when MUSTs are missing.
+  const claimedProfile = (config as unknown as { profile?: string }).profile;
+  if (claimedProfile) {
+    const tfMod = await import("tf-types");
+    const spec = tfMod.BUILTIN_PROFILES[claimedProfile];
+    if (!spec) {
+      throw new Error(`unknown profile: ${claimedProfile}`);
+    }
+    const features: string[] = [
+      "agent-contract",
+      "proof-log",
+      "ed25519",
+      "vault",
+      "policy-engine",
+      "continuous-reauth",
+      "shadow-mode",
+      "signed-log-events",
+    ];
+    if (tf?.proofProfile) features.push("transparency-anchor.any");
+    const verdict = tfMod.selectProfile(spec, tfMod.buildProfileFeatureGate({
+      features,
+      enforcementLevel,
+      proofLevelFloor: "L1",
+      bridges: ["spiffe", "webauthn", "oauth", "mcp"],
+      anchors: ["memory", "rfc6962"],
+    }));
+    opts.onProfileVerdict?.(verdict);
+    if (!verdict.ok && opts.refuseOnProfileFailure !== false) {
+      throw new Error(
+        `profile ${claimedProfile} not satisfied: ${verdict.failures.join("; ")}`,
+      );
+    }
   }
   const queue = new ApprovalQueue({
     maxPending: config.approval_queue?.max_pending ?? 32,
@@ -190,6 +234,16 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
 
   const listeners: Array<{ close: () => void }> = [];
 
+  // Active session bookkeeping for the admin endpoint.
+  interface ActiveSession {
+    id: string;
+    remote_actor: string;
+    opened_at: string;
+    close: () => void;
+  }
+  const activeSessions = new Map<string, ActiveSession>();
+  let sessionCounter = 0;
+
   // Optional plugins: load + verify all manifests once; registry instance is
   // shared across every incoming RpcServer.
   const pluginHost: PluginHost = opts.pluginHost ?? {
@@ -202,11 +256,129 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     await pluginRegistry.load(manifestPath, pluginHost);
   }
 
+  // Profile verdict (captured for the admin endpoint).
+  let lastProfileVerdict: import("tf-types").ProfileVerdict | undefined;
+  const profilePassThrough = opts.onProfileVerdict;
+  opts.onProfileVerdict = (v) => {
+    lastProfileVerdict = v;
+    profilePassThrough?.(v);
+  };
+
+  const adminCfg = (config as unknown as { admin?: { enabled: boolean; token_env?: string; revocation_path?: string } }).admin;
+  const adminEnabled = !!adminCfg?.enabled;
+  const adminTokenEnv = adminCfg?.token_env ?? "TF_ADMIN_TOKEN";
+  const adminToken = process.env[adminTokenEnv] ?? "";
+  const revocationPath = adminCfg?.revocation_path;
+
+  function adminAuth(req: Request): boolean {
+    if (!adminEnabled) return false;
+    if (!adminToken) return false;
+    const auth = req.headers.get("authorization") ?? "";
+    return auth === `Bearer ${adminToken}`;
+  }
+
+  function jsonResponse(value: unknown, status = 200): Response {
+    return new Response(canonicalize(value), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  async function handleAdmin(req: Request): Promise<Response | undefined> {
+    const url = new URL(req.url);
+    if (!url.pathname.startsWith("/admin/") && url.pathname !== "/admin" && url.pathname !== "/healthz") return undefined;
+    if (url.pathname === "/healthz") {
+      return jsonResponse({ ok: true, profile: lastProfileVerdict?.profile ?? null });
+    }
+    if (!adminAuth(req)) {
+      return new Response("forbidden", { status: 403 });
+    }
+    if (url.pathname === "/admin/sessions" && req.method === "GET") {
+      return jsonResponse({
+        sessions: [...activeSessions.values()].map((s) => ({
+          id: s.id, remote_actor: s.remote_actor, opened_at: s.opened_at,
+        })),
+      });
+    }
+    if (url.pathname === "/admin/approvals" && req.method === "GET") {
+      return jsonResponse({ approvals: queue.list() });
+    }
+    {
+      const m = /^\/admin\/approvals\/([^/]+)\/(approve|deny)$/.exec(url.pathname);
+      if (m && req.method === "POST") {
+        const [, id, decision] = m as unknown as [string, string, "approve" | "deny"];
+        let body: { note?: string } = {};
+        try {
+          if (req.headers.get("content-type")?.includes("application/json")) {
+            body = (await req.json()) as { note?: string };
+          }
+        } catch {
+          /* ignore */
+        }
+        const ok = queue.respond(id, decision, body.note);
+        return jsonResponse({ ok }, ok ? 200 : 404);
+      }
+    }
+    if (url.pathname === "/admin/plugins" && req.method === "GET") {
+      return jsonResponse({
+        plugins: pluginRegistry.list().map((p) => ({
+          plugin_id: p.manifest.plugin_id,
+          actor_id: p.manifest.actor_id,
+          kind: p.manifest.kind,
+          capabilities: p.manifest.capabilities.map((c) => c.name),
+        })),
+      });
+    }
+    if (url.pathname === "/admin/profile" && req.method === "GET") {
+      return jsonResponse({ profile: lastProfileVerdict ?? null });
+    }
+    if (url.pathname === "/admin/proofs" && req.method === "GET") {
+      const n = Math.min(Math.max(parseInt(url.searchParams.get("n") ?? "100", 10) || 100, 1), 1000);
+      return jsonResponse({ events: readLastEvents(proofLogPath, n) });
+    }
+    if (url.pathname === "/admin/revocations" && req.method === "POST") {
+      if (!revocationPath) {
+        return jsonResponse({ error: "revocation_path not configured" }, 400);
+      }
+      const body = (await req.json()) as { kind?: string; id?: string; reason?: string };
+      if (!body.kind || !body.id) {
+        return jsonResponse({ error: "missing kind/id" }, 400);
+      }
+      const list: Array<Record<string, unknown>> = existsSync(revocationPath)
+        ? (JSON.parse(readFileSync(revocationPath, "utf8")) as Array<Record<string, unknown>>)
+        : [];
+      const rev = {
+        revocation_version: "1",
+        id: `rev-${Date.now().toString(16)}-${Math.floor(Math.random() * 1_000_000).toString(16)}`,
+        target_id: body.id,
+        target_kind: body.kind,
+        effective_at: new Date().toISOString(),
+        reason: body.reason ?? "admin-revoke",
+        issuer: config.self_actor,
+        signature: { algorithm: "ed25519", signer: config.self_actor, signature: "" },
+      };
+      list.push(rev);
+      writeFileSync(revocationPath, canonicalize(list));
+      appendEventLine(proofLogPath, {
+        type: "admin.revocation",
+        actor: config.self_actor,
+        action: "revoke",
+        decision: "allow",
+        target_kind: body.kind,
+        target_id: body.id,
+      });
+      return jsonResponse({ ok: true, revocation: rev });
+    }
+    return new Response("not found", { status: 404 });
+  }
+
   const listen = config.listen ?? { kind: "websocket", bind: "127.0.0.1", port: 0 };
   const server = Bun.serve({
     port: Number((listen as any).port ?? 0),
     hostname: String((listen as any).bind ?? "127.0.0.1"),
-    fetch(req, server) {
+    async fetch(req, server) {
+      const adminResp = await handleAdmin(req);
+      if (adminResp) return adminResp;
       if (server.upgrade(req, { data: {} as never })) return;
       return new Response("expected websocket", { status: 400 });
     },
@@ -230,6 +402,15 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
             onProofEvent: (ev: RpcProofEventStub) => appendEventLine(proofLogPath, ev),
           });
           listeners.push({ close: () => endpoint.close("daemon shutdown") });
+          sessionCounter += 1;
+          const sessionId = `sess-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
+          activeSessions.set(sessionId, {
+            id: sessionId,
+            remote_actor: (endpoint as unknown as { remoteActor?: string }).remoteActor ?? "tf:actor:unknown",
+            opened_at: new Date().toISOString(),
+            close: () => endpoint.close("daemon shutdown"),
+          });
+          (ws.data as any).sessionId = sessionId;
           // Default built-in: a tiny "ping" unary so a client can verify the
           // pipeline without needing any registered plugin.
           rpc.registerUnary("tf.ping", "tf.ping", async () => ({ pong: true, at: new Date().toISOString() }));
@@ -244,6 +425,8 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       close(ws) {
         const w = (ws.data as any).wire as ReturnType<typeof wireFromBunServerSocket> | undefined;
         if (w) w.deliverClose();
+        const sessionId = (ws.data as any).sessionId as string | undefined;
+        if (sessionId) activeSessions.delete(sessionId);
       },
     },
   });
@@ -267,6 +450,30 @@ function appendEventLine(path: string, ev: unknown): void {
   const header = new Uint8Array(4);
   new DataView(header.buffer).setUint32(0, payload.length, false);
   appendFileSync(path, Buffer.concat([header, payload]));
+}
+
+/** Read the last `n` events from a .tflog file. Returns an array of
+ *  parsed canonical-JSON event objects. Caller-tolerant: missing file
+ *  returns []. */
+function readLastEvents(path: string, n: number): unknown[] {
+  if (!existsSync(path)) return [];
+  const bytes = readFileSync(path);
+  const events: unknown[] = [];
+  // Skip the 8-byte file header `TFLOG\x01\x00\x00`.
+  let offset = bytes.length >= 8 && bytes[0] === 0x54 && bytes[1] === 0x46 && bytes[2] === 0x4c ? 8 : 0;
+  while (offset + 4 <= bytes.length) {
+    const len = bytes.readUInt32BE(offset);
+    offset += 4;
+    if (offset + len > bytes.length) break;
+    const slice = bytes.subarray(offset, offset + len);
+    offset += len;
+    try {
+      events.push(JSON.parse(slice.toString("utf8")));
+    } catch {
+      events.push({ raw: slice.toString("hex") });
+    }
+  }
+  return events.slice(-n);
 }
 
 /** Wrap an event in a signed envelope before appending. The envelope

@@ -1,17 +1,15 @@
 {
-  "name": "tf-cli",
+  "name": "tf-dashboard",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Unified tf command — wraps schema/proof/daemon/session/policy/actor/approval operations.",
+  "description": "Viewer-only Bun.serve dashboard for an active tf-daemon (sessions, approvals, plugins, recent proofs).",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"
   },
   "dependencies": {
-    "tf-session": "workspace:*",
-    "tf-types": "workspace:*",
-    "yaml": "^2.6.0"
+    "tf-types": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

@@ -28,6 +28,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [plugin-manifest](./plugin-manifest.md) | — | Declarative manifest describing a TrustForge plugin |
 | [policy](./policy.md) | TF-0004 | Declarative policy definition referenced by TF-0004 |
 | [policy-decision](./policy-decision.md) | — | Structured result emitted by a TrustForge PolicyEngine |
+| [profile-spec](./profile-spec.md) | — | Declarative profile specification (TF-0010 conformance label + TF-0001 'profiles control complexity') |
 | [proof-bundle](./proof-bundle.md) | TF-0005 | JSON representation of a .tfproof bundle (TF-0005) |
 | [proof-bundle-encrypted](./proof-bundle-encrypted.md) | — | Encrypted variant of .tfbundle (proof level L4) |
 | [proof-event](./proof-event.md) | TF-0005 | Signed record of an important event (TF-0005) |

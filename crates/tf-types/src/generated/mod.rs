@@ -49,6 +49,8 @@ pub mod policy;
 pub use policy::*;
 pub mod policy_decision;
 pub use policy_decision::*;
+pub mod profile_spec;
+pub use profile_spec::*;
 pub mod proof_bundle;
 pub use proof_bundle::*;
 pub mod proof_bundle_encrypted;

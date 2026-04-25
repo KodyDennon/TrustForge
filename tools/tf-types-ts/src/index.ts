@@ -42,4 +42,5 @@ export * from "./core/bridge-grpc.js";
 export * from "./core/bridge-service-mesh.js";
 export * from "./core/simulation.js";
 export * from "./core/federation.js";
+export * from "./core/profile.js";
 export * from "./core/webauthn-attestation.js";

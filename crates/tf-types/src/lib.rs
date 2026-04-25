@@ -39,6 +39,7 @@ pub mod packet;
 pub mod permission;
 pub mod plugin;
 pub mod policy_engine;
+pub mod profile;
 pub mod quorum;
 pub mod relay;
 pub mod revocation;

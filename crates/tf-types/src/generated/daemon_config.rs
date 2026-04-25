@@ -23,6 +23,28 @@ pub struct DaemonConfig {
     /// Approval-queue tuning.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub approval_queue: Option<DaemonConfig_ApprovalQueue>,
+    /// Conformance profile this daemon claims at startup. The runtime FeatureGate refuses to boot when the profile's MUST entries are not all satisfied.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub profile: Option<String>,
+    /// Default EnforcementLevel for the daemon's AgentGuard. See DECISIONS.md "Progressive enforcement".
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub enforcement_level: Option<EnforcementLevel>,
+    /// Local admin HTTP endpoint. Disabled when omitted.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub admin: Option<DaemonConfig_Admin>,
+}
+
+/// Local admin HTTP endpoint. Disabled when omitted.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DaemonConfig_Admin {
+    /// When true, the daemon serves /admin/* HTTP routes alongside the WebSocket session listener.
+    pub enabled: bool,
+    /// Environment variable holding the bearer token for admin requests. Default TF_ADMIN_TOKEN.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub token_env: Option<String>,
+    /// Path of the JSON revocation list the admin endpoint appends to.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub revocation_path: Option<String>,
 }
 
 /// Approval-queue tuning.

@@ -227,6 +227,21 @@ vectors:
   - schema: policy-decision
     fixture: schemas/fixtures/policy-decision/invalid/wrong-engine.yaml
     expect: invalid
+  - schema: profile-spec
+    fixture: schemas/fixtures/profile-spec/valid/tf-compliance-evidence-compatible.yaml
+    expect: valid
+  - schema: profile-spec
+    fixture: schemas/fixtures/profile-spec/valid/tf-constrained-compatible.yaml
+    expect: valid
+  - schema: profile-spec
+    fixture: schemas/fixtures/profile-spec/valid/tf-enterprise-compatible.yaml
+    expect: valid
+  - schema: profile-spec
+    fixture: schemas/fixtures/profile-spec/valid/tf-home-compatible.yaml
+    expect: valid
+  - schema: profile-spec
+    fixture: schemas/fixtures/profile-spec/invalid/bad-profile-id.yaml
+    expect: invalid
   - schema: proof-bundle
     fixture: schemas/fixtures/proof-bundle/valid/basic.yaml
     expect: valid

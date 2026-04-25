@@ -1,0 +1,6 @@
+profile_version: "1"
+profile_id: not-a-valid-profile
+label: "x"
+must:
+  - id: x
+should: []

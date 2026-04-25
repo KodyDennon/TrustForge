@@ -77,6 +77,35 @@
           "description": "How long to wait for an approval response before defaulting to deny."
         }
       }
+    },
+    "profile": {
+      "type": "string",
+      "pattern": "^tf-[a-z][a-z0-9-]*-compatible$",
+      "description": "Conformance profile this daemon claims at startup. The runtime FeatureGate refuses to boot when the profile's MUST entries are not all satisfied."
+    },
+    "enforcement_level": {
+      "$ref": "_common.schema.json#/$defs/EnforcementLevel",
+      "description": "Default EnforcementLevel for the daemon's AgentGuard. See DECISIONS.md \"Progressive enforcement\"."
+    },
+    "admin": {
+      "type": "object",
+      "description": "Local admin HTTP endpoint. Disabled when omitted.",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "When true, the daemon serves /admin/* HTTP routes alongside the WebSocket session listener."
+        },
+        "token_env": {
+          "type": "string",
+          "description": "Environment variable holding the bearer token for admin requests. Default TF_ADMIN_TOKEN."
+        },
+        "revocation_path": {
+          "type": "string",
+          "description": "Path of the JSON revocation list the admin endpoint appends to."
+        }
+      }
     }
   }
 }

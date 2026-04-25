@@ -1,0 +1,19 @@
+profile_version: "1"
+profile_id: tf-enterprise-compatible
+label: "TrustForge enterprise profile"
+description: "Multi-tenant enterprise deployment with quorum approvals, federated trust, transparency anchoring, and policy engine."
+must:
+  - id: policy-engine
+  - id: quorum-collector
+  - id: continuous-reauth
+  - id: transparency-anchor.any
+  - id: federation
+  - id: webauthn
+  - id: agent-contract
+should:
+  - id: shadow-mode
+  - id: hybrid-pq
+required_bridges: [webauthn, oauth, spiffe]
+required_anchors: [rfc6962]
+min_enforcement_level: E4
+min_proof_level: L2
