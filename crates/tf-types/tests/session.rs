@@ -14,39 +14,6 @@ struct Pair {
     responder: Responder,
 }
 
-fn make_pair() -> Pair {
-    let i_id = Ed25519Signer::generate(&mut OsRng);
-    let r_id = Ed25519Signer::generate(&mut OsRng);
-    let initiator = Initiator::new(SessionConfig {
-        self_actor: "tf:actor:agent:example.com/i".into(),
-        peer_hint: Some("tf:actor:agent:example.com/r".into()),
-        identity_priv: i_id_priv(&i_id),
-        identity_pub: i_id.public_key_bytes(),
-        eph_seed: None,
-        session_id_seed: None,
-    });
-    let responder = Responder::new(SessionConfig {
-        self_actor: "tf:actor:agent:example.com/r".into(),
-        peer_hint: None,
-        identity_priv: i_id_priv(&r_id),
-        identity_pub: r_id.public_key_bytes(),
-        eph_seed: None,
-        session_id_seed: None,
-    });
-    Pair { initiator, responder }
-}
-
-// Helper: Ed25519Signer doesn't expose its raw private bytes, so we go through
-// from_bytes with a known seed. We'll cheat by re-creating with a fresh seed.
-fn i_id_priv(_signer: &Ed25519Signer) -> [u8; 32] {
-    // The dalek signer is from a 32-byte seed; for tests, we just generate
-    // a random seed locally and synthesize a matching signer pair.
-    use rand::RngCore;
-    let mut seed = [0u8; 32];
-    OsRng.fill_bytes(&mut seed);
-    seed
-}
-
 fn fresh_id() -> ([u8; 32], [u8; 32]) {
     use rand::RngCore;
     let mut seed = [0u8; 32];

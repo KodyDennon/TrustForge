@@ -8,6 +8,7 @@
 pub mod generated;
 
 pub mod actor_id;
+pub mod approval;
 pub mod canonical;
 pub mod capability;
 pub mod chain;
@@ -17,6 +18,7 @@ pub mod envelope;
 pub mod format;
 pub mod guard;
 pub mod instance_id;
+pub mod plugin;
 pub mod revocation;
 pub mod rpc;
 pub mod session;
