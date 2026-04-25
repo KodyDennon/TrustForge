@@ -79,7 +79,7 @@ async function issue(
   if (opts.sanUris && opts.sanUris.length > 0) {
     extensions.push(
       new x509.SubjectAlternativeNameExtension(
-        opts.sanUris.map((u) => ({ type: "url", value: u })),
+        opts.sanUris.map((u) => ({ type: "url" as const, value: u })),
       ),
     );
   }

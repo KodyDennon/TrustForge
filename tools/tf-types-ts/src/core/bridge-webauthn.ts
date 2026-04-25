@@ -10,6 +10,12 @@
 
 import type { ActorIdentity } from "../generated/actor-identity.js";
 import { BridgeFailure, type Bridge, type BridgeKind } from "./bridges.js";
+import {
+  verifyAttestation,
+  type CoseAlgorithm,
+  type VerifyAttestationOptions,
+  type VerifiedAttestation,
+} from "./webauthn-attestation.js";
 
 export type WebAuthnAlgorithm = "ed25519" | "p256" | "rsa-pss-sha256";
 
@@ -138,4 +144,79 @@ export class WebAuthnBridge implements Bridge {
   project(identity: ActorIdentity): WebAuthnCredential {
     return actorIdentityToWebauthn(identity);
   }
+
+  /** Verify a real WebAuthn registration (CBOR-encoded attestationObject +
+   *  clientDataJSON) and project the verified credential into a TrustForge
+   *  actor identity. Supports `none`, `packed`, and `fido-u2f` formats. */
+  verifyRegistration(
+    attestationObject: Uint8Array,
+    clientDataJSON: Uint8Array,
+    opts: Omit<VerifyAttestationOptions, "rpId" | "allowedAlgorithms"> & {
+      userHandle: string;
+    },
+  ): { identity: ActorIdentity; credential: WebAuthnCredential; verified: VerifiedAttestation } {
+    const allowedCose = mapAlgorithmsToCose(this.cfg.allowedAlgorithms);
+    const verified = verifyAttestation(attestationObject, clientDataJSON, {
+      ...opts,
+      rpId: this.cfg.rpId,
+      allowedAlgorithms: allowedCose,
+    });
+    const algorithm = coseAlgToCredAlg(verified.algorithm);
+    const credential: WebAuthnCredential = {
+      credential_id: bytesToBase64Url(verified.credentialId),
+      public_key: bytesToBase64(verified.credentialPublicKey),
+      algorithm,
+      rp_id: this.cfg.rpId,
+      user_handle: opts.userHandle,
+      aaguid: verified.aaguid ? bytesToHex(verified.aaguid) : undefined,
+      attestation_format: verified.format,
+    };
+    const identity = webauthnToActorIdentity(credential, {
+      rpId: this.cfg.rpId,
+      allowedAlgorithms: this.cfg.allowedAlgorithms,
+    });
+    return { identity, credential, verified };
+  }
+}
+
+function mapAlgorithmsToCose(
+  allowed: WebAuthnAlgorithm[] | undefined,
+): CoseAlgorithm[] | undefined {
+  if (!allowed) return undefined;
+  const out: CoseAlgorithm[] = [];
+  for (const a of allowed) {
+    if (a === "ed25519") out.push("EdDSA");
+    if (a === "p256") out.push("ES256");
+    if (a === "rsa-pss-sha256") out.push("RS256");
+  }
+  return out;
+}
+
+function coseAlgToCredAlg(alg: CoseAlgorithm): WebAuthnAlgorithm {
+  switch (alg) {
+    case "EdDSA":
+      return "ed25519";
+    case "ES256":
+      return "p256";
+    case "RS256":
+      return "rsa-pss-sha256";
+  }
+}
+
+function bytesToBase64Url(b: Uint8Array): string {
+  return Buffer.from(b)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function bytesToBase64(b: Uint8Array): string {
+  return Buffer.from(b).toString("base64");
+}
+
+function bytesToHex(b: Uint8Array): string {
+  let out = "";
+  for (const byte of b) out += byte.toString(16).padStart(2, "0");
+  return out;
 }

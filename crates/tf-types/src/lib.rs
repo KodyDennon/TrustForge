@@ -13,6 +13,7 @@ pub mod bridge_oauth;
 pub mod bridge_spiffe;
 pub mod bridge_tls;
 pub mod bridges;
+pub mod webauthn_attestation;
 pub mod canonical;
 pub mod capability;
 pub mod chain;
