@@ -1,0 +1,3 @@
+errors:
+  - path: "/transparency_anchor/kind"
+    keyword: enum

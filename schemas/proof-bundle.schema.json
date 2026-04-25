@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/proof-bundle.schema.json",
+  "title": "TrustForge Proof Bundle",
+  "description": "JSON representation of a .tfproof bundle (TF-0005). Binary framing is defined in Phase 2.",
+  "type": "object",
+  "required": ["bundle_version", "events", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "bundle_version": {
+      "description": "Version of the proof-bundle schema itself.",
+      "enum": ["1"]
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Proof events carried by this bundle, in their hash-chain order.",
+      "items": { "$ref": "proof-event.schema.json" }
+    },
+    "merkle_root": {
+      "description": "Merkle root over the events, if computed.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "chain_hash": {
+      "description": "Hash over the event sequence as a linear hash-chain.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "transparency_anchor": {
+      "type": "object",
+      "description": "Anchoring metadata if this bundle was submitted to a transparency log.",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["rfc6962", "sigstore", "custom"],
+          "description": "Anchor backend kind."
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Endpoint of the anchor backend."
+        },
+        "inclusion_proof": {
+          "type": "object",
+          "description": "Opaque inclusion-proof blob returned by the backend.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this bundle (not verified in the foundation phase).",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  }
+}

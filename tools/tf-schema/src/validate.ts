@@ -40,9 +40,10 @@ export async function runValidateAll(opts?: { schema?: string }): Promise<Valida
     if (name === "_common") continue;
     const validDir = join(FIXTURES_DIR, name, "valid");
     const invalidDir = join(FIXTURES_DIR, name, "invalid");
+    const compositeDir = join(FIXTURES_DIR, name, "composite");
     const validator = getValidator(ajv, name);
 
-    for (const f of walkFiles(validDir, YAML_JSON)) {
+    for (const f of [...walkFiles(validDir, YAML_JSON), ...walkFiles(compositeDir, YAML_JSON)]) {
       const doc = loadFile(f);
       if (validator(doc)) {
         validPassed++;

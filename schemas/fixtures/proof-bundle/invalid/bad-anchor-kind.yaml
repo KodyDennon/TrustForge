@@ -1,0 +1,18 @@
+bundle_version: "1"
+events:
+  - event_version: "1"
+    id: evt-1
+    type: session.established
+    actor_id: "tf:actor:agent:example.com/x"
+    timestamp: "2026-04-24T12:00:00Z"
+    level: L1
+    signature:
+      algorithm: ed25519
+      signer: "tf:actor:agent:example.com/x"
+      signature: "AAAA"
+transparency_anchor:
+  kind: gnap
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "AAAA"

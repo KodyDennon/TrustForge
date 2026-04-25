@@ -1,0 +1,6 @@
+bundle_version: "1"
+events: []
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "AAAA"

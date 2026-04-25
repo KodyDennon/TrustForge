@@ -1,0 +1,32 @@
+bundle_version: "1"
+events:
+  - event_version: "1"
+    id: evt-1
+    type: session.established
+    actor_id: "tf:actor:agent:example.com/code-helper"
+    timestamp: "2026-04-24T12:00:00Z"
+    level: L1
+    signature:
+      algorithm: ed25519
+      signer: "tf:actor:agent:example.com/code-helper"
+      signature: "c2Vzc2lvbi1zaWc="
+  - event_version: "1"
+    id: evt-2
+    type: action.approved
+    actor_id: "tf:actor:agent:example.com/code-helper"
+    timestamp: "2026-04-24T12:05:00Z"
+    level: L2
+    parent_hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    signature:
+      algorithm: ed25519
+      signer: "tf:actor:agent:example.com/code-helper"
+      signature: "YXBwcm92ZWQtc2ln"
+merkle_root: "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+chain_hash: "sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+transparency_anchor:
+  kind: rfc6962
+  url: "https://ct.example.com/v1/log/a"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "YnVuZGxlLXNpZ25hdHVyZQ=="

@@ -1,0 +1,43 @@
+# Cross-schema composite example: capability-token whose `chain` delegates
+# `file.write` — a name that appears in schemas/fixtures/actions/valid/basic.yaml.
+# JSON Schema cannot assert the cross-file correspondence, but the validator
+# must still accept this as a well-formed capability-token document.
+token_version: "1"
+id: tok-composite-1
+issuer: "tf:actor:organization:example.com"
+subject: "tf:actor:agent:example.com/code-helper"
+capability:
+  name: file.write
+  risk: R2
+  proof_required: L2
+  approval: conditional
+  delegable: true
+  revocable: true
+chain:
+  - delegator: "tf:actor:human:example.com/kody"
+    delegate: "tf:actor:organization:example.com"
+    capabilities:
+      - name: file.write
+        risk: R2
+    expires_at: "2026-07-01T00:00:00Z"
+    redelegation:
+      allowed: true
+      max_depth: 2
+  - delegator: "tf:actor:organization:example.com"
+    delegate: "tf:actor:agent:example.com/code-helper"
+    capabilities:
+      - name: file.write
+        risk: R2
+    constraints:
+      - kind: target
+        patterns: ["src/**"]
+    expires_at: "2026-05-24T00:00:00Z"
+    redelegation:
+      allowed: false
+      max_depth: 0
+issued_at: "2026-04-24T12:00:00Z"
+expires_at: "2026-05-24T00:00:00Z"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "Y29tcG9zaXRlLXNpZw=="
