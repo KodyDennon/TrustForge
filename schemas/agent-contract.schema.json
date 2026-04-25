@@ -86,12 +86,20 @@
       "properties": {
         "mcp_tools": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object",
+            "description": "Opaque MCP tool descriptor; shape defined by the MCP bridge spec.",
+            "additionalProperties": true
+          },
           "description": "MCP tool integration descriptors."
         },
         "proofrpc_services": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object",
+            "description": "Opaque ProofRPC service descriptor; shape defined by TF-0007.",
+            "additionalProperties": true
+          },
           "description": "ProofRPC service integration descriptors."
         },
         "test_commands": {
