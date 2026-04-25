@@ -1,0 +1,13 @@
+identity_version: "1"
+actor_id: "tf:actor:robot:example.com/x"
+actor_type: robot
+public_keys:
+  - key_id: k
+    algorithm: ed25519
+    public_key: "AAAA"
+    purpose: signing
+trust_levels: [T0]
+authority_roots:
+  - kind: owner
+    id: example
+valid_from: "2026-04-01T00:00:00Z"

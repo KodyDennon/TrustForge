@@ -1,0 +1,8 @@
+identity_version: "1"
+actor_id: "tf:actor:agent:example.com/x"
+actor_type: agent
+trust_levels: [T3]
+authority_roots:
+  - kind: owner
+    id: example
+valid_from: "2026-04-01T00:00:00Z"

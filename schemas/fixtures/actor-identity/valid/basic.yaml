@@ -1,0 +1,26 @@
+identity_version: "1"
+actor_id: "tf:actor:agent:example.com/code-helper"
+actor_type: agent
+public_keys:
+  - key_id: agent-signing-2026-04
+    algorithm: ed25519
+    public_key: "MCowBQYDK2VwAyEA8wHnF5mJ+0c5KqyGxWXcJ+7p3qGzlHcQmL5ZhqQvJ1o="
+    purpose: signing
+    valid_from: "2026-04-01T00:00:00Z"
+    valid_until: "2027-04-01T00:00:00Z"
+  - key_id: agent-kem-2026-04
+    algorithm: ml-kem-768
+    public_key: "MIICCjANBgkqhkiG9w0BAQsFAAOCAfcAMIIB8gKCAf..."
+    purpose: kem
+trust_levels: [T3, T4]
+authority_roots:
+  - kind: organization
+    id: "tf:actor:organization:example.com"
+  - kind: hardware-key
+    id: yubikey-fleet-a
+valid_from: "2026-04-01T00:00:00Z"
+valid_until: "2027-04-01T00:00:00Z"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "dGVzdC1zaWduYXR1cmUtYnl0ZXM="

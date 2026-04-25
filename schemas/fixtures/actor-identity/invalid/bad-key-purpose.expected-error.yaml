@@ -1,0 +1,3 @@
+errors:
+  - path: "/public_keys/0/purpose"
+    keyword: enum

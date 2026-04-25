@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/actor-identity.schema.json",
+  "title": "TrustForge Actor Identity Document",
+  "description": "Identity document that binds an actor URI to public keys, authority roots, and validity (TF-0002).",
+  "type": "object",
+  "required": ["identity_version", "actor_id", "actor_type", "public_keys", "trust_levels", "authority_roots", "valid_from"],
+  "additionalProperties": false,
+  "properties": {
+    "identity_version": {
+      "description": "Version of the actor-identity document schema itself.",
+      "enum": ["1"]
+    },
+    "actor_id": {
+      "description": "Canonical actor URI this document identifies.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "actor_type": {
+      "description": "Actor-type discriminator; must match the type embedded in actor_id.",
+      "$ref": "_common.schema.json#/$defs/ActorType"
+    },
+    "instance_id": {
+      "description": "Optional instance URI when this document binds to a specific instance.",
+      "$ref": "_common.schema.json#/$defs/InstanceId"
+    },
+    "public_keys": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Public keys associated with this actor.",
+      "items": { "$ref": "#/$defs/PublicKey" }
+    },
+    "trust_levels": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "_common.schema.json#/$defs/TrustLevel" },
+      "description": "Trust levels currently attributed to this actor."
+    },
+    "authority_roots": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Authority roots that vouch for this identity.",
+      "items": { "$ref": "#/$defs/AuthorityRoot" }
+    },
+    "attestations": {
+      "type": "array",
+      "description": "Opaque third-party attestations strengthening this identity.",
+      "items": {
+        "type": "object",
+        "description": "Single opaque attestation blob.",
+        "additionalProperties": true
+      }
+    },
+    "valid_from": {
+      "description": "When this identity document becomes valid.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "valid_until": {
+      "description": "When this identity document stops being valid.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "revocation_ref": {
+      "description": "Hash reference to a revocation object, if this identity is revoked.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this document (not verified in the foundation phase).",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  },
+  "$defs": {
+    "PublicKey": {
+      "type": "object",
+      "description": "A public-key entry for this actor.",
+      "required": ["key_id", "algorithm", "public_key", "purpose"],
+      "additionalProperties": false,
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this key within the actor."
+        },
+        "algorithm": {
+          "description": "Algorithm this key is used with.",
+          "$ref": "_common.schema.json#/$defs/AlgorithmId"
+        },
+        "public_key": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 1,
+          "description": "Base64-encoded public-key bytes."
+        },
+        "purpose": {
+          "enum": ["signing", "kem", "attestation"],
+          "description": "What this key is used for."
+        },
+        "valid_from": {
+          "description": "When this key becomes valid.",
+          "$ref": "_common.schema.json#/$defs/Timestamp"
+        },
+        "valid_until": {
+          "description": "When this key stops being valid.",
+          "$ref": "_common.schema.json#/$defs/Timestamp"
+        }
+      }
+    },
+    "AuthorityRoot": {
+      "type": "object",
+      "description": "Root of authority that vouches for this identity.",
+      "required": ["kind", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "owner",
+            "organization",
+            "manufacturer",
+            "hardware-key",
+            "federation",
+            "compliance-issuer",
+            "local-emergency",
+            "transparency-anchor",
+            "trust-domain"
+          ],
+          "description": "Category of authority root."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier for this authority root."
+        }
+      }
+    }
+  }
+}
