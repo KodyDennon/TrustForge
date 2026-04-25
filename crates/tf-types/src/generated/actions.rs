@@ -34,9 +34,16 @@ pub struct ActionDef {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Actions {
     /// Version of the actions-library manifest schema itself.
-    pub actions_library_version: String,
+    pub actions_library_version: Actions_ActionsLibraryVersion,
     /// Library identifier, e.g. tf-actions-std.
     pub library_id: String,
     /// Action definitions this library publishes.
     pub actions: Vec<ActionDef>,
+}
+
+/// Version of the actions-library manifest schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Actions_ActionsLibraryVersion {
+    #[serde(rename = "1")]
+    V1,
 }

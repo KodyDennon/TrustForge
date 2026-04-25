@@ -29,7 +29,7 @@ pub struct Action {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentContract {
     /// Version of the agent-contract schema itself.
-    pub contract_version: String,
+    pub contract_version: AgentContract_ContractVersion,
     /// TrustForge spec revision this contract conforms to.
     pub spec_version: String,
     /// Project identifier used in logs and contract references.
@@ -39,7 +39,7 @@ pub struct AgentContract {
     pub trust_domain: Option<TrustDomain>,
     /// Pointers to companion manifests.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub references: Option<serde_json::Value>,
+    pub references: Option<AgentContract_References>,
     /// Named glob lists, reusable in action rules.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub target_sets: Option<std::collections::BTreeMap<String, Vec<String>>>,
@@ -51,10 +51,53 @@ pub struct AgentContract {
     pub forbidden: Option<Vec<Forbidden>>,
     /// Connections to MCP tools, ProofRPC services, and test commands.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub integrations: Option<serde_json::Value>,
+    pub integrations: Option<AgentContract_Integrations>,
     /// Profiles this project claims.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub conformance: Option<serde_json::Value>,
+    pub conformance: Option<AgentContract_Conformance>,
+}
+
+/// Profiles this project claims.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentContract_Conformance {
+    /// Claimed conformance profiles.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub profiles: Option<Vec<String>>,
+}
+
+/// Version of the agent-contract schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AgentContract_ContractVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
+/// Connections to MCP tools, ProofRPC services, and test commands.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentContract_Integrations {
+    /// MCP tool integration descriptors.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub mcp_tools: Option<Vec<serde_json::Value>>,
+    /// ProofRPC service integration descriptors.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub proofrpc_services: Option<Vec<serde_json::Value>>,
+    /// Shell commands that exercise the project's tests.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub test_commands: Option<Vec<String>>,
+}
+
+/// Pointers to companion manifests.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentContract_References {
+    /// Path to the project's threat-model manifest.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub threat_model: Option<String>,
+    /// Policy backend in use by this project.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub policy_engine: Option<serde_json::Value>,
+    /// Standard actions library identifier, e.g. tf-actions-std@1.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub actions_library: Option<String>,
 }
 
 /// Forbidden action entry.

@@ -26,9 +26,13 @@ export interface ActionDef {
 /** Catalog of action definitions referenced by TF-0006 agent contracts. */
 export interface Actions {
   /** Version of the actions-library manifest schema itself. */
-  actions_library_version: "1";
+  actions_library_version: Actions_ActionsLibraryVersion;
   /** Library identifier, e.g. tf-actions-std. */
   library_id: string;
   /** Action definitions this library publishes. */
   actions: ActionDef[];
 }
+
+/** Version of the actions-library manifest schema itself. */
+export type Actions_ActionsLibraryVersion =
+  | "1";

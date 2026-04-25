@@ -13,17 +13,32 @@ pub struct EmitRule {
     /// Proof level at which this event must be emitted.
     pub level: ProofLevel,
     /// Where the event is anchored.
-    pub anchor: String,
+    pub anchor: EmitRule_Anchor,
     /// Retention period in days (0 = indefinite).
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub retention_days: Option<i64>,
+}
+
+/// Where the event is anchored.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EmitRule_Anchor {
+    #[serde(rename = "local")]
+    Local,
+    #[serde(rename = "org")]
+    Org,
+    #[serde(rename = "federated")]
+    Federated,
+    #[serde(rename = "transparency")]
+    Transparency,
+    #[serde(rename = "none")]
+    None,
 }
 
 /// Declarative profile describing which proof events to emit and how (TF-0005).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProofProfile {
     /// Version of the proof-profile manifest schema itself.
-    pub profile_version: String,
+    pub profile_version: ProofProfile_ProfileVersion,
     /// Trust domain this profile applies to.
     pub trust_domain: TrustDomain,
     /// Default proof level when an event has none explicitly set.
@@ -36,11 +51,29 @@ pub struct ProofProfile {
     pub redaction_rules: Option<Vec<RedactionRule>>,
 }
 
+/// Version of the proof-profile manifest schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProofProfile_ProfileVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
 /// Redaction applied to a field before anchoring.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RedactionRule {
     /// JSON Pointer into the event payload.
     pub field: String,
     /// How the field is treated.
-    pub policy: String,
+    pub policy: RedactionRule_Policy,
+}
+
+/// How the field is treated.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RedactionRule_Policy {
+    #[serde(rename = "keep")]
+    Keep,
+    #[serde(rename = "hash")]
+    Hash,
+    #[serde(rename = "drop")]
+    Drop,
 }

@@ -9,8 +9,15 @@ export interface Adversary {
   /** Who this adversary is and what they want. */
   description: string;
   /** Capabilities attributed to this adversary. */
-  capability_levels: "opportunistic" | "targeted" | "insider" | "nation-state" | "ai-assisted"[];
+  capability_levels: Adversary_CapabilityLevels_Item[];
 }
+
+export type Adversary_CapabilityLevels_Item =
+  | "opportunistic"
+  | "targeted"
+  | "insider"
+  | "nation-state"
+  | "ai-assisted";
 
 /** Asset under threat analysis. */
 export interface Asset {
@@ -31,8 +38,14 @@ export interface Mitigation {
   /** What the mitigation does. */
   description: string;
   /** Implementation status. */
-  status: "planned" | "implemented" | "not-applicable";
+  status: Mitigation_Status;
 }
+
+/** Implementation status. */
+export type Mitigation_Status =
+  | "planned"
+  | "implemented"
+  | "not-applicable";
 
 /** Risk accepted after mitigations. */
 export interface ResidualRisk {
@@ -47,7 +60,7 @@ export interface ResidualRisk {
 /** Declarative threat-model manifest referenced by TF-0006 and by agent-contract.references.threat_model. */
 export interface ThreatModel {
   /** Version of the threat-model manifest schema itself. */
-  threat_model_version: "1";
+  threat_model_version: ThreatModel_ThreatModelVersion;
   /** Project identifier this threat model applies to. */
   project: string;
   /** Assets whose protection this threat model addresses. */
@@ -61,3 +74,7 @@ export interface ThreatModel {
   /** Risks explicitly accepted after mitigations. */
   residual_risks?: ResidualRisk[];
 }
+
+/** Version of the threat-model manifest schema itself. */
+export type ThreatModel_ThreatModelVersion =
+  | "1";

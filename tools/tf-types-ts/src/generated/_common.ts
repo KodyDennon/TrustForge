@@ -109,8 +109,16 @@ export interface DelegationLink {
   constraints?: Constraint[];
   expires_at?: Timestamp;
   /** Redelegation rules for this step. */
-  redelegation?: Record<string, unknown>;
+  redelegation?: DelegationLink_Redelegation;
   proof_ref?: HashRef;
+}
+
+/** Redelegation rules for this step. */
+export interface DelegationLink_Redelegation {
+  /** If true, delegate may redelegate onward. */
+  allowed: boolean;
+  /** Maximum further delegation depth. */
+  max_depth?: number;
 }
 
 /** Enforcement levels (see DECISIONS.md). */

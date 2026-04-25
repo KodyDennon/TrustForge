@@ -5,7 +5,7 @@ import type { ActorId, Capability, Constraint, DelegationLink, HashRef, Signatur
 /** Serialized capability grant carried across actors (TF-0004). */
 export interface CapabilityToken {
   /** Version of the capability-token schema itself. */
-  token_version: "1";
+  token_version: CapabilityToken_TokenVersion;
   /** Stable token identifier, usable by revocations. */
   id: string;
   /** Actor that issued the grant. */
@@ -27,3 +27,7 @@ export interface CapabilityToken {
   /** Signature envelope over the canonical form of this token (not verified in the foundation phase). */
   signature: SignatureEnvelope;
 }
+
+/** Version of the capability-token schema itself. */
+export type CapabilityToken_TokenVersion =
+  | "1";

@@ -9,7 +9,7 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityToken {
     /// Version of the capability-token schema itself.
-    pub token_version: String,
+    pub token_version: CapabilityToken_TokenVersion,
     /// Stable token identifier, usable by revocations.
     pub id: String,
     /// Actor that issued the grant.
@@ -34,4 +34,11 @@ pub struct CapabilityToken {
     pub proof_ref: Option<HashRef>,
     /// Signature envelope over the canonical form of this token (not verified in the foundation phase).
     pub signature: SignatureEnvelope,
+}
+
+/// Version of the capability-token schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CapabilityToken_TokenVersion {
+    #[serde(rename = "1")]
+    V1,
 }

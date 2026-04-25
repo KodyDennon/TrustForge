@@ -9,7 +9,7 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProofEvent {
     /// Version of the proof-event schema itself.
-    pub event_version: String,
+    pub event_version: ProofEvent_EventVersion,
     /// Stable event identifier.
     pub id: String,
     /// Dotted event-type identifier, e.g. session.established, action.approved.
@@ -41,4 +41,11 @@ pub struct ProofEvent {
     pub context: Option<serde_json::Value>,
     /// Signature envelope over the canonical form of this event (not verified in the foundation phase).
     pub signature: SignatureEnvelope,
+}
+
+/// Version of the proof-event schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProofEvent_EventVersion {
+    #[serde(rename = "1")]
+    V1,
 }

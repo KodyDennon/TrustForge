@@ -5,7 +5,7 @@ import type { ActorId, HashRef, InstanceId, ProofLevel, SignatureEnvelope, Times
 /** Signed record of an important event (TF-0005). Hash-chain verification lives in Phase 2. */
 export interface ProofEvent {
   /** Version of the proof-event schema itself. */
-  event_version: "1";
+  event_version: ProofEvent_EventVersion;
   /** Stable event identifier. */
   id: string;
   /** Dotted event-type identifier, e.g. session.established, action.approved. */
@@ -31,3 +31,7 @@ export interface ProofEvent {
   /** Signature envelope over the canonical form of this event (not verified in the foundation phase). */
   signature: SignatureEnvelope;
 }
+
+/** Version of the proof-event schema itself. */
+export type ProofEvent_EventVersion =
+  | "1";

@@ -9,13 +9,13 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Revocation {
     /// Version of the revocation schema itself.
-    pub revocation_version: String,
+    pub revocation_version: Revocation_RevocationVersion,
     /// Stable identifier for this revocation.
     pub id: String,
     /// Identifier of the object being revoked (depends on target_kind).
     pub target_id: String,
     /// Kind of object being revoked.
-    pub target_kind: String,
+    pub target_kind: Revocation_TargetKind,
     /// When the revocation becomes effective.
     pub effective_at: Timestamp,
     /// Human-readable reason for the revocation.
@@ -28,4 +28,24 @@ pub struct Revocation {
     pub issuer: ActorId,
     /// Signature envelope over the canonical form of this revocation (not verified in the foundation phase).
     pub signature: SignatureEnvelope,
+}
+
+/// Version of the revocation schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Revocation_RevocationVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
+/// Kind of object being revoked.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Revocation_TargetKind {
+    #[serde(rename = "capability")]
+    Capability,
+    #[serde(rename = "actor")]
+    Actor,
+    #[serde(rename = "delegation")]
+    Delegation,
+    #[serde(rename = "instance")]
+    Instance,
 }

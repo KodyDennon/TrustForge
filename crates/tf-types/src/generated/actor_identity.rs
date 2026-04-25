@@ -9,7 +9,7 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ActorIdentity {
     /// Version of the actor-identity document schema itself.
-    pub identity_version: String,
+    pub identity_version: ActorIdentity_IdentityVersion,
     /// Canonical actor URI this document identifies.
     pub actor_id: ActorId,
     /// Actor-type discriminator; must match the type embedded in actor_id.
@@ -39,13 +39,43 @@ pub struct ActorIdentity {
     pub signature: Option<SignatureEnvelope>,
 }
 
+/// Version of the actor-identity document schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActorIdentity_IdentityVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
 /// Root of authority that vouches for this identity.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorityRoot {
     /// Category of authority root.
-    pub kind: String,
+    pub kind: AuthorityRoot_Kind,
     /// Identifier for this authority root.
     pub id: String,
+}
+
+/// Category of authority root.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AuthorityRoot_Kind {
+    #[serde(rename = "owner")]
+    Owner,
+    #[serde(rename = "organization")]
+    Organization,
+    #[serde(rename = "manufacturer")]
+    Manufacturer,
+    #[serde(rename = "hardware-key")]
+    HardwareKey,
+    #[serde(rename = "federation")]
+    Federation,
+    #[serde(rename = "compliance-issuer")]
+    ComplianceIssuer,
+    #[serde(rename = "local-emergency")]
+    LocalEmergency,
+    #[serde(rename = "transparency-anchor")]
+    TransparencyAnchor,
+    #[serde(rename = "trust-domain")]
+    TrustDomain,
 }
 
 /// A public-key entry for this actor.
@@ -58,11 +88,22 @@ pub struct PublicKey {
     /// Base64-encoded public-key bytes.
     pub public_key: String,
     /// What this key is used for.
-    pub purpose: String,
+    pub purpose: PublicKey_Purpose,
     /// When this key becomes valid.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub valid_from: Option<Timestamp>,
     /// When this key stops being valid.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub valid_until: Option<Timestamp>,
+}
+
+/// What this key is used for.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PublicKey_Purpose {
+    #[serde(rename = "signing")]
+    Signing,
+    #[serde(rename = "kem")]
+    Kem,
+    #[serde(rename = "attestation")]
+    Attestation,
 }

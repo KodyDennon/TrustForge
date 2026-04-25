@@ -5,13 +5,13 @@ import type { ActorId, SignatureEnvelope, Timestamp } from "./_common.js";
 /** Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004). */
 export interface Revocation {
   /** Version of the revocation schema itself. */
-  revocation_version: "1";
+  revocation_version: Revocation_RevocationVersion;
   /** Stable identifier for this revocation. */
   id: string;
   /** Identifier of the object being revoked (depends on target_kind). */
   target_id: string;
   /** Kind of object being revoked. */
-  target_kind: "capability" | "actor" | "delegation" | "instance";
+  target_kind: Revocation_TargetKind;
   /** When the revocation becomes effective. */
   effective_at: Timestamp;
   /** Human-readable reason for the revocation. */
@@ -23,3 +23,14 @@ export interface Revocation {
   /** Signature envelope over the canonical form of this revocation (not verified in the foundation phase). */
   signature: SignatureEnvelope;
 }
+
+/** Version of the revocation schema itself. */
+export type Revocation_RevocationVersion =
+  | "1";
+
+/** Kind of object being revoked. */
+export type Revocation_TargetKind =
+  | "capability"
+  | "actor"
+  | "delegation"
+  | "instance";

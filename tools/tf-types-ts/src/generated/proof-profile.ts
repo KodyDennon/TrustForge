@@ -10,15 +10,23 @@ export interface EmitRule {
   /** Proof level at which this event must be emitted. */
   level: ProofLevel;
   /** Where the event is anchored. */
-  anchor: "local" | "org" | "federated" | "transparency" | "none";
+  anchor: EmitRule_Anchor;
   /** Retention period in days (0 = indefinite). */
   retention_days?: number;
 }
 
+/** Where the event is anchored. */
+export type EmitRule_Anchor =
+  | "local"
+  | "org"
+  | "federated"
+  | "transparency"
+  | "none";
+
 /** Declarative profile describing which proof events to emit and how (TF-0005). */
 export interface ProofProfile {
   /** Version of the proof-profile manifest schema itself. */
-  profile_version: "1";
+  profile_version: ProofProfile_ProfileVersion;
   /** Trust domain this profile applies to. */
   trust_domain: TrustDomain;
   /** Default proof level when an event has none explicitly set. */
@@ -29,10 +37,20 @@ export interface ProofProfile {
   redaction_rules?: RedactionRule[];
 }
 
+/** Version of the proof-profile manifest schema itself. */
+export type ProofProfile_ProfileVersion =
+  | "1";
+
 /** Redaction applied to a field before anchoring. */
 export interface RedactionRule {
   /** JSON Pointer into the event payload. */
   field: string;
   /** How the field is treated. */
-  policy: "keep" | "hash" | "drop";
+  policy: RedactionRule_Policy;
 }
+
+/** How the field is treated. */
+export type RedactionRule_Policy =
+  | "keep"
+  | "hash"
+  | "drop";

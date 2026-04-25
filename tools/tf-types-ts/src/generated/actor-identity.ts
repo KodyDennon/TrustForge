@@ -5,7 +5,7 @@ import type { ActorId, ActorType, AlgorithmId, HashRef, InstanceId, SignatureEnv
 /** Identity document that binds an actor URI to public keys, authority roots, and validity (TF-0002). */
 export interface ActorIdentity {
   /** Version of the actor-identity document schema itself. */
-  identity_version: "1";
+  identity_version: ActorIdentity_IdentityVersion;
   /** Canonical actor URI this document identifies. */
   actor_id: ActorId;
   /** Actor-type discriminator; must match the type embedded in actor_id. */
@@ -30,13 +30,29 @@ export interface ActorIdentity {
   signature?: SignatureEnvelope;
 }
 
+/** Version of the actor-identity document schema itself. */
+export type ActorIdentity_IdentityVersion =
+  | "1";
+
 /** Root of authority that vouches for this identity. */
 export interface AuthorityRoot {
   /** Category of authority root. */
-  kind: "owner" | "organization" | "manufacturer" | "hardware-key" | "federation" | "compliance-issuer" | "local-emergency" | "transparency-anchor" | "trust-domain";
+  kind: AuthorityRoot_Kind;
   /** Identifier for this authority root. */
   id: string;
 }
+
+/** Category of authority root. */
+export type AuthorityRoot_Kind =
+  | "owner"
+  | "organization"
+  | "manufacturer"
+  | "hardware-key"
+  | "federation"
+  | "compliance-issuer"
+  | "local-emergency"
+  | "transparency-anchor"
+  | "trust-domain";
 
 /** A public-key entry for this actor. */
 export interface PublicKey {
@@ -47,9 +63,15 @@ export interface PublicKey {
   /** Base64-encoded public-key bytes. */
   public_key: string;
   /** What this key is used for. */
-  purpose: "signing" | "kem" | "attestation";
+  purpose: PublicKey_Purpose;
   /** When this key becomes valid. */
   valid_from?: Timestamp;
   /** When this key stops being valid. */
   valid_until?: Timestamp;
 }
+
+/** What this key is used for. */
+export type PublicKey_Purpose =
+  | "signing"
+  | "kem"
+  | "attestation";

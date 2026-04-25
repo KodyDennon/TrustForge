@@ -13,7 +13,21 @@ pub struct Adversary {
     /// Who this adversary is and what they want.
     pub description: String,
     /// Capabilities attributed to this adversary.
-    pub capability_levels: Vec<String>,
+    pub capability_levels: Vec<Adversary_CapabilityLevels_Item>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Adversary_CapabilityLevels_Item {
+    #[serde(rename = "opportunistic")]
+    Opportunistic,
+    #[serde(rename = "targeted")]
+    Targeted,
+    #[serde(rename = "insider")]
+    Insider,
+    #[serde(rename = "nation-state")]
+    NationState,
+    #[serde(rename = "ai-assisted")]
+    AiAssisted,
 }
 
 /// Asset under threat analysis.
@@ -37,7 +51,18 @@ pub struct Mitigation {
     /// What the mitigation does.
     pub description: String,
     /// Implementation status.
-    pub status: String,
+    pub status: Mitigation_Status,
+}
+
+/// Implementation status.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Mitigation_Status {
+    #[serde(rename = "planned")]
+    Planned,
+    #[serde(rename = "implemented")]
+    Implemented,
+    #[serde(rename = "not-applicable")]
+    NotApplicable,
 }
 
 /// Risk accepted after mitigations.
@@ -55,7 +80,7 @@ pub struct ResidualRisk {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ThreatModel {
     /// Version of the threat-model manifest schema itself.
-    pub threat_model_version: String,
+    pub threat_model_version: ThreatModel_ThreatModelVersion,
     /// Project identifier this threat model applies to.
     pub project: String,
     /// Assets whose protection this threat model addresses.
@@ -69,4 +94,11 @@ pub struct ThreatModel {
     /// Risks explicitly accepted after mitigations.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub residual_risks: Option<Vec<ResidualRisk>>,
+}
+
+/// Version of the threat-model manifest schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ThreatModel_ThreatModelVersion {
+    #[serde(rename = "1")]
+    V1,
 }

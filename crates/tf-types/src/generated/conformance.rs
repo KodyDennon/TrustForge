@@ -9,7 +9,7 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Conformance {
     /// Version of the conformance manifest schema itself.
-    pub conformance_version: String,
+    pub conformance_version: Conformance_ConformanceVersion,
     /// Profile identifiers this deployment claims to conform to.
     pub claimed_profiles: Vec<String>,
     /// Optional profile-specific extensions this deployment supports.
@@ -24,4 +24,11 @@ pub struct Conformance {
     /// Free-form notes qualifying the claim.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub notes: Option<String>,
+}
+
+/// Version of the conformance manifest schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Conformance_ConformanceVersion {
+    #[serde(rename = "1")]
+    V1,
 }

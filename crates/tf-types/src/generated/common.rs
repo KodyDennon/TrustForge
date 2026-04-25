@@ -146,9 +146,19 @@ pub struct DelegationLink {
     pub expires_at: Option<Timestamp>,
     /// Redelegation rules for this step.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub redelegation: Option<serde_json::Value>,
+    pub redelegation: Option<DelegationLink_Redelegation>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub proof_ref: Option<HashRef>,
+}
+
+/// Redelegation rules for this step.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DelegationLink_Redelegation {
+    /// If true, delegate may redelegate onward.
+    pub allowed: bool,
+    /// Maximum further delegation depth.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_depth: Option<i64>,
 }
 
 /// Enforcement levels (see DECISIONS.md).

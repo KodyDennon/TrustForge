@@ -9,7 +9,7 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProofBundle {
     /// Version of the proof-bundle schema itself.
-    pub bundle_version: String,
+    pub bundle_version: ProofBundle_BundleVersion,
     /// Proof events carried by this bundle, in their hash-chain order.
     pub events: Vec<ProofEvent>,
     /// Merkle root over the events, if computed.
@@ -20,7 +20,27 @@ pub struct ProofBundle {
     pub chain_hash: Option<HashRef>,
     /// Anchoring metadata if this bundle was submitted to a transparency log.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub transparency_anchor: Option<serde_json::Value>,
+    pub transparency_anchor: Option<ProofBundle_TransparencyAnchor>,
     /// Signature envelope over the canonical form of this bundle (not verified in the foundation phase).
     pub signature: SignatureEnvelope,
+}
+
+/// Version of the proof-bundle schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProofBundle_BundleVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
+/// Anchoring metadata if this bundle was submitted to a transparency log.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProofBundle_TransparencyAnchor {
+    /// Anchor backend kind.
+    pub kind: String,
+    /// Endpoint of the anchor backend.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub url: Option<String>,
+    /// Opaque inclusion-proof blob returned by the backend.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub inclusion_proof: Option<serde_json::Value>,
 }

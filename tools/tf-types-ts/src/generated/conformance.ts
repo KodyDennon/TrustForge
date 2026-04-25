@@ -5,7 +5,7 @@ import type { ActorId, Timestamp } from "./_common.js";
 /** Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010). Distinct from the repo's conformance/ test-harness directory. */
 export interface Conformance {
   /** Version of the conformance manifest schema itself. */
-  conformance_version: "1";
+  conformance_version: Conformance_ConformanceVersion;
   /** Profile identifiers this deployment claims to conform to. */
   claimed_profiles: string[];
   /** Optional profile-specific extensions this deployment supports. */
@@ -17,3 +17,7 @@ export interface Conformance {
   /** Free-form notes qualifying the claim. */
   notes?: string;
 }
+
+/** Version of the conformance manifest schema itself. */
+export type Conformance_ConformanceVersion =
+  | "1";

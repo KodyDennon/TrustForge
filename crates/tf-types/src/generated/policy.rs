@@ -9,12 +9,12 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Policy {
     /// Version of the policy manifest schema itself.
-    pub policy_version: String,
+    pub policy_version: Policy_PolicyVersion,
     /// Trust domain this policy applies within.
     pub trust_domain: TrustDomain,
     /// Policy engine that interprets this manifest.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub engine_hint: Option<String>,
+    pub engine_hint: Option<Policy_EngineHint>,
     /// Policy rules evaluated top-to-bottom until a match yields a decision.
     pub rules: Vec<Rule>,
     /// Explicit denials that override grants regardless of rule order.
@@ -22,10 +22,48 @@ pub struct Policy {
     pub negative_capabilities: Option<Vec<NegativeCapability>>,
     /// Default quorum settings when a rule requests quorum approval without specifying one.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub quorum_defaults: Option<serde_json::Value>,
+    pub quorum_defaults: Option<Policy_QuorumDefaults>,
     /// When live sessions must re-check this policy during execution.
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub continuous_reevaluation: Option<serde_json::Value>,
+    pub continuous_reevaluation: Option<Policy_ContinuousReevaluation>,
+}
+
+/// When live sessions must re-check this policy during execution.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Policy_ContinuousReevaluation {
+    /// Events that force a re-evaluation of in-flight authorizations.
+    pub triggers: Vec<String>,
+}
+
+/// Policy engine that interprets this manifest.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Policy_EngineHint {
+    #[serde(rename = "cedar")]
+    Cedar,
+    #[serde(rename = "rego")]
+    Rego,
+    #[serde(rename = "custom")]
+    Custom,
+    #[serde(rename = "native")]
+    Native,
+    #[serde(rename = "none")]
+    None,
+}
+
+/// Version of the policy manifest schema itself.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Policy_PolicyVersion {
+    #[serde(rename = "1")]
+    V1,
+}
+
+/// Default quorum settings when a rule requests quorum approval without specifying one.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Policy_QuorumDefaults {
+    /// Minimum number of approvers required.
+    pub min_approvers: i64,
+    /// Eligible approvers.
+    pub of: Vec<ActorId>,
 }
 
 /// A single policy rule.
@@ -34,7 +72,7 @@ pub struct Rule {
     /// Rule identifier, used in proofs and audit logs.
     pub id: String,
     /// Decision produced when the rule matches.
-    pub effect: String,
+    pub effect: Rule_Effect,
     /// Exact action this rule applies to.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub action: Option<ActionName>,
@@ -62,4 +100,17 @@ pub struct Rule {
     /// Human-readable reason emitted in the decision.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub reason: Option<String>,
+}
+
+/// Decision produced when the rule matches.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Rule_Effect {
+    #[serde(rename = "allow")]
+    Allow,
+    #[serde(rename = "deny")]
+    Deny,
+    #[serde(rename = "escalate")]
+    Escalate,
+    #[serde(rename = "log_only")]
+    LogOnly,
 }

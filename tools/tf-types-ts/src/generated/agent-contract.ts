@@ -2,6 +2,7 @@
 
 import type { ActionName, ApprovalRequirement, ProofLevel, RiskClass, TrustDomain } from "./_common.js";
 import type { Actions } from "./actions.js";
+import type { Policy } from "./policy.js";
 
 /** Single action declaration. */
 export interface Action {
@@ -20,7 +21,7 @@ export interface Action {
 /** Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents. See TF-0006. */
 export interface AgentContract {
   /** Version of the agent-contract schema itself. */
-  contract_version: "1";
+  contract_version: AgentContract_ContractVersion;
   /** TrustForge spec revision this contract conforms to. */
   spec_version: string;
   /** Project identifier used in logs and contract references. */
@@ -28,7 +29,7 @@ export interface AgentContract {
   /** The TrustForge trust domain this project belongs to. */
   trust_domain?: TrustDomain;
   /** Pointers to companion manifests. */
-  references?: Record<string, unknown>;
+  references?: AgentContract_References;
   /** Named glob lists, reusable in action rules. */
   target_sets?: Record<string, string[]>;
   /** Declared actions this project allows agents to perform. */
@@ -36,9 +37,39 @@ export interface AgentContract {
   /** Actions this project forbids outright. */
   forbidden?: Forbidden[];
   /** Connections to MCP tools, ProofRPC services, and test commands. */
-  integrations?: Record<string, unknown>;
+  integrations?: AgentContract_Integrations;
   /** Profiles this project claims. */
-  conformance?: Record<string, unknown>;
+  conformance?: AgentContract_Conformance;
+}
+
+/** Profiles this project claims. */
+export interface AgentContract_Conformance {
+  /** Claimed conformance profiles. */
+  profiles?: string[];
+}
+
+/** Version of the agent-contract schema itself. */
+export type AgentContract_ContractVersion =
+  | "1";
+
+/** Connections to MCP tools, ProofRPC services, and test commands. */
+export interface AgentContract_Integrations {
+  /** MCP tool integration descriptors. */
+  mcp_tools?: Record<string, unknown>[];
+  /** ProofRPC service integration descriptors. */
+  proofrpc_services?: Record<string, unknown>[];
+  /** Shell commands that exercise the project's tests. */
+  test_commands?: string[];
+}
+
+/** Pointers to companion manifests. */
+export interface AgentContract_References {
+  /** Path to the project's threat-model manifest. */
+  threat_model?: string;
+  /** Policy backend in use by this project. */
+  policy_engine?: Record<string, unknown>;
+  /** Standard actions library identifier, e.g. tf-actions-std@1. */
+  actions_library?: string;
 }
 
 /** Forbidden action entry. */

@@ -6,7 +6,7 @@ import type { ProofEvent } from "./proof-event.js";
 /** JSON representation of a .tfproof bundle (TF-0005). Binary framing is defined in Phase 2. */
 export interface ProofBundle {
   /** Version of the proof-bundle schema itself. */
-  bundle_version: "1";
+  bundle_version: ProofBundle_BundleVersion;
   /** Proof events carried by this bundle, in their hash-chain order. */
   events: ProofEvent[];
   /** Merkle root over the events, if computed. */
@@ -14,7 +14,21 @@ export interface ProofBundle {
   /** Hash over the event sequence as a linear hash-chain. */
   chain_hash?: HashRef;
   /** Anchoring metadata if this bundle was submitted to a transparency log. */
-  transparency_anchor?: Record<string, unknown>;
+  transparency_anchor?: ProofBundle_TransparencyAnchor;
   /** Signature envelope over the canonical form of this bundle (not verified in the foundation phase). */
   signature: SignatureEnvelope;
+}
+
+/** Version of the proof-bundle schema itself. */
+export type ProofBundle_BundleVersion =
+  | "1";
+
+/** Anchoring metadata if this bundle was submitted to a transparency log. */
+export interface ProofBundle_TransparencyAnchor {
+  /** Anchor backend kind. */
+  kind: "rfc6962" | "sigstore" | "custom";
+  /** Endpoint of the anchor backend. */
+  url?: string;
+  /** Opaque inclusion-proof blob returned by the backend. */
+  inclusion_proof?: Record<string, unknown>;
 }
