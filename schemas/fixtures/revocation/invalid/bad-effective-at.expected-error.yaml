@@ -1,0 +1,3 @@
+errors:
+  - path: "/effective_at"
+    keyword: pattern

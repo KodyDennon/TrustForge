@@ -1,0 +1,9 @@
+revocation_version: "1"
+id: rev-1
+target_id: tok-1
+effective_at: "2026-04-24T15:00:00Z"
+issuer: "tf:actor:organization:example.com"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "AAAA"

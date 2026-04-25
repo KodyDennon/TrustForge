@@ -1,0 +1,12 @@
+revocation_version: "1"
+id: rev-2026-04-24-001
+target_id: tok-2026-04-24-001
+target_kind: capability
+effective_at: "2026-04-24T15:00:00Z"
+reason: "Token exfiltrated to untrusted channel; rotate and reissue."
+reinstatement_possible: false
+issuer: "tf:actor:organization:example.com"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:organization:example.com"
+  signature: "cmV2b2NhdGlvbi1zaWduYXR1cmU="

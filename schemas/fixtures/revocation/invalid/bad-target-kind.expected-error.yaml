@@ -1,0 +1,3 @@
+errors:
+  - path: "/target_kind"
+    keyword: enum

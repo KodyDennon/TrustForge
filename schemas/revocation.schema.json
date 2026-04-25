@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/revocation.schema.json",
+  "title": "TrustForge Revocation Object",
+  "description": "Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004).",
+  "type": "object",
+  "required": ["revocation_version", "id", "target_id", "target_kind", "effective_at", "issuer", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "revocation_version": {
+      "description": "Version of the revocation schema itself.",
+      "enum": ["1"]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this revocation."
+    },
+    "target_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the object being revoked (depends on target_kind)."
+    },
+    "target_kind": {
+      "enum": ["capability", "actor", "delegation", "instance"],
+      "description": "Kind of object being revoked."
+    },
+    "effective_at": {
+      "description": "When the revocation becomes effective.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable reason for the revocation."
+    },
+    "reinstatement_possible": {
+      "type": "boolean",
+      "description": "Whether a future identity or grant could reuse this target_id."
+    },
+    "issuer": {
+      "description": "Actor issuing this revocation.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this revocation (not verified in the foundation phase).",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  }
+}
