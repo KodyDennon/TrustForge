@@ -1,0 +1,23 @@
+@comment SPDX-License-Identifier: Apache-2.0 OR MIT
+@comment OPNsense plugin pkg-plist for TrustForge
+@comment
+@comment OPNsense plugins are FreeBSD packages with a fixed layout:
+@comment   /usr/local/etc/inc/plugins.inc.d/<plugin>.inc
+@comment   /usr/local/opnsense/mvc/app/{controllers,views,models}/OPNsense/<Plugin>/...
+@comment Files outside this layout are normal FreeBSD package paths.
+
+usr/local/bin/tf-daemon
+usr/local/etc/rc.d/trustforge
+usr/local/etc/trustforge/config.yaml.sample
+
+%%PLUGIN_INC%%plugins.inc.d/trustforge.inc
+
+%%MVC%%controllers/OPNsense/Trustforge/IndexController.php
+%%MVC%%controllers/OPNsense/Trustforge/Api/SettingsController.php
+%%MVC%%models/OPNsense/Trustforge/Trustforge.php
+%%MVC%%models/OPNsense/Trustforge/Trustforge.xml
+%%MVC%%views/OPNsense/Trustforge/index.volt
+
+@dir(root,wheel,755) /var/run/trustforge
+@dir(root,wheel,750) /var/log/trustforge
+@dir(root,wheel,755) /usr/local/etc/trustforge

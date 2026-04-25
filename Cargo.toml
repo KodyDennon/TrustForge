@@ -1,6 +1,29 @@
 [workspace]
 resolver = "2"
-members = ["crates/tf-types", "crates/tf-code-helper-example"]
+members = [
+    "crates/tf-types",
+    "crates/tf-code-helper-example",
+    "crates/tf-core-no-std",
+    "crates/tf-embedded-hal",
+    "crates/tf-cedar",
+    "crates/tf-rego",
+    "crates/tf-proxy",
+    "crates/tf-core-wasm",
+    "crates/tf-store-sqlite",
+    "crates/tf-store-postgres",
+    "crates/tf-store-mysql",
+    "crates/tf-revoke-redis",
+    "crates/adapters/tf-decide-client",
+    "crates/adapters/axum",
+    "crates/adapters/tonic",
+    "crates/adapters/actix-web",
+    "crates/adapters/rocket",
+    "crates/adapters/warp",
+    "crates/adapters/poem",
+    "crates/adapters/salvo",
+    "crates/adapters/hyper",
+    "tools/native/prometheus-exporter",
+]
 
 [workspace.package]
 edition = "2021"

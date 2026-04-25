@@ -1,0 +1,37 @@
+# TrustForge.bundle - sample authorizationdb registrations
+#
+# Status: Draft (Phase 0). Experimental — not production-ready.
+#
+# After installing the bundle to /Library/Security/SecurityAgentPlugins/, you
+# must register it as a mechanism on one or more rights using the
+# `security authorizationdb` tool. Each line below is independent.
+#
+# IMPORTANT: editing system rights is destructive. Take a backup with
+#   sudo security authorizationdb read system.privilege.taskport \
+#       > /tmp/system.privilege.taskport.before.plist
+# before each `write`, and confirm you can revert with
+#   sudo security authorizationdb write system.privilege.taskport \
+#       < /tmp/system.privilege.taskport.before.plist
+# *before* you accept any change.
+
+# --- Gate task_for_pid / debugging on a TrustForge decision ---
+sudo security authorizationdb write system.privilege.taskport \
+    allow,com.trustforge.AuthPlugin:gate
+
+# --- Gate sudo invocations from Terminal.app etc. ---
+# (this is the right consulted by /etc/authorization for "sudo" GUI prompts;
+# CLI sudo continues to use PAM — see ../PAM)
+sudo security authorizationdb write system.privilege.admin \
+    allow,com.trustforge.AuthPlugin:gate
+
+# --- Gate Time Machine / system preferences panes ---
+sudo security authorizationdb write system.preferences \
+    allow,com.trustforge.AuthPlugin:gate
+
+# To remove the gate and return to the macOS default:
+#   sudo security authorizationdb remove system.privilege.taskport
+#   sudo security authorizationdb remove system.privilege.admin
+#   sudo security authorizationdb remove system.preferences
+#
+# To inspect a current rule:
+#   sudo security authorizationdb read system.privilege.taskport

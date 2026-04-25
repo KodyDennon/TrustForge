@@ -1,0 +1,23 @@
+[package]
+name = "tf-actix-web"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "TrustForge actix-web middleware that consults tf-daemon /v1/decide."
+
+[dependencies]
+tf-decide-client = { path = "../tf-decide-client" }
+actix-web = { version = "4", default-features = false, features = ["macros"] }
+actix-service = "2"
+futures-util = "0.3"
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+actix-web = { version = "4", default-features = false, features = ["macros"] }
+actix-rt = "2"

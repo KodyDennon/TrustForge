@@ -1,0 +1,51 @@
+# AppArmor profile for the TrustForge daemon (tf-daemon).
+# Status: Draft. Not production-ready. See ../README.md for install steps.
+# Reference: https://gitlab.com/apparmor/apparmor/-/wikis/QuickProfileLanguage
+
+#include <tunables/global>
+
+/usr/bin/tf-daemon {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/openssl>
+
+  # --- Configuration and read-only data ---
+  /etc/trustforge/** r,
+  /usr/share/trustforge/** r,
+
+  # --- Vault, ledger, and runtime state ---
+  /var/lib/trustforge/ rw,
+  /var/lib/trustforge/** rwk,
+
+  # --- Unix decision socket (consulted by clients/plugins) ---
+  /run/trustforge/ rw,
+  /run/trustforge/decide.sock rw,
+
+  # --- Own binary and standard runtime ---
+  /usr/bin/tf-daemon mr,
+  /proc/sys/net/core/somaxconn r,
+
+  # --- Networking: TCP loopback only.
+  # We intentionally do NOT grant `network inet` (raw/dgram); only inet stream.
+  network inet stream,
+  network inet6 stream,
+  network unix stream,
+
+  # --- Signal to children (plugin sandbox processes run as tf-daemon) ---
+  signal (send) peer=tf-daemon,
+  signal (receive) peer=tf-daemon,
+
+  # --- Hard denials (overrides, never granted) ---
+  deny /proc/sys/kernel/** w,
+  deny /dev/kmem rwklx,
+  deny /dev/mem  rwklx,
+  deny /dev/port rwklx,
+
+  # --- Capability denials ---
+  deny capability sys_module,
+  deny capability sys_rawio,
+
+  # Silence noisy probes that we explicitly do not allow.
+  deny /proc/*/maps r,
+  deny @{HOME}/.ssh/** rwx,
+}

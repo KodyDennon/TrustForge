@@ -19,3 +19,128 @@ node_modules/
 
 # Claude Code agent local state
 .claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+pip-log.txt
+pip-delete-this-directory.txt
+*.pyc
+.pdm-python
+.pdm.toml
+__pypackages__/
+
+# Go
+vendor/
+*.test
+*.out
+go.work.sum
+
+# JVM / Maven / Gradle
+*.class
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+.mvn/
+mvnw
+mvnw.cmd
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Ruby / PHP
+.bundle/
+*.gem
+Gemfile.lock
+vendor/composer/
+composer.lock
+composer.phar
+
+# Elixir / Erlang
+_build/
+deps/
+*.beam
+*.ez
+.elixir_ls/
+
+# Crystal / Zig / Swift / Haskell / OCaml / Nim / Dart
+.crystal/
+shard.lock
+zig-out/
+zig-cache/
+.build/
+Package.resolved
+.stack-work/
+dist-newstyle/
+_opam/
+_esy/
+nimcache/
+.dart_tool/
+.packages
+pubspec.lock
+
+# Lua / Perl
+.luarocks/
+luarocks/
+
+# Embedded / firmware build outputs
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.d
+
+# WASM build artefacts
+pkg/
+*.wasm
+
+# Logs
+*.log
+logs/
+
+# Temp + OS
+*.bak
+*.tmp
+*.temp
+Thumbs.db
+ehthumbs.db
+Desktop.ini

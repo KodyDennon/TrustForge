@@ -1,0 +1,9 @@
+config daemon main
+	option enabled '1'
+	option listen '127.0.0.1:8642'
+	option socket '/var/run/trustforge/decide.sock'
+	option profile 'tf-home-compatible'
+
+config bridge oauth
+	option issuer_match 'https://accounts.google.com'
+	option trust_level 'T2'

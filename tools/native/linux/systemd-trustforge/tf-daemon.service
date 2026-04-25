@@ -1,0 +1,60 @@
+[Unit]
+Description=TrustForge Daemon (tf-daemon)
+Documentation=https://trustforge.dev
+After=network-online.target
+Wants=network-online.target
+Requires=tf-daemon.socket
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/tf-daemon --config /etc/trustforge/config.yaml
+User=trustforge
+Group=trustforge
+Restart=on-failure
+RestartSec=2s
+
+# Watchdog: tf-daemon must sd_notify("WATCHDOG=1") at least every 30s.
+WatchdogSec=30s
+
+# Managed directories (created/owned automatically by systemd):
+#   /var/lib/trustforge   (state, key material at rest, proof archive)
+#   /etc/trustforge       (config: config.yaml, policy.yaml, agent-contract.yaml)
+#   /run/trustforge       (runtime sockets: decide.sock, control.sock)
+#   /var/log/trustforge   (logs supplementing the journal)
+StateDirectory=trustforge
+StateDirectoryMode=0750
+ConfigurationDirectory=trustforge
+ConfigurationDirectoryMode=0750
+RuntimeDirectory=trustforge
+RuntimeDirectoryMode=0750
+LogsDirectory=trustforge
+LogsDirectoryMode=0750
+
+# --- Sandboxing ---------------------------------------------------------
+# TrustForge brokers authority for other actors; the daemon itself must
+# run with the smallest possible kernel surface. These hardening directives
+# are aligned with the TF-0001 "least-authority by construction" principle.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictRealtime=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Journal tagging — proof events are emitted with SYSLOG_IDENTIFIER=tf-proof
+# so they can be filtered without scraping prose log lines.
+SyslogIdentifier=tf-daemon
+
+[Install]
+WantedBy=multi-user.target

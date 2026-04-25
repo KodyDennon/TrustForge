@@ -1,0 +1,3 @@
+# AppArmor profile for tf-daemon
+
+This profile (`usr.bin.tf-daemon`) confines the TrustForge daemon when it runs from `/usr/bin/tf-daemon`. To install on a Debian/Ubuntu host: copy the file to `/etc/apparmor.d/usr.bin.tf-daemon`, run `sudo apparmor_parser -r -W /etc/apparmor.d/usr.bin.tf-daemon` to load it in enforce mode (use `-C` instead of `-W` for complain mode while debugging), then restart the daemon (`sudo systemctl restart tf-daemon`) and verify with `sudo aa-status | grep tf-daemon`. Profile is **Draft / experimental** per `SECURITY.md`; tune paths and abstractions for your distribution before deploying.

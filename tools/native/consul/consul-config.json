@@ -1,0 +1,37 @@
+{
+  "_comment": "Sample Consul agent config snippet that points the TrustForge intentions backend at the local tf-daemon. Drop this into /etc/consul.d/ and reload Consul.",
+  "datacenter": "dc1",
+  "data_dir": "/opt/consul",
+  "connect": {
+    "enabled": true,
+    "ca_provider": "consul"
+  },
+  "ports": {
+    "http": 8500,
+    "grpc": 8502
+  },
+  "http_config": {
+    "response_headers": {
+      "X-Frame-Options": "DENY"
+    }
+  },
+  "service": {
+    "name": "tf-consul-intentions-backend",
+    "port": 9000,
+    "address": "127.0.0.1",
+    "tags": ["trustforge", "intentions-backend"],
+    "checks": [
+      {
+        "name": "tf-intentions-backend health",
+        "http": "http://127.0.0.1:9000/healthz",
+        "interval": "10s",
+        "timeout": "2s"
+      }
+    ]
+  },
+  "_trustforge": {
+    "_comment": "Operators wire their Connect proxies (Envoy sidecars) to call this URL when checking intentions, instead of relying solely on Consul's built-in intention store.",
+    "intentions_check_url": "http://127.0.0.1:9000/v1/intention/check",
+    "tf_daemon_url": "http://127.0.0.1:8765"
+  }
+}

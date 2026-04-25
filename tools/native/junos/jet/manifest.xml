@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TrustForge Junos JET app manifest.
+
+  Loaded by Junos onbox into the JET sandbox. The package itself is a
+  signed tarball produced by `jet package`; this manifest declares the
+  app, the resources it asks for, and the Junos events it subscribes
+  to.
+
+  Reference: Juniper "Junos Extension Toolkit Developer Guide".
+  Phase 0 / pre-release.
+-->
+<package xmlns="http://xml.juniper.net/junos/22.4R0/junos">
+  <name>trustforge</name>
+  <vendor>TrustForge contributors</vendor>
+  <version>0.1.0</version>
+  <release>1</release>
+  <description>TrustForge tf-daemon JET app for Junos</description>
+  <license>Apache-2.0</license>
+
+  <!-- The on-commit op-script that calls TF /v1/decide. -->
+  <component>
+    <name>op-script</name>
+    <type>op-script</type>
+    <path>/var/db/scripts/op/trustforge.slax</path>
+    <interpreter>slax</interpreter>
+  </component>
+
+  <!-- The native daemon. Junos installs it under /opt/trustforge. -->
+  <component>
+    <name>tf-daemon</name>
+    <type>native</type>
+    <path>/opt/trustforge/bin/tf-daemon</path>
+    <user>tf-daemon</user>
+    <group>tf-daemon</group>
+    <restart-on-failure>true</restart-on-failure>
+  </component>
+
+  <!-- JET resource grant. -->
+  <resources>
+    <cpu-shares>200</cpu-shares>
+    <memory-limit-mb>256</memory-limit-mb>
+    <disk-limit-mb>64</disk-limit-mb>
+    <network>
+      <listen>
+        <port>8642</port>
+        <protocol>tcp</protocol>
+        <bind>127.0.0.1</bind>
+      </listen>
+    </network>
+  </resources>
+
+  <!-- Subscribe to commit events so the SLAX script runs on every
+       candidate commit. -->
+  <events>
+    <event>
+      <name>jnpr.commit.candidate</name>
+      <handler>op-script</handler>
+    </event>
+  </events>
+
+  <!-- JET capability requests; deliberately minimal. -->
+  <capabilities>
+    <capability>config-read</capability>
+    <capability>net-bind</capability>
+  </capabilities>
+</package>

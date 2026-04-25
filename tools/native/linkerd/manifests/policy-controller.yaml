@@ -1,0 +1,116 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Linkerd policy integration that delegates authorization decisions to the
+# TrustForge daemon (`tf-daemon`).
+#
+# Linkerd uses two CRDs to express request authorization:
+#
+#   - server.policy.linkerd.io/v1beta1.Server               (selects pods/ports)
+#   - server.policy.linkerd.io/v1beta1.ServerAuthorization  (allow rules)
+#
+# This manifest declares a *meta* ServerAuthorization that defers to a
+# tf-linkerd-controller-managed audit/decision loop. The controller watches
+# Server CRs cluster-wide and synthesises matching ServerAuthorization
+# objects whose `client.unauthenticated`/`client.meshTLS` fields reflect
+# the latest verdict from `POST /v1/decide` on tf-daemon.
+#
+# Status: Draft (Phase 0). Not production-ready.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trustforge-system
+  labels:
+    linkerd.io/inject: enabled
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tf-linkerd-controller
+  namespace: trustforge-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tf-linkerd-controller
+rules:
+  - apiGroups: ["policy.linkerd.io"]
+    resources: ["servers", "serverauthorizations"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["policy.linkerd.io"]
+    resources: ["servers/status", "serverauthorizations/status"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tf-linkerd-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tf-linkerd-controller
+subjects:
+  - kind: ServiceAccount
+    name: tf-linkerd-controller
+    namespace: trustforge-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tf-linkerd-controller
+  namespace: trustforge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tf-linkerd-controller
+  template:
+    metadata:
+      labels:
+        app: tf-linkerd-controller
+    spec:
+      serviceAccountName: tf-linkerd-controller
+      containers:
+        - name: controller
+          image: ghcr.io/nugit-tech/tf-linkerd-controller:dev
+          args:
+            - "--daemon-url=http://tf-daemon.trustforge-system.svc:8765"
+            - "--interval=30s"
+          env:
+            - name: TF_DAEMON_URL
+              value: http://tf-daemon.trustforge-system.svc:8765
+---
+# Example Server + ServerAuthorization wired through TrustForge.
+# Operators apply analogous Server CRs of their own; the controller will
+# generate the matching ServerAuthorization and keep its `.status` synced
+# with the latest TrustForge decision.
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: example-app
+  namespace: default
+  annotations:
+    trustforge.io/managed: "true"
+spec:
+  podSelector:
+    matchLabels:
+      app: example-app
+  port: http
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: example-app-trustforge
+  namespace: default
+  annotations:
+    trustforge.io/managed: "true"
+spec:
+  server:
+    name: example-app
+  # The controller flips this between `unauthenticated: true` and a strict
+  # meshTLS identities[] list based on `POST /v1/decide`. The starting
+  # state is fail-closed (no clients allowed).
+  client:
+    meshTLS:
+      identities: []

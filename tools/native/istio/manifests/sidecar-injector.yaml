@@ -1,0 +1,80 @@
+# MutatingWebhookConfiguration that injects a tf-daemon sidecar into pods
+# labelled `trustforge.dev/inject=true`. The sidecar speaks /v1/decide on
+# 127.0.0.1:8765 (the address the Envoy wasm filter and admission webhook
+# expect by default).
+#
+# A companion mutating webhook server (not provided in this draft) returns
+# the JSONPatch that adds the sidecar container; the URL/service entry
+# below assumes the standard `tf-sidecar-injector` Deployment + Service
+# in the `trustforge` namespace.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: tf-sidecar-injector
+  labels:
+    app.kubernetes.io/part-of: trustforge
+  annotations:
+    cert-manager.io/inject-ca-from: "trustforge/tf-sidecar-injector"
+webhooks:
+  - name: sidecar-inject.trustforge.dev
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Ignore   # never block pod creation if injector is down
+    timeoutSeconds: 5
+    reinvocationPolicy: Never
+    clientConfig:
+      service:
+        name: tf-sidecar-injector
+        namespace: trustforge
+        path: /mutate
+        port: 443
+      caBundle: ""   # populated by cert-manager
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE"]
+        scope: "Namespaced"
+    objectSelector:
+      matchLabels:
+        trustforge.dev/inject: "true"
+    namespaceSelector:
+      matchLabels:
+        trustforge.dev/enabled: "true"
+
+---
+# Reference Pod showing what the injector adds. Use it as a sanity check
+# after install:
+#   kubectl run -n my-app --rm -it --image=alpine \
+#       --overrides='{"metadata":{"labels":{"trustforge.dev/inject":"true"}}}' \
+#       tf-test -- sh
+# Then `kubectl describe pod` should show two containers.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tf-sidecar-example
+  namespace: default
+  labels:
+    trustforge.dev/inject: "true"
+spec:
+  containers:
+    - name: app
+      image: nginx:1.25-alpine
+      ports:
+        - containerPort: 80
+    # The injector adds this container automatically.
+    - name: tf-daemon
+      image: ghcr.io/nugit-tech/tf-daemon:0.1.0
+      args: ["--listen=127.0.0.1:8765", "--profile=enterprise"]
+      ports:
+        - containerPort: 8765
+          name: tf-decide
+      resources:
+        limits: { cpu: 200m, memory: 128Mi }
+        requests: { cpu: 50m, memory: 64Mi }
+      securityContext:
+        runAsNonRoot: true
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities: { drop: ["ALL"] }

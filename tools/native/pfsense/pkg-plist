@@ -1,0 +1,13 @@
+@comment SPDX-License-Identifier: Apache-2.0 OR MIT
+@comment pfSense pkg manifest for TrustForge
+@comment Files installed by this package:
+
+usr/local/bin/tf-daemon
+usr/local/etc/rc.d/trustforge.sh
+usr/local/etc/trustforge/config.yaml.sample
+usr/local/pkg/trustforge.xml
+usr/local/www/trustforge.php
+
+@dir(root,wheel,755) /var/run/trustforge
+@dir(root,wheel,750) /var/log/trustforge
+@dir(root,wheel,755) /usr/local/etc/trustforge

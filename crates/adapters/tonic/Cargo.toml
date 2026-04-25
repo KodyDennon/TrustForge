@@ -1,0 +1,21 @@
+[package]
+name = "tf-tonic"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "TrustForge tonic gRPC interceptor that consults tf-daemon /v1/decide."
+
+[dependencies]
+tf-decide-client = { path = "../tf-decide-client" }
+tonic = "0.12"
+tower = { version = "0.5", features = ["util"] }
+tokio = { version = "1", features = ["rt", "macros", "sync"] }
+http = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+serde_json = "1"

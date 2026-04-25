@@ -1,0 +1,18 @@
+# Synthetic failure fixture for tools/tf-conformance/tests/failure-paths.test.ts.
+#
+# RFC 8032 TEST 1 with the high byte of the signature flipped (00 -> ff).
+# A correct runSignatureVectors:
+#   1. recomputes the signature from the private key (gets the canonical
+#      one) and reports MISMATCH against the corrupted "expected" value;
+#   2. calls ed25519Verify with the public key + the corrupted signature
+#      and reports FAILURE because @noble/ed25519 rejects it.
+# Both checks must contribute failed > 0.
+
+ed25519:
+  - name: rfc8032-test1-forged
+    private_key: "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+    public_key: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    message: ""
+    # Original signature begins with e5564300...; we flip the first byte
+    # to 1a (e5 ^ ff) so the runner sees a forged value.
+    signature: "1a564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"

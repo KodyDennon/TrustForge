@@ -1,0 +1,41 @@
+# Rendered by Salt state `trustforge` on a VyOS router.
+# Source: salt/trustforge/files/config.yaml.j2
+#
+# This is the tf-daemon config consumed at startup. Changing values
+# here outside of Salt will be reverted on the next state.apply.
+
+profile: {{ profile | default('tf-home-compatible') }}
+
+listen:
+  bind: {{ listen | default('127.0.0.1:8642') }}
+  control_socket: /var/run/trustforge/decide.sock
+
+storage:
+  state_dir: /var/lib/trustforge
+  log_dir: /var/log/trustforge
+
+# Crypto-agile defaults. The protocol is required to be hybrid /
+# post-quantum ready; the first reference implementation ships with
+# classical suites and adds PQ as soon as upstream publishes them.
+crypto:
+  hybrid: false
+  classical_suite: ed25519-x25519-chacha20poly1305
+
+bridges:
+{% for bridge in bridges | default([]) %}
+  - kind: {{ bridge.kind }}
+    enabled: {{ bridge.enabled | default(true) | tojson }}
+{% if bridge.options is defined %}
+    options:
+{% for k, v in bridge.options.items() %}
+      {{ k }}: {{ v | tojson }}
+{% endfor %}
+{% endif %}
+{% else %}
+  []
+{% endfor %}
+
+# VyOS-specific firewall hook: tf-daemon writes verdicts to the named
+# pipe consumed by /config/scripts/trustforge-firewall.sh.
+hooks:
+  vyos_firewall_pipe: /var/run/trustforge/firewall.fifo

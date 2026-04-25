@@ -10,8 +10,10 @@ import { resolve } from "node:path";
 import {
   runAll,
   runAiImplementationSuite,
+  runBinaryFormatVectors,
   runBridgeVectors,
   runCompatibilityLabel,
+  runDecideProtocolVectors,
   runFuzzCorpus,
   runGuardVectors,
   runInteropVectors,
@@ -89,6 +91,16 @@ async function main(): Promise<number> {
       console.log(canonicalize(report));
       return report.failed === 0 ? 0 : 1;
     }
+    case "decide-protocol": {
+      const report = runDecideProtocolVectors(r);
+      console.log(canonicalize(report));
+      return report.failed === 0 ? 0 : 1;
+    }
+    case "binary-format": {
+      const report = runBinaryFormatVectors(r);
+      console.log(canonicalize(report));
+      return report.failed === 0 ? 0 : 1;
+    }
     case "label": {
       const profileId = arg(rest, "--profile");
       const daemonUrl = arg(rest, "--daemon");
@@ -119,7 +131,7 @@ async function main(): Promise<number> {
     }
     default: {
       console.error(
-        "usage: tf-conformance <run|schema|signature|guard|trust-overlay|bridge|interop|fuzz|profile|security|ai-impl|label> [--root <dir>] [--profile <id>] [--daemon <url>]",
+        "usage: tf-conformance <run|schema|signature|guard|trust-overlay|bridge|interop|fuzz|profile|security|ai-impl|decide-protocol|binary-format|label> [--root <dir>] [--profile <id>] [--daemon <url>]",
       );
       return 2;
     }

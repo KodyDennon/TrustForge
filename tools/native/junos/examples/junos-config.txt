@@ -1,0 +1,95 @@
+## Junos config snippet that enables the TrustForge JET app.
+##
+## Load with:
+##   user@junos> configure
+##   user@junos# load merge terminal relative
+##   <paste below, end with ^D>
+##   user@junos# commit confirmed 2
+
+system {
+    scripts {
+        op {
+            file trustforge.slax {
+                ## Run the SLAX wrapper on every commit. The JET app
+                ## manifest also subscribes to jnpr.commit.candidate;
+                ## listing the file here gives the operator an explicit
+                ## audit trail.
+                description "TrustForge commit gate";
+                checksum sha-256 0000000000000000000000000000000000000000000000000000000000000000;
+            }
+        }
+        commit {
+            file trustforge.slax;
+            ## Fail the commit if the script fails. Without this, a
+            ## TrustForge deny would be reported as a warning only.
+            allow-transients;
+        }
+    }
+
+    extensions {
+        providers {
+            trustforge {
+                ## Only the TrustForge package may install components
+                ## into /opt/trustforge.
+                license-type customer deployment-scope commercial;
+            }
+        }
+    }
+}
+
+## Activate the JET app and pin its resource limits.
+system {
+    extensions {
+        extension-service {
+            application {
+                file trustforge {
+                    daemonize;
+                    respawn-on-normal-exit;
+                    arguments "--config /opt/trustforge/etc/config.yaml";
+                }
+            }
+        }
+    }
+}
+
+## TrustForge listens on loopback only; expose nothing on data-plane
+## interfaces.
+firewall {
+    family inet {
+        filter trustforge-lo-only {
+            term keep-loopback {
+                from {
+                    destination-address {
+                        127.0.0.1/32;
+                    }
+                    destination-port 8642;
+                }
+                then accept;
+            }
+            term drop-others {
+                from {
+                    destination-port 8642;
+                }
+                then {
+                    discard;
+                    log;
+                }
+            }
+            term default {
+                then accept;
+            }
+        }
+    }
+}
+
+interfaces {
+    lo0 {
+        unit 0 {
+            family inet {
+                filter {
+                    input trustforge-lo-only;
+                }
+            }
+        }
+    }
+}

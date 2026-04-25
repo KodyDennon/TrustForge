@@ -1,0 +1,119 @@
+# Two-part manifest:
+#
+#   1. A `TrustForgePolicy` CRD scoping authority for one or more workloads.
+#   2. A derived Istio `AuthorizationPolicy` that the tf-istio-controller
+#      generates from the `TrustForgePolicy` and validates against
+#      `tf-daemon`'s /v1/policy/validate.
+#
+# Apply this manifest in a namespace labelled `trustforge.dev/enabled=true`.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: trustforgepolicies.security.trustforge.dev
+spec:
+  group: security.trustforge.dev
+  scope: Namespaced
+  names:
+    plural: trustforgepolicies
+    singular: trustforgepolicy
+    kind: TrustForgePolicy
+    shortNames:
+      - tfpolicy
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [selector, decide]
+              properties:
+                selector:
+                  type: object
+                  description: "Standard k8s label selector for target workloads."
+                  properties:
+                    matchLabels:
+                      type: object
+                      additionalProperties: { type: string }
+                decide:
+                  type: object
+                  description: "tf-daemon decide hints (action prefix, capability scope)."
+                  properties:
+                    actionPrefix: { type: string }
+                    requireCapabilities:
+                      type: array
+                      items: { type: string }
+                    denyCapabilities:
+                      type: array
+                      items: { type: string }
+            status:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type: { type: string }
+                      status: { type: string }
+                      reason: { type: string }
+                      message: { type: string }
+                      lastTransitionTime: { type: string }
+      subresources:
+        status: {}
+
+---
+# Example TrustForgePolicy — wires the trust-forge sidecar onto pods
+# carrying `trustforge.dev/inject=true`.
+apiVersion: security.trustforge.dev/v1alpha1
+kind: TrustForgePolicy
+metadata:
+  name: web-allow
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: web
+  decide:
+    actionPrefix: "http."
+    requireCapabilities:
+      - "http.read"
+    denyCapabilities:
+      - "fs.write.system"
+
+---
+# Example Istio AuthorizationPolicy that the tf-istio-controller will
+# generate from the TrustForgePolicy above. The controller writes
+# `status.conditions[type=TrustForgeValidated]` on this object after
+# tf-daemon's /v1/policy/validate returns.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: web-allow-trustforge
+  namespace: default
+  labels:
+    trustforge.dev/source: web-allow
+    app.kubernetes.io/managed-by: tf-istio-controller
+spec:
+  selector:
+    matchLabels:
+      app: web
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/default/sa/*"
+      to:
+        - operation:
+            methods: ["GET", "HEAD", "POST"]
+      # ext-authz to TrustForge sidecar — denies if /v1/decide returns
+      # anything other than allow.
+      when:
+        - key: "request.headers[x-trustforge-decision]"
+          values: ["allow"]

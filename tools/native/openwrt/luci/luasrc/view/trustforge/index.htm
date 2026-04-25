@@ -1,0 +1,125 @@
+<%#
+ SPDX-License-Identifier: Apache-2.0 OR MIT
+
+ LuCI view for the TrustForge dashboard. Pure server-rendered shell
+ plus a small XHR loop that polls the controller endpoints. No external
+ JS dependencies so it works on a stock OpenWRT LuCI install.
+-%>
+<%+header%>
+
+<h2 name="content"><%:TrustForge%></h2>
+<div class="cbi-map-descr">
+	<%:Status of the local tf-daemon, decision histogram, and recent proof events.%>
+</div>
+
+<fieldset class="cbi-section">
+	<legend><%:Daemon status%></legend>
+	<div id="tf-status">
+		<em><%:loading…%></em>
+	</div>
+</fieldset>
+
+<fieldset class="cbi-section">
+	<legend><%:Decision histogram (last 5 min)%></legend>
+	<table class="table" id="tf-decisions">
+		<tr class="tr table-titles">
+			<th class="th"><%:Allow%></th>
+			<th class="th"><%:Deny%></th>
+			<th class="th"><%:Ask%></th>
+		</tr>
+		<tr class="tr"><td colspan="3"><em><%:loading…%></em></td></tr>
+	</table>
+</fieldset>
+
+<fieldset class="cbi-section">
+	<legend><%:Recent proof events%></legend>
+	<table class="table" id="tf-proofs">
+		<tr class="tr table-titles">
+			<th class="th"><%:Time%></th>
+			<th class="th"><%:Actor%></th>
+			<th class="th"><%:Action%></th>
+			<th class="th"><%:Decision%></th>
+			<th class="th"><%:Proof level%></th>
+		</tr>
+		<tr class="tr"><td colspan="5"><em><%:loading…%></em></td></tr>
+	</table>
+</fieldset>
+
+<script type="text/javascript">//<![CDATA[
+(function () {
+	function xhr(url, cb) {
+		var x = new XMLHttpRequest();
+		x.open("GET", url, true);
+		x.onreadystatechange = function () {
+			if (x.readyState === 4) {
+				try { cb(JSON.parse(x.responseText)); }
+				catch (e) { cb(null); }
+			}
+		};
+		x.send();
+	}
+
+	function esc(s) {
+		return String(s == null ? "" : s)
+			.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	}
+
+	function renderStatus(d) {
+		var el = document.getElementById("tf-status");
+		if (!d) { el.innerHTML = "<span style='color:#a00'>unreachable</span>"; return; }
+		el.innerHTML =
+			"<strong>" + (d.running ? "running" : "stopped") + "</strong>" +
+			(d.pid ? " (pid " + d.pid + ")" : "") +
+			(d.profile ? " — profile <code>" + esc(d.profile) + "</code>" : "") +
+			(d.actor   ? " — actor <code>" + esc(d.actor)  + "</code>" : "");
+	}
+
+	function renderDecisions(d) {
+		var t = document.getElementById("tf-decisions");
+		t.innerHTML =
+			"<tr class='tr table-titles'>" +
+				"<th class='th'>Allow</th><th class='th'>Deny</th><th class='th'>Ask</th>" +
+			"</tr>" +
+			"<tr class='tr'>" +
+				"<td class='td'>" + (d && d.allow || 0) + "</td>" +
+				"<td class='td'>" + (d && d.deny  || 0) + "</td>" +
+				"<td class='td'>" + (d && d.ask   || 0) + "</td>" +
+			"</tr>";
+	}
+
+	function renderProofs(d) {
+		var t = document.getElementById("tf-proofs");
+		var head = "<tr class='tr table-titles'>" +
+			"<th class='th'>Time</th><th class='th'>Actor</th>" +
+			"<th class='th'>Action</th><th class='th'>Decision</th>" +
+			"<th class='th'>Proof level</th></tr>";
+		var rows = "";
+		var events = (d && d.events) || [];
+		if (events.length === 0) {
+			rows = "<tr class='tr'><td class='td' colspan='5'><em>no events yet</em></td></tr>";
+		} else {
+			events.forEach(function (e) {
+				rows += "<tr class='tr'>" +
+					"<td class='td'>" + esc(e.ts)         + "</td>" +
+					"<td class='td'><code>" + esc(e.actor)+ "</code></td>" +
+					"<td class='td'>" + esc(e.action)     + "</td>" +
+					"<td class='td'>" + esc(e.decision)   + "</td>" +
+					"<td class='td'>" + esc(e.proof_level)+ "</td>" +
+				"</tr>";
+			});
+		}
+		t.innerHTML = head + rows;
+	}
+
+	function tick() {
+		xhr('<%=luci.dispatcher.build_url("admin/services/trustforge/status")%>',    renderStatus);
+		xhr('<%=luci.dispatcher.build_url("admin/services/trustforge/decisions")%>', renderDecisions);
+		xhr('<%=luci.dispatcher.build_url("admin/services/trustforge/proofs")%>',    renderProofs);
+	}
+
+	tick();
+	setInterval(tick, 5000);
+})();
+//]]></script>
+
+<%+footer%>

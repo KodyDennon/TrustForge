@@ -111,9 +111,83 @@ pub struct QuorumDefaults {
     pub of: Vec<String>,
 }
 
+/// A pluggable policy engine. Implemented by the native engine, the
+/// `tf-cedar` crate, and the `tf-rego` crate. Decoupling via a trait
+/// (rather than a feature-gated dependency on the adapter crates) lets
+/// `tf-types` stay lightweight while still letting the daemon dispatch
+/// the right engine for a given `engine_hint`.
+pub trait PolicyEngineImpl {
+    fn evaluate(&self, query: &PolicyQuery) -> PolicyDecision;
+}
+
 pub struct NativePolicyEngine {
     policy: PolicyManifest,
     manifest_hash: String,
+}
+
+impl PolicyEngineImpl for NativePolicyEngine {
+    fn evaluate(&self, query: &PolicyQuery) -> PolicyDecision {
+        NativePolicyEngine::evaluate(self, query)
+    }
+}
+
+/// Dispatch a `PolicyQuery` to the appropriate backend based on
+/// `engine_hint`. Pass an explicit backend for the hints that need one;
+/// `native` falls back to the supplied native engine. When the requested
+/// hint has no backend wired in (e.g. caller didn't construct a Cedar
+/// engine yet) the dispatcher returns a safe deny.
+///
+/// The signature uses `dyn` trait objects so callers don't have to leak
+/// the cedar / rego crate types through `tf-types`. `tf-cedar` and
+/// `tf-rego` each export an adapter that implements `PolicyEngineImpl`.
+pub fn evaluate_with_engine(
+    hint: Option<&str>,
+    native: &NativePolicyEngine,
+    cedar: Option<&dyn PolicyEngineImpl>,
+    rego: Option<&dyn PolicyEngineImpl>,
+    query: &PolicyQuery,
+) -> PolicyDecision {
+    match hint {
+        Some("cedar") => match cedar {
+            Some(eng) => eng.evaluate(query),
+            None => unavailable_decision("cedar", query, native.policy.trust_domain.as_str()),
+        },
+        Some("rego") => match rego {
+            Some(eng) => eng.evaluate(query),
+            None => unavailable_decision("rego", query, native.policy.trust_domain.as_str()),
+        },
+        _ => native.evaluate(query),
+    }
+}
+
+fn unavailable_decision(engine: &str, query: &PolicyQuery, trust_domain: &str) -> PolicyDecision {
+    PolicyDecision {
+        decision_version: "1".into(),
+        policy_engine: engine.into(),
+        engine_version: Some(format!("{engine}-stub")),
+        trust_domain: trust_domain.into(),
+        subject: query.subject.clone(),
+        instance: query.instance.clone(),
+        action: query.action.clone(),
+        target: query.target.clone(),
+        decision: "deny".into(),
+        rule_id: None,
+        reason: Some(format!(
+            "{engine} engine not configured for this dispatcher (no adapter supplied)"
+        )),
+        approval: None,
+        proof_required: None,
+        constraints_applied: None,
+        negative_capabilities_consulted: None,
+        enforcement_level: query.enforcement_level.clone(),
+        evaluated_at: now_iso8601(),
+        policy_manifest_hash: None,
+        context: if query.context.is_empty() {
+            None
+        } else {
+            Some(query.context.clone())
+        },
+    }
 }
 
 impl NativePolicyEngine {

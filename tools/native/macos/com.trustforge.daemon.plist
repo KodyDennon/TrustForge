@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.trustforge.daemon</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/tf-daemon</string>
+        <string>--config</string>
+        <string>/Library/Application Support/TrustForge/config.yaml</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/TrustForge/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/TrustForge/stderr.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Library/Application Support/TrustForge</string>
+
+    <key>UserName</key>
+    <string>_trustforge</string>
+
+    <key>GroupName</key>
+    <string>_trustforge</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>Sockets</key>
+    <dict>
+        <key>DecisionSocket</key>
+        <dict>
+            <key>SockPathName</key>
+            <string>/var/run/trustforge/decide.sock</string>
+            <key>SockPathMode</key>
+            <integer>432</integer>
+            <key>SockType</key>
+            <string>stream</string>
+            <key>SockFamily</key>
+            <string>Unix</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

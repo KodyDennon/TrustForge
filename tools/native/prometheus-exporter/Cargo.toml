@@ -1,0 +1,31 @@
+[package]
+name = "tf-prom-exporter"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "Prometheus exporter that scrapes a tf-daemon admin endpoint and re-emits TrustForge metrics in the Prometheus text-exposition format."
+
+[dependencies]
+prometheus = "0.13"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[lib]
+name = "tf_prom_exporter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tf-prom-exporter"
+path = "src/main.rs"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "test-util"] }

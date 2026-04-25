@@ -1,0 +1,33 @@
+# Build-time menu options exposed under
+#   Utilities  --->  trustforge  --->  Configuration
+#
+# These flip features on at install time. Runtime behaviour is still
+# controlled by /etc/config/trustforge (UCI).
+
+menu "Configuration"
+	depends on PACKAGE_trustforge
+
+config TRUSTFORGE_ENABLE_TLS
+	bool "Enable TLS bridge (--enable-tls)"
+	default y
+	help
+	  Enables the TLS / X.509 compatibility bridge so that existing
+	  HTTPS clients can authenticate against the TrustForge actor
+	  registry. Disable on RAM-constrained targets.
+
+config TRUSTFORGE_ENABLE_RELAY
+	bool "Enable relay role (--enable-relay)"
+	default n
+	help
+	  Allow this device to forward TrustForge packets on behalf of
+	  other actors. Forwarding authority is separate from action
+	  authority; the relay cannot decrypt or execute payloads.
+
+config TRUSTFORGE_ENABLE_DASHBOARD
+	bool "Enable embedded dashboard (--enable-dashboard)"
+	default n
+	help
+	  Serves the lightweight tf-dashboard on the loopback interface.
+	  When the LuCI app is installed, prefer that and leave this off.
+
+endmenu

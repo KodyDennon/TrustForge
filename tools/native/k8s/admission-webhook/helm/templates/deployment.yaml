@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tf-admission-webhook.fullname" . }}
+  labels: {{- include "tf-admission-webhook.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "tf-admission-webhook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "tf-admission-webhook.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: webhook
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--addr=:{{ .Values.service.targetPort }}"
+            - "--tls-cert=/etc/tf-webhook/tls/tls.crt"
+            - "--tls-key=/etc/tf-webhook/tls/tls.key"
+            - "--daemon-url={{ .Values.daemon.url }}"
+          ports:
+            - name: webhook
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.targetPort }}
+              scheme: HTTPS
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.targetPort }}
+              scheme: HTTPS
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/tf-webhook/tls
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ include "tf-admission-webhook.fullname" . }}-tls
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}

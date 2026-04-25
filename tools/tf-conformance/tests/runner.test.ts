@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import {
   runAiImplementationSuite,
   runAll,
+  runBinaryFormatVectors,
   runBridgeVectors,
   runCompatibilityLabel,
+  runDecideProtocolVectors,
   runFuzzCorpus,
   runGuardVectors,
   runInteropVectors,
@@ -105,9 +107,27 @@ describe("tf-conformance — individual runners", () => {
       "profile",
       "security",
       "ai-implementation",
+      "decide-protocol",
+      "binary-format",
       "label",
     ]) {
       expect(categories.has(c)).toBe(true);
     }
+  });
+});
+
+describe("tf-conformance — decide-protocol parity", () => {
+  test("decide-protocol vectors all canonicalize identically", async () => {
+    const r = runDecideProtocolVectors(ROOT);
+    expect(r.failed).toBe(0);
+    expect(r.passed).toBe(24);
+  });
+});
+
+describe("tf-conformance — binary-format parity", () => {
+  test("binary-format vectors round-trip identically", async () => {
+    const r = runBinaryFormatVectors(ROOT);
+    expect(r.failed).toBe(0);
+    expect(r.passed).toBe(8);
   });
 });

@@ -1,0 +1,11 @@
+TrustForge is an open identity, capability, and proof protocol for
+humans, devices, agents, services, and packets. This pfSense package
+installs the reference daemon (tf-daemon), an rc.d service script, a
+web UI under Services > TrustForge, and a sample configuration.
+
+The daemon supports both live authenticated sessions and standalone
+signed/encrypted packets, and can act as a relay node in mesh / LoRa /
+air-gapped deployments. On pfSense it is most commonly enabled as the
+"tf-home-compatible" or "tf-enterprise-edge" profile.
+
+WWW: https://github.com/trustforge/trustforge

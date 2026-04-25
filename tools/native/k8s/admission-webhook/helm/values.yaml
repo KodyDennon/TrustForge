@@ -1,0 +1,65 @@
+# Default values for tf-admission-webhook.
+image:
+  repository: ghcr.io/nugit-tech/tf-admission-webhook
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 443
+  targetPort: 8443
+
+# tf-daemon HTTP base URL the webhook calls for /v1/decide.
+# In a sidecar layout this is typically http://127.0.0.1:8765.
+daemon:
+  url: "http://127.0.0.1:8765"
+
+# Cert-manager integration. If enabled, a Certificate is created and the
+# ValidatingWebhookConfiguration is annotated so cert-manager injects the
+# CA bundle automatically.
+certManager:
+  enabled: true
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+
+# ValidatingWebhookConfiguration scope.
+webhook:
+  failurePolicy: Fail   # fail-closed by default
+  sideEffects: None
+  timeoutSeconds: 5
+  # Only intercept these resources by default. Override per deployment.
+  rules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]
+      operations: ["CREATE", "UPDATE"]
+  # Only operate on namespaces with this label set to "true".
+  namespaceSelector:
+    matchLabels:
+      trustforge.dev/enabled: "true"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

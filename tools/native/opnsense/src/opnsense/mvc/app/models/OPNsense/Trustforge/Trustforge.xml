@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-License-Identifier: Apache-2.0 OR MIT
+
+    OPNsense MVC model XML for TrustForge.
+    Persists under <OPNsense><Trustforge>…</OPNsense> in config.xml.
+-->
+<model>
+    <mount>//OPNsense/Trustforge</mount>
+    <description>TrustForge plugin settings</description>
+    <version>0.1.0</version>
+    <items>
+        <general>
+            <enabled type="BooleanField">
+                <default>0</default>
+                <Required>Y</Required>
+            </enabled>
+            <profile type="OptionField">
+                <default>tf-home-compatible</default>
+                <Required>Y</Required>
+                <OptionValues>
+                    <tf-home-compatible>tf-home-compatible</tf-home-compatible>
+                    <tf-enterprise-edge>tf-enterprise-edge</tf-enterprise-edge>
+                    <tf-constrained>tf-constrained</tf-constrained>
+                    <tf-compliance-evidence>tf-compliance-evidence</tf-compliance-evidence>
+                </OptionValues>
+            </profile>
+            <listen type="HostnameField">
+                <default>127.0.0.1:8642</default>
+                <IpAllowed>Y</IpAllowed>
+                <PortAllowed>Y</PortAllowed>
+            </listen>
+            <logLevel type="OptionField">
+                <default>info</default>
+                <OptionValues>
+                    <error>error</error>
+                    <warn>warn</warn>
+                    <info>info</info>
+                    <debug>debug</debug>
+                    <trace>trace</trace>
+                </OptionValues>
+            </logLevel>
+            <relay type="BooleanField">
+                <default>0</default>
+            </relay>
+        </general>
+        <bridges>
+            <oauth>
+                <enabled type="BooleanField">
+                    <default>0</default>
+                </enabled>
+                <issuerMatch type="CSVListField">
+                    <default>https://accounts.google.com</default>
+                </issuerMatch>
+                <trustLevel type="OptionField">
+                    <default>T2</default>
+                    <OptionValues>
+                        <T0>T0</T0><T1>T1</T1><T2>T2</T2>
+                        <T3>T3</T3><T4>T4</T4><T5>T5</T5>
+                        <T6>T6</T6><T7>T7</T7>
+                    </OptionValues>
+                </trustLevel>
+            </oauth>
+            <tls>
+                <enabled type="BooleanField">
+                    <default>1</default>
+                </enabled>
+            </tls>
+        </bridges>
+    </items>
+</model>

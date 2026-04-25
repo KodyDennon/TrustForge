@@ -31,6 +31,7 @@ export * from "./core/vault.js";
 export * from "./core/approval.js";
 export * from "./core/plugin.js";
 export * from "./core/bridges.js";
+export * from "./core/bridges-registry.js";
 export * from "./core/bridge-spiffe.js";
 export * from "./core/bridge-webauthn.js";
 export * from "./core/bridge-mcp.js";

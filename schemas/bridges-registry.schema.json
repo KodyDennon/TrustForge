@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/bridges-registry.schema.json",
+  "title": "TrustForge Bridges Registry",
+  "description": "Per-deployment registry that overrides the default credential-resolver mapping. The daemon reads `.tf/bridges.yaml` once at startup, validates against this schema, and uses `resolveByIssuer` to map an incoming credential's issuer / iss claim / SPIFFE trust domain to a TrustForge bridge entry. When no entry matches, the resolver falls back to the built-in defaults declared in `tools/tf-daemon/src/credential-resolver.ts` (B2).",
+  "type": "object",
+  "required": ["registry_version", "bridges"],
+  "additionalProperties": false,
+  "properties": {
+    "registry_version": {
+      "description": "Version of the bridges-registry schema itself.",
+      "enum": ["1"]
+    },
+    "default_profile": {
+      "type": "string",
+      "pattern": "^tf-[a-z][a-z0-9-]*-compatible$",
+      "description": "Optional conformance profile name applied when an entry omits its own. Purely informational at this layer; the FeatureGate is the authoritative gate."
+    },
+    "bridges": {
+      "type": "array",
+      "description": "Per-issuer bridge entries. The first entry whose `issuer_match` / `iss_pattern` matches an incoming credential wins.",
+      "items": { "$ref": "#/$defs/BridgeEntry" }
+    }
+  },
+  "$defs": {
+    "BridgeEntry": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "Which TrustForge bridge module handles this credential format.",
+          "enum": [
+            "oauth",
+            "clerk",
+            "next-auth",
+            "better-auth",
+            "webauthn",
+            "tls",
+            "spiffe",
+            "did",
+            "gnap",
+            "mcp",
+            "matrix",
+            "webhook",
+            "grpc",
+            "service-mesh",
+            "a2a",
+            "session-cookie"
+          ]
+        },
+        "issuer_match": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact match against the credential's `iss` claim (OAuth/JWT) or trust-domain authority. Use `iss_pattern` for prefix/suffix matching."
+        },
+        "iss_pattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Substring match against the credential's `iss` claim. `clerk.dev` matches both `https://api.clerk.dev/...` and `clerk.dev`."
+        },
+        "trust_domain": {
+          "$ref": "_common.schema.json#/$defs/TrustDomain",
+          "description": "Trust domain the resolved actor belongs to."
+        },
+        "trust_level": {
+          "$ref": "_common.schema.json#/$defs/TrustLevel",
+          "description": "Initial TrustForge trust level assigned to actors resolved through this bridge entry."
+        },
+        "capability_map": {
+          "type": "object",
+          "description": "Mapping from the credential's native scope/permission to a TrustForge action name. Keys are the native scope (e.g. OAuth `email`); values are TrustForge action names matching the dotted ActionName pattern.",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+          }
+        },
+        "profile": {
+          "type": "string",
+          "pattern": "^tf-[a-z][a-z0-9-]*-compatible$",
+          "description": "Per-entry conformance profile override."
+        }
+      }
+    }
+  }
+}

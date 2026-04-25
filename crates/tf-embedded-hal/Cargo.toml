@@ -1,0 +1,20 @@
+[package]
+name = "tf-embedded-hal"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "TrustForge embedded HAL traits — LoRa, BLE, NFC, secure-element, and entropy abstractions for no_std deployments."
+
+[features]
+default = ["alloc"]
+alloc = ["tf-core-no-std/alloc"]
+std = ["alloc", "tf-core-no-std/std"]
+
+[dependencies]
+tf-core-no-std = { path = "../tf-core-no-std", default-features = false }
+heapless = "0.8"
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+sha2 = { version = "0.10", default-features = false }
+
+[dev-dependencies]

@@ -1,0 +1,30 @@
+[package]
+name = "tf-axum"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "TrustForge axum/tower middleware that consults tf-daemon /v1/decide."
+
+[dependencies]
+tf-decide-client = { path = "../tf-decide-client" }
+axum = "0.7"
+tower = { version = "0.5", features = ["util"] }
+tower-layer = "0.3"
+tower-service = "0.3"
+http = "1"
+http-body = "1"
+http-body-util = "0.1"
+bytes = "1"
+futures-util = "0.3"
+tokio = { version = "1", features = ["rt", "macros"] }
+serde_json = "1"
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

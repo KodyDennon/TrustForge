@@ -1,0 +1,17 @@
+apiVersion: v2
+name: tf-admission-webhook
+description: TrustForge ValidatingAdmissionWebhook (Phase 0 draft)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.24.0-0"
+keywords:
+  - trustforge
+  - admission
+  - security
+  - policy
+maintainers:
+  - name: TrustForge Authors
+    url: https://github.com/NuGit-Tech/TrustForge
+sources:
+  - https://github.com/NuGit-Tech/TrustForge

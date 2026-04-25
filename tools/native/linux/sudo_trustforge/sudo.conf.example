@@ -1,0 +1,19 @@
+# /etc/sudo.conf -- example registration of the TrustForge sudo policy plugin.
+#
+# Copy this file to /etc/sudo.conf (or merge the Plugin lines into your
+# existing /etc/sudo.conf). sudo reads /etc/sudo.conf at startup; changes
+# take effect on the next sudo invocation. Keep a root shell open while
+# editing in case of a misconfiguration.
+#
+# Both lines are required: the policy plugin gates the call, and
+# sudoers_io is a stock I/O logging plugin shipped with sudo. If you do
+# not want I/O logging you may omit the second line.
+#
+# Plugins must be installed root-owned, mode 0644 (or stricter), in the
+# distribution-specific plugin directory. Common locations:
+#   Debian/Ubuntu:  /usr/lib/sudo/
+#   Fedora/RHEL:    /usr/libexec/sudo/
+#   Alpine:         /usr/lib/sudo/
+
+Plugin sudoers_policy sudo_trustforge.so
+Plugin sudoers_io     sudoers.so

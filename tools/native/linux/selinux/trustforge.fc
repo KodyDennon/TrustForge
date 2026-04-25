@@ -1,0 +1,11 @@
+# File contexts for the TrustForge SELinux policy module.
+# See trustforge.te for the matching type declarations.
+
+/usr/bin/tf-daemon              --      gen_context(system_u:object_r:trustforge_exec_t,s0)
+
+/etc/trustforge(/.*)?                   gen_context(system_u:object_r:trustforge_etc_t,s0)
+
+/var/lib/trustforge(/.*)?               gen_context(system_u:object_r:trustforge_var_lib_t,s0)
+
+/run/trustforge(/.*)?                   gen_context(system_u:object_r:trustforge_socket_t,s0)
+/run/trustforge/decide\.sock    -s      gen_context(system_u:object_r:trustforge_socket_t,s0)

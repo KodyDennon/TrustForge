@@ -1,0 +1,27 @@
+Windows Registry Editor Version 5.00
+
+; TrustForge Credential Provider — registration
+;
+; Status: Draft — Phase 0. Experimental, not production-ready.
+;
+; CLSID: {8B0F8F3D-9E4C-4F2A-B7E1-2C6A5D9F1E03}
+;
+; Edit the InprocServer32 default value below to point at the actual install
+; path of TrustForgeCredentialProvider.dll. The path is escaped with double
+; backslashes per .reg file syntax.
+;
+; Apply (elevated): regedit /s register.reg
+; Equivalent COM self-registration: regsvr32 TrustForgeCredentialProvider.dll
+;
+; ThreadingModel "Apartment" is the only supported model for credential
+; providers — see the Microsoft credential-provider docs.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{8B0F8F3D-9E4C-4F2A-B7E1-2C6A5D9F1E03}]
+@="TrustForge Credential Provider"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{8B0F8F3D-9E4C-4F2A-B7E1-2C6A5D9F1E03}\InprocServer32]
+@="C:\\Program Files\\TrustForge\\TrustForgeCredentialProvider.dll"
+"ThreadingModel"="Apartment"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{8B0F8F3D-9E4C-4F2A-B7E1-2C6A5D9F1E03}]
+@="TrustForge Credential Provider"

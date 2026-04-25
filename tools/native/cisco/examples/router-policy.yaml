@@ -1,0 +1,74 @@
+# Example TrustForge policy for a Cisco edge router.
+#
+# This policy gates SSH login attempts to the device's management
+# plane via the TACACS+ <-> TrustForge bridge: tf-daemon receives the
+# AAA authn/authz request from IOS-XE and consults the policy below
+# before returning a verdict.
+#
+# Reference: TF-0001 (core architecture), TF-0006 (capabilities),
+# docs/bridges/tacacs-plus.md (forthcoming).
+
+version: 1
+profile: tf-enterprise-baseline
+
+# Identifies the device this policy applies to. The actor URI follows
+# TF-0001 §canonical-vocabulary: tf:actor:<kind>:<identity>.
+actor: tf:actor:device:cisco/edge-rtr-01
+
+# Capability grants. Note negative capabilities override grants per
+# the manifesto; deny:cli:enable below trumps any enable-mode grant.
+capabilities:
+  grants:
+    - name: cli:read
+      to: tf:actor:role:network-readonly
+      conditions:
+        - mfa: webauthn
+        - source_subnet: 10.0.0.0/8
+    - name: cli:configure
+      to: tf:actor:role:network-admin
+      conditions:
+        - mfa: webauthn
+        - source_subnet: 10.0.0.0/24
+        - working_hours: true
+
+  denies:
+    # Negative capability: nobody gets enable mode without an explicit
+    # break-glass approval ticket. Overrides any positive grant.
+    - name: cli:enable
+      from: '*'
+      unless:
+        - approval_ticket_present: true
+
+# AAA bridge: route TACACS+ exchanges through tf-daemon and back.
+bridges:
+  tacacs_plus:
+    enabled: true
+    listen: 127.0.0.1:49
+    upstream_directory: ldap://ldap.example.com
+    decision_timeout_ms: 1500
+    on_timeout: deny
+
+# Risk class hints map TF risk levels to TACACS+ privilege levels.
+risk_mapping:
+  R0: priv 1
+  R1: priv 5
+  R2: priv 10
+  R3: priv 15
+  R4: deny
+  R5: deny
+
+# Proof events for SSH login attempts go to the proof log; on enable
+# mode attempts they additionally fan out to the SOC webhook.
+proof:
+  default_level: L2
+  high_risk_actions:
+    - cli:enable
+    - cli:configure
+  high_risk_level: L4
+  fanout:
+    - kind: file
+      path: /data/log/proof.log
+    - kind: webhook
+      url: https://soc.example.com/trustforge/proof
+      events:
+        - cli:enable

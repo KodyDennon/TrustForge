@@ -1,0 +1,53 @@
+#!/bin/vbash
+# Rendered by Salt state `trustforge` on a VyOS router.
+# Source: salt/trustforge/files/firewall.j2
+#
+# Inserts a VyOS firewall ruleset that bounces gated traffic through
+# tf-proxy before it leaves the router. The ruleset is idempotent:
+# applying it twice produces the same configuration.
+#
+# Reference: VyOS 1.4 docs, "configuration scripting".
+
+source /opt/vyatta/etc/functions/script-template
+
+PROXY_PORT={{ proxy_port | default(8643) }}
+LISTEN={{ listen | default('127.0.0.1:8642') }}
+
+configure
+
+# Named ruleset that gates traffic toward tf-proxy.
+set firewall name TRUSTFORGE-GATE default-action 'drop'
+set firewall name TRUSTFORGE-GATE description 'TrustForge tf-proxy gate'
+
+# Allow already-established/related sessions through unchanged.
+set firewall name TRUSTFORGE-GATE rule 10 action 'accept'
+set firewall name TRUSTFORGE-GATE rule 10 state established 'enable'
+set firewall name TRUSTFORGE-GATE rule 10 state related 'enable'
+
+# Redirect new outbound flows to the local tf-proxy listener.
+set firewall name TRUSTFORGE-GATE rule 100 action 'jump'
+set firewall name TRUSTFORGE-GATE rule 100 jump-target 'TRUSTFORGE-DECIDE'
+set firewall name TRUSTFORGE-GATE rule 100 state new 'enable'
+
+set firewall name TRUSTFORGE-DECIDE default-action 'return'
+set firewall name TRUSTFORGE-DECIDE rule 10 action 'accept'
+set firewall name TRUSTFORGE-DECIDE rule 10 destination port "${PROXY_PORT}"
+set firewall name TRUSTFORGE-DECIDE rule 10 protocol 'tcp'
+
+# Wire the ruleset onto the configured interfaces.
+{% for iface in gated_interfaces | default(['eth1']) %}
+set interfaces ethernet {{ iface }} firewall in name 'TRUSTFORGE-GATE'
+{% endfor %}
+
+# NAT redirect: any TCP destined for an external host gets dnat'd to
+# the local tf-proxy listener which speaks the TF /v1/decide protocol
+# and either forwards or drops based on the verdict.
+set nat destination rule 4200 description 'TrustForge tf-proxy gate'
+set nat destination rule 4200 inbound-interface 'lo'
+set nat destination rule 4200 protocol 'tcp'
+set nat destination rule 4200 translation address "${LISTEN%:*}"
+set nat destination rule 4200 translation port "${PROXY_PORT}"
+
+commit
+save
+exit

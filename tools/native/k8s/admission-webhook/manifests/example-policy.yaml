@@ -1,0 +1,47 @@
+# Example ValidatingWebhookConfiguration that gates Pod CREATEs on a
+# TrustForge `decision: "allow"`. Apply only AFTER the webhook Deployment
+# and Service are healthy, otherwise pod creation is blocked cluster-wide.
+#
+# The CA bundle below is a placeholder. In production use cert-manager
+# (see helm/templates/certificate.yaml) so the bundle is auto-injected,
+# or paste the base64-encoded CA from your secret here.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: tf-admission-webhook-example
+  annotations:
+    # cert-manager will populate caBundle if you uncomment this and the
+    # Certificate is in the same namespace as the issuer reference.
+    # cert-manager.io/inject-ca-from: trustforge/tf-admission-webhook
+    trustforge.dev/profile: "enterprise"
+webhooks:
+  - name: validate-pods.trustforge.dev
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail        # fail-closed
+    timeoutSeconds: 5
+    clientConfig:
+      service:
+        name: tf-admission-webhook
+        namespace: trustforge
+        path: /admit
+        port: 443
+      # Replace this placeholder with your real cluster CA, or rely on
+      # cert-manager's inject-ca-from annotation above.
+      caBundle: "REPLACE_WITH_BASE64_CA_BUNDLE"
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        operations: ["CREATE", "UPDATE"]
+        scope: "Namespaced"
+    namespaceSelector:
+      matchLabels:
+        trustforge.dev/enabled: "true"
+    # Skip kube-system and the webhook's own namespace to avoid lockout.
+    objectSelector:
+      matchExpressions:
+        - key: app.kubernetes.io/part-of
+          operator: NotIn
+          values: ["trustforge"]

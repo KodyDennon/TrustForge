@@ -1,0 +1,22 @@
+# Synthetic failure fixture for tools/tf-conformance/tests/failure-paths.test.ts.
+#
+# Two kinds of failure are encoded here:
+#   1. A SPIFFE entry whose declared actor_id does NOT match what the
+#      bridge produces, so a correct runBridgeVectors reports a mismatch.
+#   2. A top-level `madeup:` block under an unsupported "kind". The
+#      runner must NOT silently treat the file as healthy just because
+#      the supported blocks have zero passing entries — the SPIFFE
+#      mismatch above guarantees `failed > 0` is observed.
+
+spiffe:
+  - name: mismatched-actor
+    spiffe_id: "spiffe://example.org/ns/prod/sa/api"
+    # Real actor_id would be tf:actor:service:example.org/ns/prod/sa/api;
+    # we pin the wrong one to force runBridgeVectors to surface a
+    # parity break.
+    actor_id: "tf:actor:service:WRONG.example.org/api"
+
+madeup:
+  - name: unsupported-kind
+    kind: madeup
+    note: "If the runner ever silently passes on unrecognised top-level kinds, this entry would be invisible."

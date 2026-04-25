@@ -1,0 +1,24 @@
+# /etc/nsswitch.conf.example — TrustForge integration
+#
+# Add `trustforge` AFTER `files` so the local /etc/passwd and /etc/group
+# always win for system accounts (root, daemon users, etc.). TrustForge is
+# only consulted for names not already known to the local files DB; this
+# preserves the boot-time / single-user recovery path.
+#
+# Copy the relevant lines into /etc/nsswitch.conf — do NOT replace the
+# whole file blindly, you'll lose your distro's hosts/services/etc lines.
+
+passwd:         files trustforge systemd
+group:          files trustforge systemd
+shadow:         files
+gshadow:        files
+
+# Everything else is unchanged. TrustForge does not currently provide
+# hosts, services, protocols, networks, or netgroup resolution.
+hosts:          files mdns4_minimal [NOTFOUND=return] dns
+networks:       files
+protocols:      db files
+services:       db files
+ethers:         db files
+rpc:            db files
+netgroup:       nis

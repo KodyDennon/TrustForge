@@ -1,0 +1,78 @@
+# Example Envoy listener showing how to wire the TrustForge wasm filter.
+# Copy `tf-envoy-filter.wasm` to `/etc/envoy/` and apply this config.
+#
+# The filter dispatches a synchronous HTTP callout to the `tf_daemon`
+# cluster (see clusters: below) for every inbound HTTP request. On
+# `decision: "allow"` the request is forwarded to the upstream; on any
+# other response (or callout failure) the filter replies 403 / 503.
+static_resources:
+  listeners:
+    - name: tf_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 8080
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: app
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: upstream_app }
+                http_filters:
+                  - name: envoy.filters.http.wasm
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+                      config:
+                        name: "tf_envoy_filter"
+                        root_id: "tf_envoy_filter"
+                        configuration:
+                          "@type": type.googleapis.com/google.protobuf.StringValue
+                          value: |
+                            { "tf_cluster": "tf_daemon" }
+                        vm_config:
+                          runtime: "envoy.wasm.runtime.v8"
+                          code:
+                            local:
+                              filename: "/etc/envoy/tf-envoy-filter.wasm"
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: upstream_app
+      connect_timeout: 1s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: upstream_app
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 9000
+
+    # Cluster the wasm filter calls. Must exist; the filter uses
+    # dispatch_http_call() which only routes to declared clusters.
+    - name: tf_daemon
+      connect_timeout: 0.5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: tf_daemon
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 8765

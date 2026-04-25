@@ -1,0 +1,32 @@
+[package]
+name = "tf-core-no-std"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "TrustForge no_std core: packet verify, relay authority, ORL, and replay-protected receiver for embedded targets."
+
+[features]
+default = ["alloc"]
+# `alloc` enables BTreeMap/Vec/String-backed paths and full CBOR (`ciborium`).
+alloc = ["dep:ciborium"]
+# `std` is a superset of `alloc` and turns on a few host-only conveniences.
+std = ["alloc"]
+
+[dependencies]
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["heapless"] }
+sha2 = { version = "0.10", default-features = false }
+heapless = "0.8"
+serde = { version = "1", default-features = false, features = ["derive"] }
+serde-json-core = "0.5"
+
+# Full CBOR is only available with the `alloc` feature because `ciborium`
+# itself depends on `alloc::Vec` and friends; the strict no_alloc path uses
+# `ciborium-ll` to stream CBOR through fixed buffers.
+ciborium = { version = "0.2", default-features = false, optional = true }
+ciborium-ll = { version = "0.2", default-features = false }
+
+[dev-dependencies]
+# Tests run on the host with default features; the crate also builds clean
+# with `--no-default-features` to prove the no_alloc path.

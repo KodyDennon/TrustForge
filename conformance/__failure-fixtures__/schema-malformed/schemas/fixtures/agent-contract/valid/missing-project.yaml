@@ -1,0 +1,14 @@
+# Synthetic failure fixture for tools/tf-conformance/tests/failure-paths.test.ts.
+#
+# This file lives under `valid/` but deliberately omits the required
+# `project` field, so AJV must REJECT it. A correct schema runner reports
+# this as a failure ("fixture failed schema validation but lives in
+# valid/"). If the runner ever returns failed === 0 here, schema
+# enforcement has regressed.
+contract_version: "1"
+spec_version: TF-0006-draft
+trust_domain: example.com
+actions:
+  - name: file.read
+    risk: R0
+    approval: none

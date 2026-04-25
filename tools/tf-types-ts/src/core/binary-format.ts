@@ -20,9 +20,32 @@
  * `crates/tf-types/src/binary_format.rs` and emits byte-identical
  * output for the same input — verified by
  * `conformance/binary-format-vectors.yaml`.
+ *
+ * --- CBOR DETERMINISM (READ BEFORE EDITING) ---
+ *
+ * Byte-level parity with the Rust encoder (`ciborium::ser::into_writer`
+ * over `serde_json::Value`, which uses a BTreeMap) requires two
+ * non-default `cbor-x` settings:
+ *
+ *   1. `variableMapSize: true`  — emit `0xa0..0xbb`-prefixed maps with
+ *      the smallest definite-length encoding. The cbor-x default
+ *      always uses a fixed-width 16-bit length (`b9 XX XX`); ciborium
+ *      always uses the smallest fit (`a2` for size 2, etc.). Without
+ *      this flag every map is a length-mismatch.
+ *   2. Recursive key sorting via `sortKeysDeep()`   — RFC 8949 §4.2.3
+ *      "Length-First Bytewise Lexicographic Comparison" (preferred
+ *      deterministic encoding). serde_json::Value's BTreeMap already
+ *      sorts; cbor-x preserves JS object insertion order, so we sort
+ *      ourselves before encoding.
+ *
+ * Both settings are enforced by `CANONICAL_ENCODER`. Flipping either
+ * one breaks `conformance/binary-format-vectors.yaml`. If you need a
+ * faster non-canonical encoder for some other path, do it under a
+ * different name — do NOT change the body of `writeTfbundle` /
+ * `writeTfpkt` without updating the vectors and the Rust parity test.
  */
 
-import { encode as cborEncode, decode as cborDecode } from "cbor-x";
+import { Encoder, decode as cborDecode } from "cbor-x";
 import type { Packet } from "../generated/packet.js";
 import type { ProofBundle } from "../generated/proof-bundle.js";
 import type { ProofBundleEncrypted } from "../generated/proof-bundle-encrypted.js";
@@ -35,6 +58,43 @@ export const TFPKT_MAGIC = new Uint8Array([
 ]);
 
 export class BinaryFormatError extends Error {}
+
+/**
+ * RFC 8949 §4.2.3 deterministic encoding: sort map keys lexicographically
+ * by content (which, for ASCII keys, equals JS string sort). Recursive so
+ * nested maps also sort. Arrays preserve order — that's already
+ * deterministic.
+ */
+function sortKeysDeep(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (value instanceof Uint8Array) return value;
+  if (Array.isArray(value)) return value.map(sortKeysDeep);
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of entries) out[k] = sortKeysDeep(v);
+  return out;
+}
+
+/**
+ * Canonical encoder used by both writeTfbundle and writeTfpkt. See
+ * "CBOR DETERMINISM" docstring above for the rationale.
+ */
+const CANONICAL_ENCODER = new Encoder({
+  useFloat32: 0, // FLOAT32_OPTIONS.NEVER
+  mapsAsObjects: false,
+  useRecords: false,
+  pack: false,
+  variableMapSize: true,
+  tagUint8Array: false,
+});
+
+function canonicalCborEncode(value: unknown): Uint8Array {
+  const sorted = sortKeysDeep(value);
+  const out = CANONICAL_ENCODER.encode(sorted);
+  return out instanceof Uint8Array ? out : new Uint8Array(out);
+}
 
 function putU32BE(view: number[], n: number): void {
   if (n < 0 || n > 0xffffffff) {
@@ -81,8 +141,7 @@ export interface TfbundleParts {
 }
 
 export function writeTfbundle(body: TfbundleBody, signature?: Uint8Array): Uint8Array {
-  const cbor = cborEncode(body);
-  const bodyBytes = cbor instanceof Uint8Array ? cbor : new Uint8Array(cbor);
+  const bodyBytes = canonicalCborEncode(body);
   const len1: number[] = [];
   putU32BE(len1, bodyBytes.length);
   const sig = signature ?? new Uint8Array(0);
@@ -134,8 +193,7 @@ export interface TfpktParts {
 }
 
 export function writeTfpkt(packet: Packet): Uint8Array {
-  const cbor = cborEncode(packet);
-  const bodyBytes = cbor instanceof Uint8Array ? cbor : new Uint8Array(cbor);
+  const bodyBytes = canonicalCborEncode(packet);
   const len: number[] = [];
   putU32BE(len, bodyBytes.length);
   return concat([TFPKT_MAGIC, new Uint8Array(len), bodyBytes]);

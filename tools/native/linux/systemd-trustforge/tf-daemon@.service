@@ -1,0 +1,57 @@
+[Unit]
+Description=TrustForge Daemon (per-user instance for %i)
+Documentation=https://trustforge.dev
+After=network-online.target tf-daemon.service
+Wants=network-online.target
+
+# Per-user / per-instance daemon. The instance name (%i) is interpreted as
+# either a username (tf-daemon@alice) or an instance label declared under
+# /etc/trustforge/instances/<name>.tf-daemon (see tf-daemon-generator).
+#
+# Each instance gets its own state, runtime, log, and config directory:
+#   /var/lib/trustforge/%i
+#   /run/trustforge/%i
+#   /var/log/trustforge/%i
+#   /etc/trustforge/instances/%i
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/tf-daemon --instance %i --config /etc/trustforge/instances/%i/config.yaml
+User=trustforge
+Group=trustforge
+Restart=on-failure
+RestartSec=2s
+WatchdogSec=30s
+
+StateDirectory=trustforge/%i
+StateDirectoryMode=0750
+ConfigurationDirectory=trustforge/instances/%i
+ConfigurationDirectoryMode=0750
+RuntimeDirectory=trustforge/%i
+RuntimeDirectoryMode=0750
+LogsDirectory=trustforge/%i
+LogsDirectoryMode=0750
+
+# Same sandbox as the system daemon — instances must not be weaker.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictRealtime=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+SyslogIdentifier=tf-daemon@%i
+
+[Install]
+WantedBy=multi-user.target

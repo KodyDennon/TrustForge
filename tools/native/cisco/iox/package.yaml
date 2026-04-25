@@ -1,0 +1,55 @@
+# Cisco IOX package descriptor for TrustForge.
+#
+# Produces a tf-daemon-iox.tar package consumable by Cisco Catalyst /
+# IOS-XE / IOS-XR Guest Shell. Build with the IOX SDK:
+#
+#   ioxclient package package.yaml
+#
+# Phase 0 / pre-release: the binary referenced below does not exist
+# yet; the package is intended for review and ioxclient validation.
+
+descriptor-schema-version: "2.7"
+
+info:
+  name: trustforge
+  description: TrustForge tf-daemon running inside Cisco Guest Shell
+  version: "0.1.0"
+  author-link: "https://github.com/trustforge/trustforge"
+  author-name: "TrustForge contributors"
+
+app:
+  cpuarch: "x86_64"
+  type: "docker"
+  startup:
+    rootfs: "rootfs.tar"
+    target: ["/start.sh"]
+  resources:
+    profile: c1.small
+    cpu: 200
+    memory: 256
+    disk: 64
+    network:
+      - interface-name: eth0
+        ports:
+          tcp: [8642, 8643]
+
+  # Run tf-daemon read-write, as the daemon needs to write proof
+  # events to /data inside the container. /data is mapped to NVRAM /
+  # bootflash on the host depending on platform.
+  resources-disk:
+    - name: tf-data
+      size: 64M
+      mount: /data
+
+  privileged: false
+
+  # Cisco IOX permits a small set of capabilities; tf-daemon only
+  # needs CAP_NET_BIND_SERVICE.
+  cap_add:
+    - NET_BIND_SERVICE
+
+  env:
+    - TF_PROFILE=tf-enterprise-baseline
+    - TF_LISTEN=0.0.0.0:8642
+    - TF_PROXY_LISTEN=0.0.0.0:8643
+    - TF_STATE_DIR=/data

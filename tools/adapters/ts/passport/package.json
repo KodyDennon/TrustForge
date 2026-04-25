@@ -1,0 +1,31 @@
+{
+  "name": "@trustforge/passport",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge Passport strategy — verifies an opaque session/bearer credential and projects it to a TrustForge actor.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@trustforge/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "passport": ">=0.6.0",
+    "passport-strategy": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "passport": { "optional": true },
+    "passport-strategy": { "optional": true }
+  },
+  "devDependencies": {
+    "@trustforge/test-utils": "workspace:*",
+    "@types/bun": "^1.3.9",
+    "typescript": "^5.6.3"
+  }
+}

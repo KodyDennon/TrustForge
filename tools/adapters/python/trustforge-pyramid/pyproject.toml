@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trustforge-pyramid"
+version = "0.1.0"
+description = "Pyramid tween for TrustForge tf-daemon."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "trustforge-client",
+    "pyramid>=2",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "WebTest>=3",
+]
+
+[tool.setuptools.packages.find]
+include = ["trustforge_pyramid*"]
+exclude = ["tests*"]

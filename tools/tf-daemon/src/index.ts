@@ -10,8 +10,15 @@
 
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
-import { dirname, resolve as resolvePath } from "node:path";
+import { dirname, resolve as resolvePath, join as joinPath } from "node:path";
+import { homedir } from "node:os";
 import { parse as parseYAML } from "yaml";
+import { BridgesRegistry } from "tf-types";
+import {
+  hostTokenKindToBridge,
+  resolveCredential,
+  type ResolvedCredential,
+} from "./credential-resolver";
 import {
   AgentGuard,
   ApprovalQueue,
@@ -42,6 +49,7 @@ import {
   rpcTransportFromEndpoint,
   type SessionEndpoint,
 } from "tf-session";
+import { recordDecideSpan, setupOtel, type OtelHandle } from "./otel";
 
 export interface DaemonRuntimeOptions {
   configPath: string;
@@ -68,6 +76,27 @@ export interface DaemonRuntimeOptions {
   /** Supplied to the plugin host when loading. Tests wire this to collect
    *  emitted plugin logs. */
   pluginHost?: PluginHost;
+  /** TCP port for the v1 HTTP endpoint suite (`/v1/decide`,
+   *  `/v1/import-credential`, `/v1/proof/*`). Default 8642. Pass 0 to
+   *  let the OS pick (used by tests). Pass -1 to disable the TCP
+   *  listener entirely. */
+  daemonHttpPort?: number;
+  /** Hostname for the v1 HTTP listener. Default 127.0.0.1. */
+  daemonHttpHost?: string;
+  /** Unix socket path for the v1 HTTP endpoint suite. Default
+   *  `~/.trustforge/decide.sock`. Pass an empty string to disable
+   *  Unix-socket binding (tests do this to avoid sharing the
+   *  per-user socket across runs). */
+  daemonHttpSocket?: string;
+  /** Path to a `.tf/bridges.yaml` registry file. When omitted the
+   *  resolver uses built-in defaults. When set the file is loaded once
+   *  at boot and registry overrides apply per credential. */
+  bridgesRegistryPath?: string;
+  /** OTLP gRPC endpoint for OpenTelemetry tracing. Falls back to
+   *  `OTEL_EXPORTER_OTLP_ENDPOINT`. When neither is set, tracing is off
+   *  but `recordDecideSpan` still no-ops (and the test exporter, if
+   *  installed, still receives spans). */
+  otelEndpoint?: string;
 }
 
 export interface DaemonHandle {
@@ -75,6 +104,13 @@ export interface DaemonHandle {
   stop(): Promise<void>;
   approvalQueue: ApprovalQueue;
   proofLogPath: string;
+  /** Resolved port for the v1 HTTP listener (8642 by default; 0 means
+   *  the OS picked one — read this back in tests). `null` when the
+   *  TCP listener was disabled via `daemonHttpPort: -1`. */
+  httpPort: number | null;
+  /** Resolved Unix-socket path for the v1 HTTP listener. `null` when
+   *  the socket binding was disabled via `daemonHttpSocket: ""`. */
+  httpSocketPath: string | null;
 }
 
 /** Risk classes that trigger the QuorumApprovalCollector instead of a
@@ -215,6 +251,16 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   if (!existsSync(proofLogPath)) {
     writeFileSync(proofLogPath, new Uint8Array([0x54, 0x46, 0x4c, 0x4f, 0x47, 0x01, 0x00, 0x00]));
   }
+
+  // Initialize OpenTelemetry tracing if OTEL_EXPORTER_OTLP_ENDPOINT is
+  // set (or the caller passed an endpoint). When neither is configured,
+  // tracing is silently off and `recordDecideSpan` is a no-op. The
+  // handle is held so the daemon can flush/shutdown OTel cleanly on
+  // stop().
+  const otelHandle: OtelHandle = await setupOtel(
+    `tf-daemon:${config.self_actor}`,
+    opts.otelEndpoint,
+  );
 
   // Load .tf/ manifests when the project root is supplied. Manifests are
   // best-effort; missing ones are skipped, parse failures are surfaced
@@ -626,6 +672,447 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     return new Response("not found", { status: 404 });
   }
 
+  // -------------------------------------------------------------------------
+  // v1 HTTP endpoint suite (B1 + B2 + B3).
+  // -------------------------------------------------------------------------
+  const bridgesRegistry = (() => {
+    const p = opts.bridgesRegistryPath
+      ?? (opts.projectRoot ? joinPath(opts.projectRoot, ".tf", "bridges.yaml") : undefined);
+    if (!p) return new BridgesRegistry({ registry_version: "1", bridges: [] });
+    try {
+      return BridgesRegistry.load(p);
+    } catch (err) {
+      // A malformed registry is a HARD failure — refusing to start is the
+      // safe default (DECISIONS.md "fail-closed by default"). Tests that
+      // want to test the malformed-registry path can catch this error.
+      throw new Error(`bridges-registry load failed: ${(err as Error).message}`);
+    }
+  })();
+
+  const trustDomainGuess = (() => {
+    // self_actor format: tf:actor:<type>:<trust_domain>/<path>
+    const m = /^tf:actor:[^:]+:([^/]+)\//.exec(config.self_actor);
+    return m?.[1] ?? "local";
+  })();
+
+  function v1AdminAuth(req: Request): boolean {
+    const token = currentAdminToken();
+    if (!token) return false;
+    const auth = req.headers.get("authorization") ?? "";
+    const expected = `Bearer ${token}`;
+    return constantTimeStringEqual(auth, expected);
+  }
+
+  /** Read + parse a JSON body for v1 endpoints with the same caps the
+   *  admin endpoint uses. Returns a small tagged result the route can
+   *  branch on. */
+  async function readV1JsonBody(req: Request): Promise<{ ok: true; value: unknown } | { ok: false; status: number; error: string }> {
+    const lenHdr = req.headers.get("content-length");
+    if (lenHdr && parseInt(lenHdr, 10) > adminMaxBody) {
+      return { ok: false, status: 413, error: "body too large" };
+    }
+    let text = "";
+    try {
+      text = await req.text();
+    } catch (err) {
+      return { ok: false, status: 400, error: `read body: ${(err as Error).message}` };
+    }
+    if (text.length > adminMaxBody) return { ok: false, status: 413, error: "body too large" };
+    if (!text) return { ok: false, status: 400, error: "empty body" };
+    try {
+      return { ok: true, value: JSON.parse(text) as unknown };
+    } catch (err) {
+      return { ok: false, status: 400, error: `malformed JSON: ${(err as Error).message}` };
+    }
+  }
+
+  const ACTION_NAME_RE = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+  const VALID_HOST_TOKEN_KINDS = new Set([
+    "oauth-jwt",
+    "clerk-session",
+    "next-auth-jwt",
+    "better-auth-session",
+    "webauthn-assertion",
+    "mtls-cert-pem",
+    "spiffe-svid",
+    "session-cookie",
+  ]);
+  const VALID_DECISIONS = new Set(["allow", "deny", "escalate", "approval-required", "log-only"]);
+
+  interface DecideRequest {
+    actor: string | null;
+    host_token: string | null;
+    host_token_kind: string | null;
+    action: string;
+    target: string | null;
+    context: Record<string, unknown>;
+    trace_id: string;
+  }
+
+  function validateDecideRequest(value: unknown): { ok: true; value: DecideRequest } | { ok: false; error: string } {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { ok: false, error: "request must be a JSON object" };
+    }
+    const v = value as Record<string, unknown>;
+    const action = v.action;
+    if (typeof action !== "string" || !ACTION_NAME_RE.test(action)) {
+      return { ok: false, error: "action must match dotted-action-name pattern" };
+    }
+    const actor = v.actor === undefined ? null : v.actor;
+    if (actor !== null && typeof actor !== "string") {
+      return { ok: false, error: "actor must be a string or null" };
+    }
+    const hostToken = v.host_token === undefined ? null : v.host_token;
+    if (hostToken !== null && typeof hostToken !== "string") {
+      return { ok: false, error: "host_token must be a string or null" };
+    }
+    const hostKind = v.host_token_kind === undefined ? null : v.host_token_kind;
+    if (hostKind !== null && (typeof hostKind !== "string" || !VALID_HOST_TOKEN_KINDS.has(hostKind))) {
+      return { ok: false, error: "host_token_kind invalid" };
+    }
+    const target = v.target === undefined ? null : v.target;
+    if (target !== null && typeof target !== "string") {
+      return { ok: false, error: "target must be a string or null" };
+    }
+    const context = v.context === undefined ? {} : v.context;
+    if (!context || typeof context !== "object" || Array.isArray(context)) {
+      return { ok: false, error: "context must be an object" };
+    }
+    const traceId = v.trace_id === undefined ? "" : v.trace_id;
+    if (typeof traceId !== "string") {
+      return { ok: false, error: "trace_id must be a string" };
+    }
+    if (actor === null && hostToken === null) {
+      return { ok: false, error: "request must supply actor OR host_token" };
+    }
+    return {
+      ok: true,
+      value: {
+        actor: actor as string | null,
+        host_token: hostToken as string | null,
+        host_token_kind: hostKind as string | null,
+        action,
+        target: target as string | null,
+        context: context as Record<string, unknown>,
+        trace_id: traceId,
+      },
+    };
+  }
+
+  function decisionTrustLevel(actor: string, resolved?: ResolvedCredential): "T0" | "T1" | "T2" | "T3" | "T4" | "T5" | "T6" | "T7" {
+    if (resolved) return resolved.trust_level as "T0" | "T1" | "T2" | "T3" | "T4" | "T5" | "T6" | "T7";
+    void actor;
+    return "T2";
+  }
+
+  async function handleDecideOne(req: DecideRequest): Promise<Record<string, unknown>> {
+    let resolved: ResolvedCredential | undefined;
+    let actor = req.actor ?? "tf:actor:process:local/anonymous";
+    if (req.host_token) {
+      const hint = hostTokenKindToBridge(req.host_token_kind);
+      try {
+        resolved = resolveCredential(req.host_token, {
+          hint,
+          registry: bridgesRegistry,
+          trustDomain: trustDomainGuess,
+        });
+        actor = resolved.actor;
+      } catch (err) {
+        // Soft failure: we still emit a decision so the caller has a
+        // proof_id, but it MUST be a deny.
+        resolved = {
+          actor: "tf:actor:process:local/unresolved",
+          capabilities: [],
+          trust_level: "T0",
+          bridge_kind: "unknown",
+          expires_at: null,
+          detection_reason: `host_token rejected: ${(err as Error).message}`,
+        };
+        actor = resolved.actor;
+      }
+    }
+    const tf2 = await import("tf-types");
+    const decision = guard.checkRaw({
+      actor,
+      action: req.action,
+      target: req.target ?? undefined,
+      context: req.context,
+    });
+    const adjusted = tf2.applyEnforcementLevel(decision, enforcementLevel);
+
+    const proofEvent = await enqueueSigned({
+      type: "decide.evaluated",
+      actor,
+      level: "L2",
+      context: {
+        decision_request: {
+          actor: req.actor,
+          action: req.action,
+          target: req.target,
+          host_token_kind: req.host_token_kind,
+          trace_id: req.trace_id,
+          bridge_kind: resolved?.bridge_kind ?? null,
+        },
+        decision_result: {
+          decision: adjusted.kind,
+          reason: "reason" in adjusted ? adjusted.reason : "matched declared action",
+          danger_tags: adjusted.danger_tags,
+        },
+      },
+    });
+
+    // Emit one OTel span per /v1/decide call. recordDecideSpan is
+    // fire-and-forget: it never throws and never blocks the response.
+    recordDecideSpan({
+      "tf.action": req.action,
+      "tf.target": req.target ?? "",
+      "tf.decision": adjusted.kind,
+      "tf.actor_resolved": actor,
+    });
+
+    return {
+      decision: adjusted.kind,
+      reason: "reason" in adjusted ? adjusted.reason : `action ${req.action} permitted`,
+      approval_id: null,
+      proof_id: (await import("tf-types")).eventHashRef(proofEvent),
+      actor_resolved: actor,
+      trust_level: decisionTrustLevel(actor, resolved),
+      authority_mode: "layered",
+      danger_tags: adjusted.danger_tags,
+    };
+  }
+
+  async function handleV1Decide(req: Request): Promise<Response> {
+    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+    const body = await readV1JsonBody(req);
+    if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+    const validated = validateDecideRequest(body.value);
+    if (!validated.ok) return jsonResponse({ error: validated.error }, 400);
+    const result = await handleDecideOne(validated.value);
+    return jsonResponse(result);
+  }
+
+  async function handleV1DecideBatch(req: Request): Promise<Response> {
+    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+    const body = await readV1JsonBody(req);
+    if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+    if (!Array.isArray(body.value)) {
+      return jsonResponse({ error: "batch body must be an array" }, 400);
+    }
+    if (body.value.length > 100) {
+      return jsonResponse({ error: "batch exceeds 100 items" }, 400);
+    }
+    const out: unknown[] = [];
+    for (const item of body.value) {
+      const validated = validateDecideRequest(item);
+      if (!validated.ok) {
+        return jsonResponse({ error: validated.error }, 400);
+      }
+      out.push(await handleDecideOne(validated.value));
+    }
+    return jsonResponse(out);
+  }
+
+  async function handleV1ImportCredential(req: Request): Promise<Response> {
+    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+    const body = await readV1JsonBody(req);
+    if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+    const v = body.value as Record<string, unknown> | null;
+    if (!v || typeof v !== "object") {
+      return jsonResponse({ error: "body must be an object" }, 400);
+    }
+    if (typeof v.credential !== "string") {
+      return jsonResponse({ error: "credential must be a string" }, 400);
+    }
+    const hint = hostTokenKindToBridge(typeof v.hint === "string" ? v.hint : null);
+    let resolved: ResolvedCredential;
+    try {
+      resolved = resolveCredential(v.credential, {
+        hint,
+        registry: bridgesRegistry,
+        trustDomain: trustDomainGuess,
+      });
+    } catch (err) {
+      return jsonResponse({ error: `credential rejected: ${(err as Error).message}` }, 400);
+    }
+    return jsonResponse({
+      actor: resolved.actor,
+      capabilities: resolved.capabilities,
+      trust_level: resolved.trust_level,
+      bridge_kind: resolved.bridge_kind,
+      expires_at: resolved.expires_at,
+    });
+  }
+
+  async function handleV1ProofSign(req: Request): Promise<Response> {
+    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+    const body = await readV1JsonBody(req);
+    if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+    const draft = body.value as Record<string, unknown> | null;
+    if (!draft || typeof draft !== "object") {
+      return jsonResponse({ error: "body must be an object" }, 400);
+    }
+    // Daemon enforces the schema's required fields before signing.
+    if (draft.event_version !== "1") {
+      return jsonResponse({ error: "event_version must be \"1\"" }, 400);
+    }
+    if (typeof draft.id !== "string" || draft.id.length === 0) {
+      return jsonResponse({ error: "id must be a non-empty string" }, 400);
+    }
+    if (typeof draft.type !== "string" || !/^[a-z][a-z0-9._-]*$/.test(draft.type)) {
+      return jsonResponse({ error: "type must match dotted event-type pattern" }, 400);
+    }
+    if (typeof draft.actor_id !== "string" || draft.actor_id.length === 0) {
+      return jsonResponse({ error: "actor_id must be a non-empty string" }, 400);
+    }
+    if (typeof draft.timestamp !== "string" || draft.timestamp.length === 0) {
+      return jsonResponse({ error: "timestamp must be a non-empty string" }, 400);
+    }
+    if (typeof draft.level !== "string" || !/^L[0-5]$/.test(draft.level)) {
+      return jsonResponse({ error: "level must be L0..L5" }, 400);
+    }
+    const tf = await import("tf-types");
+    // Strip any signature the caller supplied — the daemon signs with
+    // its own identity, never with an attacker-supplied envelope.
+    const unsigned = { ...draft } as Record<string, unknown>;
+    delete unsigned.signature;
+    const built = unsigned as unknown as import("tf-types").BuiltProofEvent;
+    const signed = await tf.signProofEvent(built, config.self_actor, idEntry.key_bytes);
+    const eventHash = tf.eventHashRef(signed);
+    return jsonResponse({
+      event_hash: eventHash,
+      signature: signed.signature,
+      signed_event: signed,
+    });
+  }
+
+  async function handleV1ProofVerify(req: Request): Promise<Response> {
+    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+    const body = await readV1JsonBody(req);
+    if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+    const ev = body.value as Record<string, unknown> | null;
+    if (!ev || typeof ev !== "object") {
+      return jsonResponse({ error: "body must be an object" }, 400);
+    }
+    const sig = ev.signature as Record<string, unknown> | undefined;
+    if (!sig || typeof sig !== "object") {
+      return jsonResponse({ error: "missing signature" }, 400);
+    }
+    const algorithm = sig.algorithm;
+    const signer = sig.signer;
+    const sigB64 = sig.signature;
+    if (algorithm !== "ed25519" || typeof signer !== "string" || typeof sigB64 !== "string") {
+      return jsonResponse({ error: "unsupported signature envelope" }, 400);
+    }
+    // Recompute the digest over the unsigned canonical form. Only the
+    // daemon's own identity key is recognized in v0.1; cross-signer
+    // verification rides through the bridges registry once federation
+    // attestations land.
+    const tf = await import("tf-types");
+    const unsigned = { ...ev } as Record<string, unknown>;
+    delete unsigned.signature;
+    const digest = tf.sha256(new TextEncoder().encode(tf.canonicalize(unsigned)));
+    const sigBytes = new Uint8Array(Buffer.from(sigB64, "base64"));
+    let ok = false;
+    if (signer === config.self_actor) {
+      ok = await tf.ed25519Verify(identityPub, digest, sigBytes);
+    }
+    return jsonResponse({
+      ok,
+      signer_actor: signer,
+      trust_level: ok ? "T2" : "T0",
+    });
+  }
+
+  /** Top-level v1 router. Returns `undefined` when the request isn't a
+   *  v1 path, letting the WebSocket / admin handler take over. */
+  async function handleV1(req: Request): Promise<Response | undefined> {
+    const url = new URL(req.url);
+    if (!url.pathname.startsWith("/v1/")) return undefined;
+    if (req.method !== "POST") return jsonResponse({ error: "method not allowed" }, 405);
+    switch (url.pathname) {
+      case "/v1/decide":
+        return handleV1Decide(req);
+      case "/v1/decide-batch":
+        return handleV1DecideBatch(req);
+      case "/v1/import-credential":
+        return handleV1ImportCredential(req);
+      case "/v1/proof/sign":
+        return handleV1ProofSign(req);
+      case "/v1/proof/verify":
+        return handleV1ProofVerify(req);
+      default:
+        return jsonResponse({ error: "not found" }, 404);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // The HTTP listener that serves v1 routes is bound separately from the
+  // admin/WebSocket listener so the operator can firewall it without
+  // disabling the dashboard. The default port is 8642 + a per-user Unix
+  // socket at ~/.trustforge/decide.sock.
+  // -------------------------------------------------------------------------
+  const httpListeners: Array<{ stop: () => void; port: number | null; socket: string | null }> = [];
+  const httpPortRequested = opts.daemonHttpPort ?? 8642;
+  const httpHost = opts.daemonHttpHost ?? "127.0.0.1";
+  const httpSocketRequested = opts.daemonHttpSocket
+    ?? joinPath(homedir(), ".trustforge", "decide.sock");
+
+  if (httpPortRequested >= 0) {
+    const tcpServer = Bun.serve({
+      port: httpPortRequested,
+      hostname: httpHost,
+      async fetch(req) {
+        return (await handleV1(req)) ?? new Response("not found", { status: 404 });
+      },
+    });
+    httpListeners.push({
+      stop: () => tcpServer.stop(true),
+      port: tcpServer.port ?? null,
+      socket: null,
+    });
+  }
+
+  if (httpSocketRequested && httpSocketRequested.length > 0) {
+    try {
+      // Best-effort: ensure the directory exists. Then bind. If the
+      // socket file already exists from a stale daemon, unlink it so
+      // bind doesn't EADDRINUSE.
+      const dir = dirname(httpSocketRequested);
+      try {
+        (await import("node:fs")).mkdirSync(dir, { recursive: true });
+      } catch {
+        /* tolerate */
+      }
+      try {
+        if (existsSync(httpSocketRequested)) {
+          (await import("node:fs")).unlinkSync(httpSocketRequested);
+        }
+      } catch {
+        /* tolerate */
+      }
+      const unixServer = Bun.serve({
+        unix: httpSocketRequested,
+        async fetch(req: Request) {
+          return (await handleV1(req)) ?? new Response("not found", { status: 404 });
+        },
+      } as unknown as Parameters<typeof Bun.serve>[0]);
+      httpListeners.push({
+        stop: () => unixServer.stop(true),
+        port: null,
+        socket: httpSocketRequested,
+      });
+    } catch (err) {
+      // Unix-socket binding is non-fatal: the operator may not have
+      // permission to write the socket directory in containerized
+      // builds. The TCP listener is still up.
+      void err;
+    }
+  }
+
+  const httpListenerInfo = httpListeners.find((l) => l.port !== null);
+  const httpSocketInfo = httpListeners.find((l) => l.socket !== null);
+
   const listen = config.listen ?? { kind: "websocket", bind: "127.0.0.1", port: 0 };
   const server = Bun.serve({
     port: Number((listen as any).port ?? 0),
@@ -734,10 +1221,29 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     port: server.port ?? 0,
     proofLogPath,
     approvalQueue: queue,
+    httpPort: httpListenerInfo?.port ?? null,
+    httpSocketPath: httpSocketInfo?.socket ?? null,
     stop: async () => {
       queue.drainDeny("daemon shutdown");
       for (const l of listeners) l.close();
+      for (const h of httpListeners) h.stop();
+      // Best-effort: clean up the Unix socket file so a re-bind won't
+      // fail with EADDRINUSE.
+      if (httpSocketInfo?.socket) {
+        try {
+          (await import("node:fs")).unlinkSync(httpSocketInfo.socket);
+        } catch {
+          /* tolerate */
+        }
+      }
       server.stop(true);
+      // Flush + tear down any OTel SDK we brought up. Best effort.
+      try {
+        await otelHandle.flush();
+        await otelHandle.shutdown();
+      } catch {
+        /* tolerate otel teardown errors */
+      }
     },
   };
 }

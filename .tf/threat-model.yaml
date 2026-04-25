@@ -1,0 +1,366 @@
+# Threat model for the TrustForge repo itself.
+#
+# Repo dogfood: enumerates the trust boundaries, threats, mitigations,
+# and residual risks that v0.1.0 reasons about. Validates against
+# `schemas/threat-model.schema.json`. Referenced from
+# `.tf/agent-contract.yaml` via `references.threat_model`.
+#
+# Schema note: the threat-model schema models trust boundaries via the
+# `assets` collection (each boundary protects an asset), threats via
+# `attack_classes`, defences via `mitigations`, and explicitly accepted
+# gaps via `residual_risks`. Crit / risk classes use TF-0004 R0..R5.
+threat_model_version: "1"
+project: "trustforge"
+
+# Each asset corresponds to a trust boundary defended by TrustForge
+# v0.1.0. Crossing the boundary requires authority, proof, or both.
+assets:
+  - id: ci.build.pipeline
+    description: >-
+      The CI/build pipeline trust boundary: GitHub Actions runners,
+      bun/cargo build steps, and any artefact signing. Compromise
+      yields the ability to ship malicious binaries under the project
+      identity.
+    criticality: R4
+  - id: supply.chain
+    description: >-
+      The supply-chain boundary: published dependencies (npm/cargo
+      crates), pinned versions, lockfiles, and registry mirrors.
+      A poisoned dependency executes inside every contributor and
+      CI runner.
+    criticality: R4
+  - id: host.filesystem
+    description: >-
+      The local host filesystem visible to the TrustForge daemon and
+      to AI agents acting under `.tf/agent-contract.yaml`. Boundary
+      between agent capability and arbitrary code/data on the host.
+    criticality: R3
+  - id: daemon.admin.endpoint
+    description: >-
+      The local admin endpoint for `tf-daemon` (UDS or loopback HTTP)
+      that grants high-trust control: vault unlock, policy reload,
+      key rotation. Anyone who reaches this boundary effectively owns
+      the deployment.
+    criticality: R5
+  - id: plugin.sandbox
+    description: >-
+      The plugin/extension sandbox boundary (TF-0008). Plugins run
+      with reduced capability; the sandbox enforces the gap between
+      plugin code and host TrustForge state.
+    criticality: R3
+  - id: vault.passphrase
+    description: >-
+      The vault passphrase boundary (Argon2id-stretched secret that
+      unlocks long-term private keys). Defends against offline
+      brute-force when the vault file is captured.
+    criticality: R5
+  - id: federation.peer
+    description: >-
+      The federation peer boundary (TF-0008 / federation-attestation).
+      A peer is a separate trust domain; a compromised peer must not
+      be able to forge authority inside this domain.
+    criticality: R4
+  - id: transparency.anchor
+    description: >-
+      The transparency anchor boundary (TF-0005 proof ledgers). The
+      append-only log that downstream verifiers depend on for proof
+      inclusion and revocation timeliness.
+    criticality: R4
+  - id: agent.to.agent.session
+    description: >-
+      The agent-to-agent session boundary (Live Mode + Packet Mode,
+      TF-0003). Each session/packet crosses from one actor instance
+      to another; capability inflation or replay across this boundary
+      breaks the entire authority model.
+    criticality: R4
+
+adversaries:
+  - id: external.attacker
+    description: >-
+      Unauthenticated network attacker probing public surfaces and
+      published artefacts. Will pivot opportunistically; will become
+      targeted given a foothold.
+    capability_levels: [opportunistic, targeted]
+  - id: malicious.dependency
+    description: >-
+      A poisoned upstream package or typosquat that executes inside
+      builds, contributor machines, and CI runners.
+    capability_levels: [targeted, ai-assisted]
+  - id: rogue.ai.agent
+    description: >-
+      A locally-running AI coding agent acting under
+      `.tf/agent-contract.yaml` whose prompt context has been
+      manipulated, or whose model has been induced to escalate.
+    capability_levels: [ai-assisted, insider]
+  - id: compromised.peer
+    description: >-
+      A federated TrustForge peer whose long-term keys leaked or
+      whose operator turned hostile.
+    capability_levels: [insider, targeted]
+  - id: insider.contributor
+    description: >-
+      A contributor or maintainer with commit and signing access who
+      acts in bad faith or whose workstation is compromised.
+    capability_levels: [insider]
+  - id: nation.state
+    description: >-
+      A well-resourced adversary capable of compromising hardware,
+      transparency anchors, registry infrastructure, or mounting
+      side-channel attacks.
+    capability_levels: [nation-state, targeted, ai-assisted]
+
+# 24 threats covering supply chain, crypto misuse, agent risk,
+# bridge integration risk, and federation risk. Each entry is a
+# stable identifier referenced by `mitigations[].applies_to`.
+attack_classes:
+  - supply-chain-compromise
+  - dependency-typosquat
+  - vault-passphrase-brute-force
+  - vault-tamper
+  - daemon-admin-token-theft
+  - plugin-sandbox-escape
+  - ed25519-forgery-via-key-reuse
+  - replay-attack
+  - aead-nonce-reuse
+  - time-skew-clock-attack
+  - federated-peer-compromise
+  - transparency-anchor-takeover
+  - ai-agent-prompt-injection
+  - capability-inflation
+  - negative-capability-bypass-via-glob
+  - regex-dos-in-policy-engine
+  - certificate-chain-bypass
+  - ocsp-stapling-tamper
+  - spiffe-federation-poisoning
+  - oauth-issuer-spoof
+  - webauthn-assertion-replay
+  - mcp-tool-list-spoof
+  - a2a-agentcard-impersonation
+  - relay-forwarding-authority-confusion
+
+# Mitigations cross-reference the assets and attack classes above.
+# Status reflects what v0.1.0 actually ships; "planned" items are
+# defences scheduled for follow-up phases.
+mitigations:
+  - id: argon2id-vault-kdf
+    applies_to:
+      - vault.passphrase
+      - vault-passphrase-brute-force
+    description: >-
+      Vault file is sealed with Argon2id-stretched passphrase
+      material (memory-hard, salt + parameters embedded in the vault
+      header per `schemas/vault-file.schema.json`). Raises offline
+      brute-force cost beyond commodity GPU economics.
+    status: implemented
+  - id: vault-atomic-persist
+    applies_to:
+      - vault.passphrase
+      - vault-tamper
+    description: >-
+      Vault writes go through write-temp + fsync + rename so partial
+      writes cannot leave a tampered or truncated vault behind, and
+      every persisted vault carries an integrity tag verified on load.
+    status: implemented
+  - id: glob-escape-on-action-targets
+    applies_to:
+      - host.filesystem
+      - negative-capability-bypass-via-glob
+      - capability-inflation
+    description: >-
+      Action target patterns are matched with glob escape applied to
+      user-supplied input; metacharacters in caller-controlled
+      arguments cannot widen `allow_targets` or punch through
+      `deny_targets` declared in the agent contract.
+    status: implemented
+  - id: regex-dos-prevention
+    applies_to:
+      - daemon.admin.endpoint
+      - regex-dos-in-policy-engine
+    description: >-
+      Policy engine refuses pathological regex patterns: bounded
+      compile size, linear-time matcher where available, and per-
+      evaluation timeouts. Catastrophic-backtracking inputs fail
+      closed rather than stalling the daemon.
+    status: implemented
+  - id: federation-issuer-key-verify
+    applies_to:
+      - federation.peer
+      - federated-peer-compromise
+      - oauth-issuer-spoof
+    description: >-
+      Federation attestations are validated against the peer's
+      pinned issuer key set (per `federation-attestation.schema.json`)
+      with explicit key-id binding, refusing unknown or rotated keys
+      until the operator acknowledges the rotation.
+    status: implemented
+  - id: schema-strict-additional-properties
+    applies_to:
+      - supply.chain
+      - mcp-tool-list-spoof
+      - a2a-agentcard-impersonation
+    description: >-
+      Every TrustForge schema uses `additionalProperties: false`, so
+      tool lists, agent cards, and bridge descriptors that smuggle
+      extra fields fail validation rather than silently expanding the
+      attack surface.
+    status: implemented
+  - id: capability-token-aud-bind
+    applies_to:
+      - agent.to.agent.session
+      - capability-inflation
+      - replay-attack
+    description: >-
+      Capability tokens bind to issuer, subject, audience, and
+      session id; verifiers reject tokens replayed across sessions
+      or audiences (TF-0004 + capability-token schema).
+    status: implemented
+  - id: negative-capability-precedence
+    applies_to:
+      - host.filesystem
+      - capability-inflation
+      - ai-agent-prompt-injection
+    description: >-
+      Negative capabilities override positive grants regardless of
+      order. An AI agent cannot prompt-inject its way past an
+      explicit `forbidden:` entry in the agent contract.
+    status: implemented
+  - id: aead-nonce-discipline
+    applies_to:
+      - agent.to.agent.session
+      - aead-nonce-reuse
+    description: >-
+      Session crypto uses XChaCha20-Poly1305 with random nonces or
+      strict per-direction counters; key+nonce reuse is rejected at
+      the framing layer before plaintext is exposed.
+    status: planned
+  - id: ed25519-domain-separation
+    applies_to:
+      - agent.to.agent.session
+      - ed25519-forgery-via-key-reuse
+    description: >-
+      Ed25519 signing contexts use domain-separation tags per object
+      class (proof event, capability token, packet, federation
+      attestation) so a signature over one object cannot be lifted
+      and replayed as another.
+    status: implemented
+  - id: clock-skew-tolerance
+    applies_to:
+      - agent.to.agent.session
+      - time-skew-clock-attack
+      - replay-attack
+    description: >-
+      Time-bounded constraints (`time_window`, expiries) accept a
+      bounded skew (default 60s) and reject tokens whose `from` is
+      in the far future or whose `until` lies outside the daemon's
+      monotonic-anchored wall clock.
+    status: implemented
+  - id: transparency-anchor-pinning
+    applies_to:
+      - transparency.anchor
+      - transparency-anchor-takeover
+    description: >-
+      Verifiers pin one or more transparency anchor public keys and
+      cross-check inclusion proofs against the pinned set; a single
+      compromised anchor cannot silently rewrite history.
+    status: planned
+  - id: plugin-sandbox-capability-gate
+    applies_to:
+      - plugin.sandbox
+      - plugin-sandbox-escape
+    description: >-
+      Plugins run with the OS-level sandbox profile declared in
+      their `plugin-manifest.schema.json` entry; host capabilities
+      are mediated through ProofRPC and never directly available.
+    status: planned
+  - id: daemon-admin-token-binding
+    applies_to:
+      - daemon.admin.endpoint
+      - daemon-admin-token-theft
+    description: >-
+      Admin tokens bind to UDS peer-credential or loopback origin
+      plus a short TTL; a stolen token used from another process or
+      after rotation fails the binding check.
+    status: planned
+  - id: dependency-pinning-and-review
+    applies_to:
+      - supply.chain
+      - dependency-typosquat
+      - supply-chain-compromise
+    description: >-
+      Bun and Cargo lockfiles pin every transitive dependency; new
+      additions require a maintainer review and signed commit. The
+      dependency-typosquat surface is constrained by a small,
+      reviewed set of upstreams.
+    status: implemented
+  - id: webauthn-challenge-binding
+    applies_to:
+      - agent.to.agent.session
+      - webauthn-assertion-replay
+    description: >-
+      The WebAuthn bridge binds assertions to a fresh challenge,
+      origin, and RPID; replayed assertions across sessions or
+      origins fail signature/challenge verification.
+    status: planned
+  - id: tls-and-ocsp-pinning
+    applies_to:
+      - federation.peer
+      - certificate-chain-bypass
+      - ocsp-stapling-tamper
+    description: >-
+      Federation transports require TLS with pinned issuer chains
+      and stapled OCSP responses signed by the expected responder;
+      missing or stale staples are treated as failure-closed.
+    status: planned
+  - id: relay-forwarding-authority-split
+    applies_to:
+      - agent.to.agent.session
+      - relay-forwarding-authority-confusion
+    description: >-
+      Relay actors carry a `relay-authority` token that authorises
+      forwarding only; action authority is checked separately at the
+      destination, so a relay cannot confuse forwarding with
+      execution rights.
+    status: implemented
+
+# Risks v0.1.0 explicitly does not defend against. Acceptance is
+# recorded so downstream operators can decide whether the residual
+# is compatible with their deployment.
+residual_risks:
+  - description: >-
+      Compromised host kernel: a privileged attacker on the same
+      machine can read TrustForge memory, ptrace the daemon, or
+      tamper with `.tf/` files. Out of scope per SECURITY.md.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"
+  - description: >-
+      Compromised TPM / HSM: if the hardware key store lies, signing
+      and sealing guarantees collapse. v0.1.0 has no remote
+      attestation of the TPM itself.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"
+  - description: >-
+      Physical key extraction: an attacker with sustained physical
+      access to a device can extract long-term private keys from
+      cold storage despite vault sealing.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"
+  - description: >-
+      Side-channel leakage: timing, power, and EM side channels in
+      the underlying crypto libraries are not independently audited
+      for v0.1.0; we rely on upstream reviewed implementations.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"
+  - description: >-
+      Malicious browser running the TrustForge user's session: a
+      compromised browser can scrape WebAuthn UI, exfiltrate cookies,
+      and prompt the user to approve attacker-chosen capabilities.
+      Defence is delegated to the platform.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"
+  - description: >-
+      Malicious LSP / IDE auto-completing TrustForge actions: a
+      hostile editor extension can synthesise plausible-looking
+      action invocations the user accepts without review. Mitigated
+      by capability approval prompts but not eliminated.
+    accepted_by: "tf:actor:human:trustforge.dev/maintainers"
+    accepted_at: "2026-04-25T00:00:00Z"

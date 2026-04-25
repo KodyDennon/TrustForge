@@ -1,0 +1,28 @@
+# Synthetic failure fixture for tools/tf-conformance/tests/failure-paths.test.ts.
+#
+# `file.delete` is listed under `forbidden`, so the AgentGuard must return
+# decision.kind = "deny". The expectation field deliberately demands
+# `allow` — a correct runGuardVectors must report this case as a failure.
+# If the runner ever reports passed > 0 / failed === 0 here, the guard
+# vector machinery has regressed to the pre-B10 vacuous-pass state
+# (FIND-001).
+
+contract:
+  contract_version: "1"
+  spec_version: TF-0006-draft
+  project: synthetic-guard-failure
+  trust_domain: example.com
+  actions:
+    - name: file.read
+      risk: R0
+      approval: none
+      reversible: true
+  forbidden:
+    - action: file.delete
+      reason: "Synthetic forbid for failure test."
+
+cases:
+  - name: forbidden-action-incorrectly-expected-allow
+    query: { action: file.delete, target: "src/main.ts" }
+    expect:
+      kind: allow

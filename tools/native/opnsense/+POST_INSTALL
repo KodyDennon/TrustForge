@@ -1,0 +1,72 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+#
+# OPNsense post-install hook for the TrustForge plugin.
+#
+# This script runs once, *after* pkg has staged all files into the
+# live filesystem. It performs the small set of imperative steps that
+# can't live in pkg-plist:
+#
+#   1. create the trustforge service user/group if missing,
+#   2. ensure runtime + log directories exist with correct ownership,
+#   3. register the rc.d service in /etc/rc.conf.d so it persists,
+#   4. enable + start the daemon,
+#   5. notify configd so OPNsense's web UI sees the new plugin
+#      without requiring a manual reload.
+
+set -e
+
+USER=trustforge
+GROUP=trustforge
+UID_VAL=915
+RC=/usr/local/etc/rc.d/trustforge
+
+# 1) service user/group
+if ! /usr/sbin/pw groupshow ${GROUP} >/dev/null 2>&1; then
+    /usr/sbin/pw groupadd ${GROUP} -g ${UID_VAL}
+fi
+if ! /usr/sbin/pw usershow ${USER} >/dev/null 2>&1; then
+    /usr/sbin/pw useradd ${USER} \
+        -u ${UID_VAL} -g ${GROUP} \
+        -c "TrustForge daemon" \
+        -d /var/empty -s /usr/sbin/nologin
+fi
+
+# 2) runtime + log directories
+install -d -o ${USER} -g ${GROUP} -m 0755 /var/run/trustforge
+install -d -o ${USER} -g ${GROUP} -m 0750 /var/log/trustforge
+install -d -o root    -g wheel    -m 0755 /usr/local/etc/trustforge
+
+# Seed config.yaml from the sample on first install only.
+if [ ! -f /usr/local/etc/trustforge/config.yaml ] \
+   && [ -f /usr/local/etc/trustforge/config.yaml.sample ]; then
+    cp /usr/local/etc/trustforge/config.yaml.sample \
+       /usr/local/etc/trustforge/config.yaml
+    chown ${USER}:${GROUP} /usr/local/etc/trustforge/config.yaml
+fi
+
+# 3) sysrc-equivalent enable
+if [ -x /usr/sbin/sysrc ]; then
+    /usr/sbin/sysrc -f /etc/rc.conf.d/trustforge trustforge_enable=YES \
+        >/dev/null 2>&1 || true
+fi
+
+# 4) start (or restart if already running from a previous version)
+if [ -x ${RC} ]; then
+    if ${RC} status >/dev/null 2>&1; then
+        ${RC} restart || true
+    else
+        ${RC} start || true
+    fi
+fi
+
+# 5) refresh OPNsense's MVC + configd templates so the new plugin
+#    appears in the menu without a reboot.
+if [ -x /usr/local/sbin/configctl ]; then
+    /usr/local/sbin/configctl template reload OPNsense/Trustforge \
+        >/dev/null 2>&1 || true
+    /usr/local/sbin/configctl webgui restart \
+        >/dev/null 2>&1 || true
+fi
+
+exit 0

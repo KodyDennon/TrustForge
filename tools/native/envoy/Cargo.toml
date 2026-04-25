@@ -1,0 +1,43 @@
+# Detach from the root workspace so the wasm-only target doesn't pollute
+# the main `cargo build` graph.
+[workspace]
+
+[package]
+name = "tf-envoy-filter"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "TrustForge Envoy proxy-wasm HTTP filter (Phase 0 draft)"
+repository = "https://github.com/NuGit-Tech/TrustForge"
+publish = false
+
+# This crate is intentionally NOT a member of the root workspace because it
+# is built for the wasm32-wasi target with a different toolchain profile.
+# The root Cargo.toml [workspace] members list excludes this directory.
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+log = "0.4"
+
+# Proxy-wasm SDK is the standard for Envoy wasm filters. We only depend on
+# it when actually building for a wasm target — on host this avoids
+# pulling in wasm-only `extern "C"` symbols that fail to link.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+proxy-wasm = "0.2"
+
+[dev-dependencies]
+# Pure-host tests don't need proxy-wasm runtime; we exercise the
+# pure-data helpers (build_decide_request, parse_decide_response) directly.
+# proxy-wasm-test 0.2 does not exist on crates.io as of 2026-04, so we
+# hand-roll a minimal mock in tests/.
+serde_json = "1"
+
+[profile.release]
+# Slim wasm output.
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

@@ -1,0 +1,76 @@
+/*
+ * SLAX op-script: call TrustForge /v1/decide on every Junos commit.
+ *
+ * The script captures the candidate config, posts a decide request
+ * to the local tf-daemon, and either lets the commit proceed or
+ * raises an error that aborts the commit.
+ *
+ * Hooked from /var/db/scripts/op/trustforge.slax via the JET app
+ * manifest. Phase 0 / pre-release: tf-daemon binary referenced is
+ * not yet shipped.
+ *
+ * Reference: Juniper "SLAX 1.3 Language Reference".
+ */
+version 1.3;
+
+ns junos = "http://xml.juniper.net/junos/*/junos";
+ns xnm   = "http://xml.juniper.net/xnm/1.1/xnm";
+ns jcs   = "http://xml.juniper.net/junos/commit-scripts/1.0";
+ns curl  = "http://xml.libslax.org/curl";
+
+import "../import/junos.xsl";
+
+param $tf-host    = "127.0.0.1";
+param $tf-port    = "8642";
+param $tf-timeout = "1500";
+
+match / {
+    <op-script-results> {
+        var $rpc = <get-configuration> {
+            <database> "candidate";
+        }
+        var $candidate = jcs:invoke($rpc);
+
+        var $actor = "tf:actor:device:junos/" _ $candidate/system/host-name;
+        var $user  = $junos-context/user-context/login-name;
+        var $payload = {
+            "{"
+            "\"actor\":\"" _ $actor _ "\","
+            "\"actor_user\":\"tf:actor:user:" _ $user _ "\","
+            "\"action\":\"junos:commit\","
+            "\"target\":\"" _ $candidate/system/host-name _ "\","
+            "\"context\":{\"changes\": " _ count($candidate//*[@junos:changed]) _ "}"
+            "}"
+        };
+
+        var $url = "http://" _ $tf-host _ ":" _ $tf-port _ "/v1/decide";
+
+        var $curl-handle = curl:open();
+        var $resp := {
+            call curl:perform($handle = $curl-handle) {
+                with $opts = {
+                    <url> $url;
+                    <method> "POST";
+                    <header> "content-type: application/json";
+                    <data> $payload;
+                    <timeout> $tf-timeout;
+                }
+            }
+        }
+        expr curl:close($curl-handle);
+
+        var $verdict = jcs:regex("\"verdict\":\"(allow|deny|ask)\"", $resp/raw-data);
+
+        if ($verdict[2] == "deny") {
+            <xnm:error> {
+                <message> "TrustForge denied this commit: " _ $resp/raw-data;
+            }
+        } else if ($verdict[2] == "ask") {
+            <xnm:warning> {
+                <message> "TrustForge requested approval; commit-confirmed only.";
+            }
+        } else {
+            <output> "TrustForge: commit allowed.";
+        }
+    }
+}

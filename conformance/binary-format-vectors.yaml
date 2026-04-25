@@ -1,0 +1,115 @@
+schema_version: 1
+description: |
+  Binary-format parity vectors for .tfbundle and .tfpkt. The TS encoder
+  (`cbor-x` with deterministic mode) and Rust encoder (`ciborium` with
+  canonical encoding) must produce byte-identical output for the same
+  input. Both decoders must round-trip.
+
+  The body CBOR is RFC 8949 plain encoding. To achieve TS↔Rust parity,
+  the YAML keys are encoded in deterministic order: TS calls
+  `cborEncode` after key-sorting the input via the canonical sorter so
+  the resulting CBOR map keys appear in the same order ciborium emits.
+
+tfbundle:
+  - id: "minimal-unsigned"
+    input_yaml: |
+      bundle_version: "1"
+      events: []
+      bundle_id: "b1"
+      issued_at: "2026-04-24T12:00:00Z"
+    expected_hex: "5446424e4401000000000046a46962756e646c655f69646262316e62756e646c655f76657273696f6e6131666576656e747380696973737565645f617474323032362d30342d32345431323a30303a30305a00000000"
+    expected_signature_hex: ""
+  - id: "with-signature"
+    input_yaml: |
+      bundle_version: "1"
+      events: []
+    signature_hex: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    expected_hex: "5446424e440100000000001aa26e62756e646c655f76657273696f6e6131666576656e74738000000040aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  - id: "encrypted-shape"
+    input_yaml: |
+      bundle_version: "1"
+      ciphertext: "AAAAAAAAAAA="
+      nonce: "AAAAAAAAAAAAAAAA"
+      wrapped_keys: []
+    expected_hex: "5446424e440100000000004fa46e62756e646c655f76657273696f6e61316a636970686572746578746c41414141414141414141413d656e6f6e636570414141414141414141414141414141416c777261707065645f6b6579738000000000"
+  - id: "with-many-events"
+    input_yaml: |
+      bundle_version: "1"
+      events:
+        - { type: "rpc.call", method: "x.y", call_id: "c1", caller: "tf:actor:x", result: "ok" }
+        - { type: "rpc.call", method: "x.z", call_id: "c2", caller: "tf:actor:y", result: "ok" }
+    expected_hex: "5446424e440100000000009ca26e62756e646c655f76657273696f6e6131666576656e747382a56763616c6c5f69646263316663616c6c65726a74663a6163746f723a78666d6574686f6463782e7966726573756c74626f6b6474797065687270632e63616c6ca56763616c6c5f69646263326663616c6c65726a74663a6163746f723a79666d6574686f6463782e7a66726573756c74626f6b6474797065687270632e63616c6c00000000"
+
+tfpkt:
+  - id: "minimal-packet"
+    input_yaml: |
+      packet_version: "1"
+      packet_id: "pkt-1"
+      source: "tf:actor:agent:example.com/x"
+      destination: "tf:actor:service:example.com/d"
+      priority: "P3"
+      created_at: "2026-04-24T12:00:00Z"
+      encoding: "cbor"
+      compression: "none"
+      payload: "AAAA"
+      signature:
+        algorithm: "ed25519"
+        signer: "tf:actor:agent:example.com/x"
+        signature: "AAAA"
+    expected_hex: "5446504b540100000000011caa6b636f6d7072657373696f6e646e6f6e656a637265617465645f617474323032362d30342d32345431323a30303a30305a6b64657374696e6174696f6e781e74663a6163746f723a736572766963653a6578616d706c652e636f6d2f6468656e636f64696e676463626f72697061636b65745f696465706b742d316e7061636b65745f76657273696f6e6131677061796c6f61646441414141687072696f72697479625033697369676e6174757265a369616c676f726974686d6765643235353139697369676e61747572656441414141667369676e6572781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f7866736f75726365781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f78"
+  - id: "expired-packet"
+    input_yaml: |
+      packet_version: "1"
+      packet_id: "pkt-exp"
+      source: "tf:actor:agent:example.com/x"
+      destination: "tf:actor:service:example.com/d"
+      priority: "P3"
+      created_at: "2026-04-22T00:00:00Z"
+      expires_at: "2026-04-23T00:00:00Z"
+      encoding: "cbor"
+      compression: "none"
+      payload: "AAAA"
+      signature:
+        algorithm: "ed25519"
+        signer: "tf:actor:agent:example.com/x"
+        signature: "AAAA"
+    expected_hex: "5446504b540100000000013eab6b636f6d7072657373696f6e646e6f6e656a637265617465645f617474323032362d30342d32325430303a30303a30305a6b64657374696e6174696f6e781e74663a6163746f723a736572766963653a6578616d706c652e636f6d2f6468656e636f64696e676463626f726a657870697265735f617474323032362d30342d32335430303a30303a30305a697061636b65745f696467706b742d6578706e7061636b65745f76657273696f6e6131677061796c6f61646441414141687072696f72697479625033697369676e6174757265a369616c676f726974686d6765643235353139697369676e61747572656441414141667369676e6572781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f7866736f75726365781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f78"
+  - id: "emergency-p0"
+    input_yaml: |
+      packet_version: "1"
+      packet_id: "pkt-emerg"
+      source: "tf:actor:human:example.com/alice"
+      destination: "tf:actor:service:example.com/d"
+      priority: "P0"
+      emergency: true
+      created_at: "2026-04-24T12:00:00Z"
+      encoding: "cbor"
+      compression: "none"
+      payload: "AAAA"
+      signature:
+        algorithm: "ed25519"
+        signer: "tf:actor:human:example.com/alice"
+        signature: "AAAA"
+    expected_hex: "5446504b5401000000000133ab6b636f6d7072657373696f6e646e6f6e656a637265617465645f617474323032362d30342d32345431323a30303a30305a6b64657374696e6174696f6e781e74663a6163746f723a736572766963653a6578616d706c652e636f6d2f6469656d657267656e6379f568656e636f64696e676463626f72697061636b65745f696469706b742d656d6572676e7061636b65745f76657273696f6e6131677061796c6f61646441414141687072696f72697479625030697369676e6174757265a369616c676f726974686d6765643235353139697369676e61747572656441414141667369676e6572782074663a6163746f723a68756d616e3a6578616d706c652e636f6d2f616c69636566736f75726365782074663a6163746f723a68756d616e3a6578616d706c652e636f6d2f616c696365"
+  - id: "fragmented"
+    input_yaml: |
+      packet_version: "1"
+      packet_id: "pkt-frag-0"
+      source: "tf:actor:agent:example.com/x"
+      destination: "tf:actor:service:example.com/d"
+      priority: "P3"
+      created_at: "2026-04-24T12:00:00Z"
+      encoding: "cbor"
+      compression: "none"
+      payload: "AAAA"
+      fragment:
+        fragment_id: "frag-pkt-orig"
+        index: 0
+        count: 3
+        total_payload_bytes: 1024
+        payload_digest: "sha256:abcd"
+      signature:
+        algorithm: "ed25519"
+        signer: "tf:actor:agent:example.com/x"
+        signature: "AAAA"
+    expected_hex: "5446504b5401000000000185ab6b636f6d7072657373696f6e646e6f6e656a637265617465645f617474323032362d30342d32345431323a30303a30305a6b64657374696e6174696f6e781e74663a6163746f723a736572766963653a6578616d706c652e636f6d2f6468656e636f64696e676463626f7268667261676d656e74a565636f756e74036b667261676d656e745f69646d667261672d706b742d6f72696765696e646578006e7061796c6f61645f6469676573746b7368613235363a6162636473746f74616c5f7061796c6f61645f6279746573190400697061636b65745f69646a706b742d667261672d306e7061636b65745f76657273696f6e6131677061796c6f61646441414141687072696f72697479625033697369676e6174757265a369616c676f726974686d6765643235353139697369676e61747572656441414141667369676e6572781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f7866736f75726365781c74663a6163746f723a6167656e743a6578616d706c652e636f6d2f78"

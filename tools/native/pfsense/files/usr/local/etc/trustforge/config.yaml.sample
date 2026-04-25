@@ -1,0 +1,21 @@
+# Sample TrustForge daemon config for pfSense.
+# Copy to /usr/local/etc/trustforge/config.yaml and edit before enabling
+# the service from Services > TrustForge.
+
+profile: tf-home-compatible
+log_level: info
+
+listen: 127.0.0.1:8642
+socket: /var/run/trustforge/decide.sock
+
+bridges:
+  oauth:
+    issuer_match:
+      - https://accounts.google.com
+    trust_level: T2
+
+# Set to `true` to allow this pfSense box to forward TrustForge packets
+# on behalf of other actors. Forwarding authority is separate from
+# action authority — the relay cannot decrypt or execute payloads.
+relay:
+  enabled: false

@@ -1,0 +1,32 @@
+Windows Registry Editor Version 5.00
+
+; TrustForge LSA Authentication Package — registration
+;
+; Status: Draft — Phase 0. Experimental, NOT production-ready.
+;
+; !!!! WARNING !!!!
+; Editing the Authentication Packages list incorrectly will prevent lsass.exe
+; from starting and the system will be unbootable. Apply this file only on a
+; machine you can roll back (a VM with a snapshot, or a host with a recent
+; system restore point). Always keep an Administrator account whose logon
+; path does NOT depend on TrustForgeLsa.
+;
+; This file uses REG_MULTI_SZ. The values shown below are the default Windows
+; package list with TrustForgeLsa appended. If your machine has additional
+; packages installed (Credential Guard, third-party MFA, etc.) you MUST first
+; export the existing key and merge — do not blindly overwrite.
+;
+; Take effect: REBOOT.
+;
+; Place TrustForgeLsa.dll in C:\Windows\System32\ before importing this file.
+; LSA loads packages by short name from System32 only.
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa]
+"Authentication Packages"=hex(7):6d,00,73,00,76,00,31,00,5f,00,30,00,00,00,\
+  54,00,72,00,75,00,73,00,74,00,46,00,6f,00,72,00,67,00,65,00,4c,00,73,00,\
+  61,00,00,00,00,00
+
+; Decoded:
+;   "msv1_0"
+;   "TrustForgeLsa"
+;   (terminating empty string)

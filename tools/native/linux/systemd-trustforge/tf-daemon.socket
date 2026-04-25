@@ -1,0 +1,20 @@
+[Unit]
+Description=TrustForge decision socket
+Documentation=https://trustforge.dev
+PartOf=tf-daemon.service
+
+[Socket]
+# Primary decision endpoint: clients (tf-cli, PAM, polkit, sudo plugins,
+# AI-agent SDKs) POST decision requests to /v1/decide on this Unix socket.
+# Socket activation lets systemd open the FD before tf-daemon starts so
+# early callers don't race the daemon.
+ListenStream=/run/trustforge/decide.sock
+SocketUser=trustforge
+SocketGroup=trustforge
+SocketMode=0660
+
+# Drop the socket on stop so a stale path can't confuse a fresh daemon.
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

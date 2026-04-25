@@ -1,0 +1,29 @@
+{
+  "name": "@trustforge/lucia",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge integration for Lucia v3 — projects validated sessions into TrustForge actors.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@trustforge/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "lucia": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "lucia": { "optional": true }
+  },
+  "devDependencies": {
+    "@trustforge/test-utils": "workspace:*",
+    "@types/bun": "^1.3.9",
+    "typescript": "^5.6.3"
+  }
+}

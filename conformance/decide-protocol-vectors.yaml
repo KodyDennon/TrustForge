@@ -1,0 +1,309 @@
+schema_version: 1
+description: |
+  Decision-protocol parity vectors for HTTP POST /v1/decide on tf-daemon.
+  Every adapter (TS / Rust / Python / Go / etc.) must produce identical
+  bytes for the same logical request and identical decoded structure
+  for the same response.
+
+  Each fixture's `input` is the structured request or response body. The
+  `expected_canonical_json` is the canonical-JSON serialization that
+  EVERY language adapter MUST produce byte-for-byte when canonicalizing
+  the same logical value. This is what the wire bytes must match
+  (modulo whatever envelope the transport adds).
+
+# ---------------------------------------------------------------------------
+# Request fixtures (12). These cover the full surface of POST /v1/decide
+# request bodies, including every host_token_kind value listed in B1, the
+# minimal actor-only path, context+target combinations, and known invalid
+# shapes (missing-action, action-name pattern violations). Per the parity
+# rule, these still canonicalize deterministically — adapter-side
+# validation is a SEPARATE step and lives in tf-daemon (not here).
+# ---------------------------------------------------------------------------
+requests:
+  - id: "minimal-actor-allow"
+    input:
+      actor: "tf:actor:agent:example.com/x"
+      action: "fs.read"
+      target: null
+      context: {}
+      trace_id: "trace-1"
+    expected_canonical_json: '{"action":"fs.read","actor":"tf:actor:agent:example.com/x","context":{},"target":null,"trace_id":"trace-1"}'
+
+  - id: "host-token-oauth-jwt"
+    input:
+      actor: null
+      host_token: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkucGF5bG9hZC5zaWc"
+      host_token_kind: "oauth-jwt"
+      action: "user.read"
+      target: "user:123"
+      context: {}
+      trace_id: "trace-oauth-1"
+    expected_canonical_json: '{"action":"user.read","actor":null,"context":{},"host_token":"ZXlKaGJHY2lPaUpJVXpJMU5pSjkucGF5bG9hZC5zaWc","host_token_kind":"oauth-jwt","target":"user:123","trace_id":"trace-oauth-1"}'
+
+  - id: "host-token-clerk-session"
+    input:
+      actor: null
+      host_token: "sess_2NvLPq3nCkM3Z9p2Q8X1234567"
+      host_token_kind: "clerk-session"
+      action: "billing.read"
+      target: null
+      context: {}
+      trace_id: "trace-clerk-1"
+    expected_canonical_json: '{"action":"billing.read","actor":null,"context":{},"host_token":"sess_2NvLPq3nCkM3Z9p2Q8X1234567","host_token_kind":"clerk-session","target":null,"trace_id":"trace-clerk-1"}'
+
+  - id: "host-token-next-auth-jwt"
+    input:
+      actor: null
+      host_token: "eyJhbGciOiJIUzI1NiJ9.bmV4dC1hdXRo.payload"
+      host_token_kind: "next-auth-jwt"
+      action: "post.create"
+      target: "post:draft"
+      context: { ip: "10.0.0.1" }
+      trace_id: "trace-nextauth-1"
+    expected_canonical_json: '{"action":"post.create","actor":null,"context":{"ip":"10.0.0.1"},"host_token":"eyJhbGciOiJIUzI1NiJ9.bmV4dC1hdXRo.payload","host_token_kind":"next-auth-jwt","target":"post:draft","trace_id":"trace-nextauth-1"}'
+
+  - id: "host-token-better-auth-session"
+    input:
+      actor: null
+      host_token: "auth_5KpL8mZ4hQwR3yT7sJ9bN2vC"
+      host_token_kind: "better-auth-session"
+      action: "team.invite"
+      target: "user@example.com"
+      context: {}
+      trace_id: "trace-betterauth-1"
+    expected_canonical_json: '{"action":"team.invite","actor":null,"context":{},"host_token":"auth_5KpL8mZ4hQwR3yT7sJ9bN2vC","host_token_kind":"better-auth-session","target":"user@example.com","trace_id":"trace-betterauth-1"}'
+
+  - id: "host-token-webauthn-assertion"
+    input:
+      actor: null
+      host_token: "eyJjcmVkZW50aWFsSWQiOiJhYmMxMjMiLCJyZXNwb25zZSI6e319"
+      host_token_kind: "webauthn-assertion"
+      action: "vault.unlock"
+      target: "vault:primary"
+      context: { rp_id: "example.com" }
+      trace_id: "trace-webauthn-1"
+    expected_canonical_json: '{"action":"vault.unlock","actor":null,"context":{"rp_id":"example.com"},"host_token":"eyJjcmVkZW50aWFsSWQiOiJhYmMxMjMiLCJyZXNwb25zZSI6e319","host_token_kind":"webauthn-assertion","target":"vault:primary","trace_id":"trace-webauthn-1"}'
+
+  - id: "host-token-mtls-cert-pem"
+    input:
+      actor: null
+      host_token: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ..."
+      host_token_kind: "mtls-cert-pem"
+      action: "service.deploy"
+      target: "svc:prod-api"
+      context: {}
+      trace_id: "trace-mtls-1"
+    expected_canonical_json: '{"action":"service.deploy","actor":null,"context":{},"host_token":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ...","host_token_kind":"mtls-cert-pem","target":"svc:prod-api","trace_id":"trace-mtls-1"}'
+
+  - id: "host-token-spiffe-svid"
+    input:
+      actor: null
+      host_token: "spiffe://example.com/workload/api"
+      host_token_kind: "spiffe-svid"
+      action: "rpc.call"
+      target: "svc:billing"
+      context: {}
+      trace_id: "trace-spiffe-1"
+    expected_canonical_json: '{"action":"rpc.call","actor":null,"context":{},"host_token":"spiffe://example.com/workload/api","host_token_kind":"spiffe-svid","target":"svc:billing","trace_id":"trace-spiffe-1"}'
+
+  - id: "with-rich-context"
+    input:
+      actor: "tf:actor:agent:example.com/code-helper"
+      action: "shell.exec"
+      target: "/usr/bin/git"
+      context:
+        ip: "192.168.1.42"
+        user_agent: "tf-cli/0.1.0"
+        request_id: "req-9912"
+        trust_floor: "T3"
+      trace_id: "trace-ctx-1"
+    expected_canonical_json: '{"action":"shell.exec","actor":"tf:actor:agent:example.com/code-helper","context":{"ip":"192.168.1.42","request_id":"req-9912","trust_floor":"T3","user_agent":"tf-cli/0.1.0"},"target":"/usr/bin/git","trace_id":"trace-ctx-1"}'
+
+  - id: "missing-action-field"
+    # Daemon-side validation MUST reject this (no `action`). Canonicalization
+    # is still deterministic — that's exactly the property this fixture
+    # exists to pin: every adapter sees the same bytes before validation
+    # fires, so error responses converge on the same input hash.
+    input:
+      actor: "tf:actor:agent:example.com/x"
+      target: null
+      context: {}
+      trace_id: "trace-missing-action"
+    expected_canonical_json: '{"actor":"tf:actor:agent:example.com/x","context":{},"target":null,"trace_id":"trace-missing-action"}'
+
+  - id: "action-name-uppercase-violation"
+    # `Fs.Read` violates ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$ — daemon
+    # must reject. Adapter parity still requires identical canonical bytes.
+    input:
+      actor: "tf:actor:agent:example.com/x"
+      action: "Fs.Read"
+      target: null
+      context: {}
+      trace_id: "trace-uppercase"
+    expected_canonical_json: '{"action":"Fs.Read","actor":"tf:actor:agent:example.com/x","context":{},"target":null,"trace_id":"trace-uppercase"}'
+
+  - id: "action-name-no-dot-violation"
+    # `read` has no dot — violates dotted action-name pattern. Same parity
+    # requirement.
+    input:
+      actor: "tf:actor:agent:example.com/x"
+      action: "read"
+      target: null
+      context: {}
+      trace_id: "trace-no-dot"
+    expected_canonical_json: '{"action":"read","actor":"tf:actor:agent:example.com/x","context":{},"target":null,"trace_id":"trace-no-dot"}'
+
+# ---------------------------------------------------------------------------
+# Response fixtures (12). Each covers a /v1/decide response shape variant:
+# every decision verb (allow / deny / escalate / approval-required /
+# log-only), with and without approval_id, with empty + populated
+# danger_tags, varying authority_mode, and trust levels across the T0..T7
+# scale.
+# ---------------------------------------------------------------------------
+responses:
+  - id: "allow-with-proof-id"
+    input:
+      decision: "allow"
+      reason: "matched rule allow.fs-read"
+      approval_id: null
+      proof_id: "sha256:abcd..."
+      actor_resolved: "tf:actor:agent:example.com/x"
+      trust_level: "T2"
+      authority_mode: "layered"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/x","approval_id":null,"authority_mode":"layered","danger_tags":[],"decision":"allow","proof_id":"sha256:abcd...","reason":"matched rule allow.fs-read","trust_level":"T2"}'
+
+  - id: "deny-policy-violation"
+    input:
+      decision: "deny"
+      reason: "policy: target /etc/passwd matches forbidden pattern"
+      approval_id: null
+      proof_id: "sha256:deadbeef"
+      actor_resolved: "tf:actor:agent:example.com/x"
+      trust_level: "T1"
+      authority_mode: "layered"
+      danger_tags: ["filesystem-secret-read"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/x","approval_id":null,"authority_mode":"layered","danger_tags":["filesystem-secret-read"],"decision":"deny","proof_id":"sha256:deadbeef","reason":"policy: target /etc/passwd matches forbidden pattern","trust_level":"T1"}'
+
+  - id: "escalate-to-quorum"
+    input:
+      decision: "escalate"
+      reason: "action shell.exec at risk R3 requires quorum"
+      approval_id: null
+      proof_id: "sha256:01234567"
+      actor_resolved: "tf:actor:agent:example.com/code-helper"
+      trust_level: "T3"
+      authority_mode: "co-equal"
+      danger_tags: ["shell-exec"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/code-helper","approval_id":null,"authority_mode":"co-equal","danger_tags":["shell-exec"],"decision":"escalate","proof_id":"sha256:01234567","reason":"action shell.exec at risk R3 requires quorum","trust_level":"T3"}'
+
+  - id: "approval-required-with-id"
+    input:
+      decision: "approval-required"
+      reason: "human approval needed for irreversible action"
+      approval_id: "approval-9912-abc"
+      proof_id: "sha256:fedcba98"
+      actor_resolved: "tf:actor:agent:example.com/x"
+      trust_level: "T2"
+      authority_mode: "layered"
+      danger_tags: ["irreversible", "data-destruction"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/x","approval_id":"approval-9912-abc","authority_mode":"layered","danger_tags":["irreversible","data-destruction"],"decision":"approval-required","proof_id":"sha256:fedcba98","reason":"human approval needed for irreversible action","trust_level":"T2"}'
+
+  - id: "log-only-low-risk"
+    input:
+      decision: "log-only"
+      reason: "metrics collection — recorded but not enforced"
+      approval_id: null
+      proof_id: "sha256:11112222"
+      actor_resolved: "tf:actor:service:example.com/metrics"
+      trust_level: "T4"
+      authority_mode: "layered"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:service:example.com/metrics","approval_id":null,"authority_mode":"layered","danger_tags":[],"decision":"log-only","proof_id":"sha256:11112222","reason":"metrics collection — recorded but not enforced","trust_level":"T4"}'
+
+  - id: "allow-multiple-danger-tags"
+    input:
+      decision: "allow"
+      reason: "explicit grant for backup operator"
+      approval_id: null
+      proof_id: "sha256:aabbccdd"
+      actor_resolved: "tf:actor:agent:example.com/backup"
+      trust_level: "T5"
+      authority_mode: "layered"
+      danger_tags: ["network-egress", "credential-read", "filesystem-write"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/backup","approval_id":null,"authority_mode":"layered","danger_tags":["network-egress","credential-read","filesystem-write"],"decision":"allow","proof_id":"sha256:aabbccdd","reason":"explicit grant for backup operator","trust_level":"T5"}'
+
+  - id: "deny-replace-authority-mode"
+    input:
+      decision: "deny"
+      reason: "replace-mode authority does not include this action"
+      approval_id: null
+      proof_id: "sha256:99887766"
+      actor_resolved: "tf:actor:agent:example.com/restricted"
+      trust_level: "T0"
+      authority_mode: "replace"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/restricted","approval_id":null,"authority_mode":"replace","danger_tags":[],"decision":"deny","proof_id":"sha256:99887766","reason":"replace-mode authority does not include this action","trust_level":"T0"}'
+
+  - id: "allow-trust-t7-root"
+    input:
+      decision: "allow"
+      reason: "root authority — anchor signature verified"
+      approval_id: null
+      proof_id: "sha256:7777aaaa"
+      actor_resolved: "tf:actor:service:example.com/root"
+      trust_level: "T7"
+      authority_mode: "layered"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:service:example.com/root","approval_id":null,"authority_mode":"layered","danger_tags":[],"decision":"allow","proof_id":"sha256:7777aaaa","reason":"root authority — anchor signature verified","trust_level":"T7"}'
+
+  - id: "escalate-with-bridge-tags"
+    input:
+      decision: "escalate"
+      reason: "cross-bridge action — federation attestation required"
+      approval_id: null
+      proof_id: "sha256:bbbbcccc"
+      actor_resolved: "tf:actor:agent:partner.example/agent-1"
+      trust_level: "T2"
+      authority_mode: "co-equal"
+      danger_tags: ["bridge:webauthn", "bridge:spiffe", "cross-domain"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:partner.example/agent-1","approval_id":null,"authority_mode":"co-equal","danger_tags":["bridge:webauthn","bridge:spiffe","cross-domain"],"decision":"escalate","proof_id":"sha256:bbbbcccc","reason":"cross-bridge action — federation attestation required","trust_level":"T2"}'
+
+  - id: "approval-required-empty-tags"
+    input:
+      decision: "approval-required"
+      reason: "low-risk but rate-limited approval"
+      approval_id: "approval-rate-limit-1"
+      proof_id: "sha256:eeeeffff"
+      actor_resolved: "tf:actor:agent:example.com/x"
+      trust_level: "T3"
+      authority_mode: "layered"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/x","approval_id":"approval-rate-limit-1","authority_mode":"layered","danger_tags":[],"decision":"approval-required","proof_id":"sha256:eeeeffff","reason":"low-risk but rate-limited approval","trust_level":"T3"}'
+
+  - id: "log-only-with-tags"
+    input:
+      decision: "log-only"
+      reason: "shadow-mode evaluation"
+      approval_id: null
+      proof_id: "sha256:12340000"
+      actor_resolved: "tf:actor:agent:example.com/shadow"
+      trust_level: "T2"
+      authority_mode: "layered"
+      danger_tags: ["shadow", "non-enforcing"]
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/shadow","approval_id":null,"authority_mode":"layered","danger_tags":["shadow","non-enforcing"],"decision":"log-only","proof_id":"sha256:12340000","reason":"shadow-mode evaluation","trust_level":"T2"}'
+
+  - id: "allow-with-nfc-reason-string"
+    # The `reason` here uses the decomposed form of "café" (e + U+0301).
+    # Canonicalize NFC-normalizes — the output MUST contain the composed
+    # form (U+00E9), exercising NFC parity on every adapter.
+    input:
+      decision: "allow"
+      reason: "café access granted"
+      approval_id: null
+      proof_id: "sha256:cafe1234"
+      actor_resolved: "tf:actor:agent:example.com/x"
+      trust_level: "T2"
+      authority_mode: "layered"
+      danger_tags: []
+    expected_canonical_json: '{"actor_resolved":"tf:actor:agent:example.com/x","approval_id":null,"authority_mode":"layered","danger_tags":[],"decision":"allow","proof_id":"sha256:cafe1234","reason":"café access granted","trust_level":"T2"}'

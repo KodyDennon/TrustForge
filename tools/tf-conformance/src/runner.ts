@@ -26,6 +26,8 @@ import {
   spiffeToActorId,
   verifyFederationAttestation,
   walkChain,
+  writeTfbundle,
+  writeTfpkt,
   type EvalContext,
 } from "tf-types";
 
@@ -418,6 +420,124 @@ export function runCanonicalVectors(root: string): ConformanceReport {
   }
   const passed = cases.filter((c) => c.pass).length;
   return { category: "canonical", cases, passed, failed: cases.length - passed };
+}
+
+/* ---------- Decision-protocol runner.
+ *  Verifies that every fixture in `conformance/decide-protocol-vectors.yaml`
+ *  canonicalizes to the exact `expected_canonical_json` string. This is the
+ *  parity contract every adapter (TS / Rust / Python / Go / etc.) for the
+ *  HTTP `/v1/decide` endpoint must honor — same logical value in, same
+ *  bytes out. (Phase B1 conformance.) */
+
+export function runDecideProtocolVectors(root: string): ConformanceReport {
+  const cases: VectorResult[] = [];
+  const path = resolve(root, "conformance/decide-protocol-vectors.yaml");
+  if (!existsSync(path)) {
+    return {
+      category: "decide-protocol",
+      cases: [{ name: "decide-protocol-vectors.yaml", pass: false, detail: "missing" }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  const doc = loadYaml(path) as {
+    requests?: Array<{ id: string; input: unknown; expected_canonical_json: string }>;
+    responses?: Array<{ id: string; input: unknown; expected_canonical_json: string }>;
+  };
+  const all: Array<{ kind: "request" | "response"; id: string; input: unknown; expected: string }> = [];
+  for (const v of doc.requests ?? []) {
+    all.push({ kind: "request", id: v.id, input: v.input, expected: v.expected_canonical_json });
+  }
+  for (const v of doc.responses ?? []) {
+    all.push({ kind: "response", id: v.id, input: v.input, expected: v.expected_canonical_json });
+  }
+  for (const v of all) {
+    try {
+      const got = canonicalize(v.input);
+      const ok = got === v.expected;
+      cases.push({
+        name: `${v.kind}.${v.id}`,
+        pass: ok,
+        detail: ok ? undefined : `got ${got} expected ${v.expected}`,
+      });
+    } catch (err) {
+      cases.push({ name: `${v.kind}.${v.id}`, pass: false, detail: (err as Error).message });
+    }
+  }
+  const passed = cases.filter((c) => c.pass).length;
+  return { category: "decide-protocol", cases, passed, failed: cases.length - passed };
+}
+
+/* ---------- Binary-format runner.
+ *  Verifies that every fixture in `conformance/binary-format-vectors.yaml`
+ *  encodes to the exact `expected_hex` byte sequence via writeTfbundle /
+ *  writeTfpkt. This is the wire-level parity contract every TrustForge
+ *  language adapter for `.tfbundle` and `.tfpkt` must honor. The Rust
+ *  side has its own copy of this assertion at
+ *  `crates/tf-types/tests/binary_format_parity.rs`. */
+
+export function runBinaryFormatVectors(root: string): ConformanceReport {
+  const cases: VectorResult[] = [];
+  const path = resolve(root, "conformance/binary-format-vectors.yaml");
+  if (!existsSync(path)) {
+    return {
+      category: "binary-format",
+      cases: [{ name: "binary-format-vectors.yaml", pass: false, detail: "missing" }],
+      passed: 0,
+      failed: 1,
+    };
+  }
+  interface BundleFixture {
+    id: string;
+    input_yaml: string;
+    signature_hex?: string;
+    expected_hex: string;
+    expected_signature_hex?: string;
+  }
+  interface PacketFixture {
+    id: string;
+    input_yaml: string;
+    expected_hex: string;
+  }
+  const doc = loadYaml(path) as {
+    tfbundle?: BundleFixture[];
+    tfpkt?: PacketFixture[];
+  };
+  const { parse: parseInner } = require("yaml") as { parse: (s: string) => unknown };
+
+  for (const v of doc.tfbundle ?? []) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body = parseInner(v.input_yaml) as any;
+      const sig = v.signature_hex ? bytesFromHex(v.signature_hex) : undefined;
+      const got = toHex(writeTfbundle(body, sig));
+      const ok = got === v.expected_hex;
+      cases.push({
+        name: `tfbundle.${v.id}`,
+        pass: ok,
+        detail: ok ? undefined : `got ${got} expected ${v.expected_hex}`,
+      });
+    } catch (err) {
+      cases.push({ name: `tfbundle.${v.id}`, pass: false, detail: (err as Error).message });
+    }
+  }
+  for (const v of doc.tfpkt ?? []) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pkt = parseInner(v.input_yaml) as any;
+      const got = toHex(writeTfpkt(pkt));
+      const ok = got === v.expected_hex;
+      cases.push({
+        name: `tfpkt.${v.id}`,
+        pass: ok,
+        detail: ok ? undefined : `got ${got} expected ${v.expected_hex}`,
+      });
+    } catch (err) {
+      cases.push({ name: `tfpkt.${v.id}`, pass: false, detail: (err as Error).message });
+    }
+  }
+  const passed = cases.filter((c) => c.pass).length;
+  return { category: "binary-format", cases, passed, failed: cases.length - passed };
 }
 
 /* ---------- Chain / framing / session / relay / negative-capability
@@ -901,6 +1021,8 @@ export async function runAll(args: RunAllArgs): Promise<RunAllReport> {
     runSessionVectors(args.root),
     runRelayVectors(args.root),
     runNegativeCapVectors(args.root),
+    runDecideProtocolVectors(args.root),
+    runBinaryFormatVectors(args.root),
     await runCompatibilityLabel({
       profileId: args.profileId ?? "tf-home-compatible",
       daemonUrl: args.daemonUrl,

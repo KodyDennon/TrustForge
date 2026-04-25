@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "tf-admission-webhook.fullname" . }}
+  labels: {{- include "tf-admission-webhook.labels" . | nindent 4 }}
+  {{- if .Values.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: "{{ .Release.Namespace }}/{{ include "tf-admission-webhook.fullname" . }}"
+  {{- end }}
+webhooks:
+  - name: validate.trustforge.dev
+    admissionReviewVersions: ["v1"]
+    sideEffects: {{ .Values.webhook.sideEffects }}
+    failurePolicy: {{ .Values.webhook.failurePolicy }}
+    timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
+    clientConfig:
+      service:
+        name: {{ include "tf-admission-webhook.fullname" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /admit
+        port: {{ .Values.service.port }}
+    rules: {{- toYaml .Values.webhook.rules | nindent 6 }}
+    namespaceSelector: {{- toYaml .Values.webhook.namespaceSelector | nindent 6 }}

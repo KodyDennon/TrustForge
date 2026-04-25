@@ -1,0 +1,96 @@
+## <summary>TrustForge daemon (tf-daemon) SELinux policy module.</summary>
+## Status: Draft. Not production-ready. See README.md for build/install.
+
+policy_module(trustforge, 0.1.0)
+
+########################################
+#
+# Declarations
+#
+
+require {
+    type init_t;
+    type bin_t;
+    type proc_t;
+    type node_t;
+    type netif_t;
+    type unconfined_t;
+    class file { read getattr open execute execute_no_trans map };
+    class dir { read write add_name remove_name search getattr open };
+    class sock_file { read write create unlink getattr };
+    class tcp_socket { create bind listen accept connect read write };
+    class unix_stream_socket { create bind listen accept connectto };
+    class process { transition sigchld signal };
+    class capability { net_bind_service };
+    class netif { tcp_recv tcp_send };
+}
+
+# Daemon process domain.
+type trustforge_t;
+type trustforge_exec_t;
+
+# Persistent vault/ledger data dir (/var/lib/trustforge).
+type trustforge_var_lib_t;
+
+# Configuration tree (/etc/trustforge).
+type trustforge_etc_t;
+
+# Unix decision socket (/run/trustforge/decide.sock).
+type trustforge_socket_t;
+
+# Mark the executable so the transition can fire.
+init_daemon_domain(trustforge_t, trustforge_exec_t)
+
+########################################
+#
+# Domain transition: init_t -> trustforge_t via systemd unit
+#
+
+allow init_t trustforge_exec_t:file { read getattr open execute map };
+allow init_t trustforge_t:process transition;
+type_transition init_t trustforge_exec_t:process trustforge_t;
+allow trustforge_t init_t:process sigchld;
+
+########################################
+#
+# Configuration access (read-only)
+#
+
+allow trustforge_t trustforge_etc_t:dir { read search getattr open };
+allow trustforge_t trustforge_etc_t:file { read getattr open };
+
+########################################
+#
+# Vault / ledger data (read+write)
+#
+
+allow trustforge_t trustforge_var_lib_t:dir { read write add_name remove_name search getattr open };
+allow trustforge_t trustforge_var_lib_t:file { read write create unlink getattr open };
+
+########################################
+#
+# Decision socket
+#
+
+allow trustforge_t trustforge_socket_t:sock_file { read write create unlink getattr };
+allow trustforge_t self:unix_stream_socket { create bind listen accept connectto };
+
+########################################
+#
+# TCP loopback only.
+# We bind on self:tcp_socket and rely on the netif_t loopback device
+# for the actual recv/send -- non-loopback netifs are not granted.
+#
+
+allow trustforge_t self:tcp_socket { create bind listen accept };
+allow trustforge_t node_t:tcp_socket node_bind;
+allow trustforge_t netif_t:netif { tcp_recv tcp_send };
+
+########################################
+#
+# Quiet noisy-but-harmless inotify hits during config reload.
+#
+
+dontaudit trustforge_t trustforge_etc_t:dir watch;
+dontaudit trustforge_t trustforge_etc_t:file watch;
+dontaudit trustforge_t proc_t:file read;

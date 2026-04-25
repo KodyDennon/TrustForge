@@ -1,0 +1,12 @@
+# TrustForge LSM Kbuild descriptor
+#
+# Used by Kbuild when building the module out-of-tree
+# (`make -C $(KDIR) M=$(PWD) modules`) and by DKMS.
+
+obj-m := trustforge_lsm.o
+
+trustforge_lsm-y := trustforge_lsm.o
+
+ccflags-y += -DTRUSTFORGE_LSM_VERSION=\"0.1.0\"
+ccflags-y += -Wno-unused-parameter
+ccflags-y += -Wno-unused-function

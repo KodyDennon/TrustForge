@@ -5,7 +5,8 @@
   "description": "TrustForge: open-source trust fabric for AI-native software, devices, and verifiable action.",
   "license": "Apache-2.0",
   "workspaces": [
-    "tools/*"
+    "tools/*",
+    "tools/adapters/ts/*"
   ],
   "scripts": {
     "validate": "bun run --filter tf-schema validate",

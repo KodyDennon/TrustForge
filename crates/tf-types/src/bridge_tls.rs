@@ -454,3 +454,615 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
 }
 
 use base64::Engine as _;
+
+// =============================================================================
+// OCSP, CRL, exporter binding, and post-handshake re-auth modules.
+//
+// These extensions mirror the TS surface in `tools/tf-types-ts/src/core/bridge-tls.ts`
+// (`checkRevocation`, `deriveExporterKey`, `postHandshakeReauth`). They are
+// intentionally network-free: the caller supplies an `OcspFetcher` for OCSP
+// lookups and pre-loaded DER bytes for CRL parsing. RFC references:
+//   - RFC 6960 (OCSP)
+//   - RFC 5280 (CRL profile)
+//   - RFC 5705 / RFC 8446 §7.5 (TLS exporters)
+//   - RFC 8446 §4.6.2 (post-handshake authentication)
+// =============================================================================
+
+/// X.509 certificate handle used by the OCSP / CRL helpers. We deliberately
+/// keep this thin (raw DER + cached subject + serial) so callers don't have
+/// to depend on `x509-parser`'s `X509Certificate` lifetime in their own
+/// types.
+#[derive(Clone, Debug)]
+pub struct X509Cert {
+    pub der: Vec<u8>,
+    pub subject: String,
+    pub serial_be: Vec<u8>,
+}
+
+impl X509Cert {
+    /// Parse a single DER blob into an `X509Cert` snapshot.
+    pub fn from_der(der: &[u8]) -> Result<Self, BridgeError> {
+        let (_, parsed) = X509Certificate::from_der(der)
+            .map_err(|e| BridgeError::InvalidInput(format!("X509Cert: {}", e)))?;
+        let serial_be = parsed.tbs_certificate.raw_serial().to_vec();
+        Ok(X509Cert {
+            der: der.to_vec(),
+            subject: parsed.subject().to_string(),
+            serial_be,
+        })
+    }
+
+    /// Parse a single PEM block into an `X509Cert`.
+    pub fn from_pem(pem: &str) -> Result<Self, BridgeError> {
+        let der = parse_single_pem(pem)
+            .map_err(|e| BridgeError::InvalidInput(format!("X509Cert PEM: {}", e)))?;
+        Self::from_der(&der)
+    }
+}
+
+// ----- OCSP -----------------------------------------------------------------
+
+/// The decision an OCSP responder returned for a particular certificate.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OcspStatus {
+    Good,
+    Revoked,
+    Unknown,
+}
+
+/// Trait for callers who actually speak OCSP. Implementations receive the
+/// `(cert, issuer, ocsp_url)` triple and return DER bytes of an
+/// `OCSPResponse` (RFC 6960). The bridge does no network IO itself.
+pub trait OcspFetcher {
+    fn fetch(
+        &self,
+        cert: &X509Cert,
+        issuer: &X509Cert,
+        ocsp_url: &str,
+    ) -> Result<Vec<u8>, BridgeError>;
+}
+
+/// Errors that can come out of OCSP DER parsing / status extraction.
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum OcspError {
+    #[error("OCSP DER parse failed: {0}")]
+    Parse(String),
+    #[error("OCSP responder returned status code {0}")]
+    ResponderError(u8),
+    #[error("OCSP response is not a BasicOCSPResponse")]
+    NotBasic,
+    #[error("OCSP response thisUpdate={this_update} > now={now}")]
+    NotYetValid { this_update: i64, now: i64 },
+    #[error("OCSP response nextUpdate={next_update} < now={now}")]
+    Stale { next_update: i64, now: i64 },
+    #[error("OCSP response contained no SingleResponse entries")]
+    NoSingleResponses,
+}
+
+/// Stateless OCSP checker. Holds no configuration; the caller selects a
+/// fetcher and clock per call.
+pub struct OcspCheck;
+
+impl OcspCheck {
+    /// Run an OCSP query for `cert` (issued by `issuer`). The `fetcher`
+    /// returns DER for an `OCSPResponse`; we parse it, sanity-check the
+    /// `thisUpdate`/`nextUpdate` window against `now_unix_seconds`, and
+    /// extract the status for the first `SingleResponse`.
+    pub fn query(
+        cert: &X509Cert,
+        issuer: &X509Cert,
+        fetcher: &dyn OcspFetcher,
+        ocsp_url: &str,
+        now_unix_seconds: i64,
+    ) -> Result<OcspStatus, BridgeError> {
+        let der = fetcher.fetch(cert, issuer, ocsp_url)?;
+        Self::parse_response(&der, now_unix_seconds).map_err(|e| match e {
+            OcspError::Parse(s) => BridgeError::InvalidInput(format!("OCSP: {}", s)),
+            OcspError::ResponderError(n) => {
+                BridgeError::Rejected(format!("OCSP responder error {}", n))
+            }
+            OcspError::NotBasic => BridgeError::Rejected("OCSP not BasicOCSPResponse".into()),
+            OcspError::NotYetValid { this_update, now } => BridgeError::Rejected(format!(
+                "OCSP thisUpdate={} > now={}",
+                this_update, now
+            )),
+            OcspError::Stale { next_update, now } => {
+                BridgeError::Rejected(format!("OCSP nextUpdate={} < now={}", next_update, now))
+            }
+            OcspError::NoSingleResponses => {
+                BridgeError::Rejected("OCSP had no SingleResponse entries".into())
+            }
+        })
+    }
+
+    /// Pure parser: walks the DER tree, validates the time window, and
+    /// returns the status of the first `SingleResponse`. Exposed for
+    /// testing.
+    pub fn parse_response(der: &[u8], now_unix_seconds: i64) -> Result<OcspStatus, OcspError> {
+        let parsed = ocsp::parse_ocsp_response(der)?;
+        if parsed.response_status != 0 {
+            return Err(OcspError::ResponderError(parsed.response_status));
+        }
+        let basic = parsed.basic.ok_or(OcspError::NotBasic)?;
+        let single = basic
+            .single_responses
+            .first()
+            .ok_or(OcspError::NoSingleResponses)?;
+        if single.this_update > now_unix_seconds {
+            return Err(OcspError::NotYetValid {
+                this_update: single.this_update,
+                now: now_unix_seconds,
+            });
+        }
+        if let Some(next) = single.next_update {
+            if next < now_unix_seconds {
+                return Err(OcspError::Stale {
+                    next_update: next,
+                    now: now_unix_seconds,
+                });
+            }
+        }
+        Ok(single.status.clone())
+    }
+}
+
+/// Internal OCSP DER walker. Implements the *minimum* RFC 6960 surface needed
+/// to decide good / revoked / unknown for the first SingleResponse and
+/// validate the freshness window. We do not verify the responder signature
+/// here; callers that need that should layer their own verification on top
+/// (the responder ID is exposed in `BasicResponseData`). This is consistent
+/// with the TS bridge, which also delegates signature verification to the
+/// caller via the `OcspStatusResolver` callback.
+pub mod ocsp {
+    use super::OcspError;
+    use super::OcspStatus;
+
+    #[derive(Clone, Debug)]
+    pub struct SingleResponse {
+        pub status: OcspStatus,
+        pub this_update: i64,
+        pub next_update: Option<i64>,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct BasicResponseData {
+        pub single_responses: Vec<SingleResponse>,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct OcspResponse {
+        pub response_status: u8,
+        pub basic: Option<BasicResponseData>,
+    }
+
+    /// OID `1.3.6.1.5.5.7.48.1.1` — `id-pkix-ocsp-basic`.
+    const ID_PKIX_OCSP_BASIC: &[u8] = &[0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x30, 0x01, 0x01];
+
+    pub fn parse_ocsp_response(der: &[u8]) -> Result<OcspResponse, OcspError> {
+        let outer = read_seq(der, 0).ok_or_else(|| OcspError::Parse("outer SEQUENCE".into()))?;
+        let mut p = outer.content_start;
+        let end = outer.content_start + outer.content_len;
+
+        // responseStatus ENUMERATED
+        let status_tlv =
+            read_tlv(der, p).ok_or_else(|| OcspError::Parse("responseStatus tag".into()))?;
+        if status_tlv.tag != 0x0a {
+            return Err(OcspError::Parse(format!(
+                "responseStatus expected ENUMERATED (0x0a), got 0x{:02x}",
+                status_tlv.tag
+            )));
+        }
+        if status_tlv.content_len != 1 {
+            return Err(OcspError::Parse("responseStatus len != 1".into()));
+        }
+        let response_status = der[status_tlv.content_start];
+        p = status_tlv.content_start + status_tlv.content_len;
+
+        let mut basic: Option<BasicResponseData> = None;
+        if p < end {
+            // [0] EXPLICIT ResponseBytes OPTIONAL
+            let rb_tlv = read_tlv(der, p).ok_or_else(|| OcspError::Parse("[0] tag".into()))?;
+            if rb_tlv.tag == 0xa0 {
+                let rb_seq = read_seq(der, rb_tlv.content_start)
+                    .ok_or_else(|| OcspError::Parse("ResponseBytes SEQUENCE".into()))?;
+                let mut q = rb_seq.content_start;
+                let oid_tlv =
+                    read_tlv(der, q).ok_or_else(|| OcspError::Parse("responseType OID".into()))?;
+                if oid_tlv.tag != 0x06 {
+                    return Err(OcspError::Parse("responseType not OID".into()));
+                }
+                let oid_bytes =
+                    &der[oid_tlv.content_start..oid_tlv.content_start + oid_tlv.content_len];
+                if oid_bytes != ID_PKIX_OCSP_BASIC {
+                    // Not a BasicOCSPResponse — leave `basic` as None.
+                } else {
+                    q = oid_tlv.content_start + oid_tlv.content_len;
+                    let response_octets = read_tlv(der, q)
+                        .ok_or_else(|| OcspError::Parse("response OCTET STRING".into()))?;
+                    if response_octets.tag != 0x04 {
+                        return Err(OcspError::Parse("response not OCTET STRING".into()));
+                    }
+                    let basic_der = &der[response_octets.content_start
+                        ..response_octets.content_start + response_octets.content_len];
+                    basic = Some(parse_basic_response(basic_der)?);
+                }
+            }
+        }
+
+        Ok(OcspResponse {
+            response_status,
+            basic,
+        })
+    }
+
+    fn parse_basic_response(der: &[u8]) -> Result<BasicResponseData, OcspError> {
+        let basic_seq =
+            read_seq(der, 0).ok_or_else(|| OcspError::Parse("BasicOCSPResponse SEQ".into()))?;
+        let tbs = read_seq(der, basic_seq.content_start)
+            .ok_or_else(|| OcspError::Parse("tbsResponseData SEQ".into()))?;
+        // Inside tbsResponseData: skip optional [0] version, responderID,
+        // producedAt, responses SEQUENCE OF SingleResponse, [1] responseExtensions.
+        let mut p = tbs.content_start;
+        let end = tbs.content_start + tbs.content_len;
+        // optional [0] version
+        if p < end && der[p] == 0xa0 {
+            let v = read_tlv(der, p).ok_or_else(|| OcspError::Parse("version".into()))?;
+            p = v.content_start + v.content_len;
+        }
+        // responderID is CHOICE [1] byName Name | [2] byKey KeyHash; both are tagged.
+        if p < end {
+            let r = read_tlv(der, p).ok_or_else(|| OcspError::Parse("responderID".into()))?;
+            p = r.content_start + r.content_len;
+        }
+        // producedAt GeneralizedTime
+        if p < end {
+            let pa = read_tlv(der, p).ok_or_else(|| OcspError::Parse("producedAt".into()))?;
+            p = pa.content_start + pa.content_len;
+        }
+        // responses SEQUENCE OF SingleResponse
+        let resp_seq = read_seq(der, p)
+            .ok_or_else(|| OcspError::Parse("responses SEQUENCE OF".into()))?;
+        let mut single_responses: Vec<SingleResponse> = Vec::new();
+        let mut q = resp_seq.content_start;
+        let qend = resp_seq.content_start + resp_seq.content_len;
+        while q < qend {
+            let sr = read_seq(der, q).ok_or_else(|| OcspError::Parse("SingleResponse".into()))?;
+            single_responses.push(parse_single_response(
+                &der[sr.content_start..sr.content_start + sr.content_len],
+            )?);
+            q = sr.content_start + sr.content_len;
+        }
+        Ok(BasicResponseData { single_responses })
+    }
+
+    fn parse_single_response(der: &[u8]) -> Result<SingleResponse, OcspError> {
+        // SingleResponse ::= SEQUENCE { certID, certStatus, thisUpdate,
+        //                                nextUpdate [0] OPTIONAL, ... }
+        let mut p = 0usize;
+        let end = der.len();
+        // certID SEQUENCE
+        let cert_id =
+            read_seq(der, p).ok_or_else(|| OcspError::Parse("certID".into()))?;
+        p = cert_id.content_start + cert_id.content_len;
+        // certStatus CHOICE
+        let cs = read_tlv(der, p).ok_or_else(|| OcspError::Parse("certStatus".into()))?;
+        let status = match cs.tag {
+            0x80 => OcspStatus::Good,    // [0] IMPLICIT NULL
+            0xa1 => OcspStatus::Revoked, // [1] IMPLICIT RevokedInfo
+            0x82 => OcspStatus::Unknown, // [2] IMPLICIT UnknownInfo
+            other => {
+                return Err(OcspError::Parse(format!(
+                    "unknown certStatus tag 0x{:02x}",
+                    other
+                )))
+            }
+        };
+        p = cs.content_start + cs.content_len;
+        // thisUpdate GeneralizedTime (tag 0x18)
+        let tu = read_tlv(der, p).ok_or_else(|| OcspError::Parse("thisUpdate".into()))?;
+        if tu.tag != 0x18 {
+            return Err(OcspError::Parse(format!(
+                "thisUpdate expected 0x18, got 0x{:02x}",
+                tu.tag
+            )));
+        }
+        let this_update =
+            parse_generalized_time(&der[tu.content_start..tu.content_start + tu.content_len])?;
+        p = tu.content_start + tu.content_len;
+        // optional [0] nextUpdate
+        let mut next_update: Option<i64> = None;
+        if p < end && der[p] == 0xa0 {
+            let nu_outer =
+                read_tlv(der, p).ok_or_else(|| OcspError::Parse("nextUpdate [0]".into()))?;
+            let inner = read_tlv(der, nu_outer.content_start)
+                .ok_or_else(|| OcspError::Parse("nextUpdate inner".into()))?;
+            if inner.tag != 0x18 {
+                return Err(OcspError::Parse(format!(
+                    "nextUpdate expected 0x18, got 0x{:02x}",
+                    inner.tag
+                )));
+            }
+            next_update = Some(parse_generalized_time(
+                &der[inner.content_start..inner.content_start + inner.content_len],
+            )?);
+        }
+        Ok(SingleResponse {
+            status,
+            this_update,
+            next_update,
+        })
+    }
+
+    /// Parse a YYYYMMDDHHMMSS[.fff]Z GeneralizedTime into a unix timestamp.
+    /// Only the `Z` (UTC) form is accepted — RFC 5280 / 6960 require it.
+    fn parse_generalized_time(bytes: &[u8]) -> Result<i64, OcspError> {
+        let s = std::str::from_utf8(bytes)
+            .map_err(|_| OcspError::Parse("generalized time non-utf8".into()))?;
+        if !s.ends_with('Z') {
+            return Err(OcspError::Parse(
+                "generalized time must be Zulu-suffixed".into(),
+            ));
+        }
+        let core = &s[..s.len() - 1];
+        if core.len() < 14 {
+            return Err(OcspError::Parse("generalized time too short".into()));
+        }
+        let y: i32 = core[0..4]
+            .parse()
+            .map_err(|_| OcspError::Parse("year".into()))?;
+        let m: u32 = core[4..6]
+            .parse()
+            .map_err(|_| OcspError::Parse("month".into()))?;
+        let d: u32 = core[6..8]
+            .parse()
+            .map_err(|_| OcspError::Parse("day".into()))?;
+        let hh: u32 = core[8..10]
+            .parse()
+            .map_err(|_| OcspError::Parse("hour".into()))?;
+        let mm: u32 = core[10..12]
+            .parse()
+            .map_err(|_| OcspError::Parse("min".into()))?;
+        let ss: u32 = core[12..14]
+            .parse()
+            .map_err(|_| OcspError::Parse("sec".into()))?;
+        Ok(ymdhms_to_unix(y, m, d, hh, mm, ss))
+    }
+
+    fn ymdhms_to_unix(y: i32, m: u32, d: u32, hh: u32, mm: u32, ss: u32) -> i64 {
+        // Inverse of `secs_to_ymdhms` in the surrounding module. Howard Hinnant's
+        // days_from_civil algorithm.
+        let yy = if m <= 2 { y - 1 } else { y } as i64;
+        let era = if yy >= 0 { yy } else { yy - 399 } / 400;
+        let yoe = (yy - era * 400) as u64;
+        let mp = if m > 2 { m - 3 } else { m + 9 } as u64;
+        let doy = (153 * mp + 2) / 5 + (d as u64) - 1;
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        let days = era * 146_097 + doe as i64 - 719_468;
+        days * 86_400 + hh as i64 * 3600 + mm as i64 * 60 + ss as i64
+    }
+
+    // ---- TLV walker ---------------------------------------------------------
+
+    pub(crate) struct Tlv {
+        pub tag: u8,
+        pub content_start: usize,
+        pub content_len: usize,
+    }
+
+    pub(crate) fn read_seq(buf: &[u8], pos: usize) -> Option<Tlv> {
+        let t = read_tlv(buf, pos)?;
+        if t.tag != 0x30 {
+            return None;
+        }
+        Some(t)
+    }
+
+    pub(crate) fn read_tlv(buf: &[u8], pos: usize) -> Option<Tlv> {
+        if pos >= buf.len() {
+            return None;
+        }
+        let tag = buf[pos];
+        let (len, header) = read_length(buf, pos + 1)?;
+        if pos + 1 + header + len > buf.len() {
+            return None;
+        }
+        Some(Tlv {
+            tag,
+            content_start: pos + 1 + header,
+            content_len: len,
+        })
+    }
+
+    fn read_length(buf: &[u8], pos: usize) -> Option<(usize, usize)> {
+        if pos >= buf.len() {
+            return None;
+        }
+        let b = buf[pos];
+        if b < 0x80 {
+            return Some((b as usize, 1));
+        }
+        let n = (b & 0x7f) as usize;
+        if n == 0 || n > 4 || pos + n >= buf.len() {
+            return None;
+        }
+        let mut len: usize = 0;
+        for i in 0..n {
+            len = (len << 8) | buf[pos + 1 + i] as usize;
+        }
+        Some((len, 1 + n))
+    }
+}
+
+// ----- CRL ------------------------------------------------------------------
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RevocationEntry {
+    /// Big-endian serial number bytes (no DER tag/length prefix, no sign byte).
+    pub serial_be: Vec<u8>,
+    /// `revocationDate` as a unix timestamp.
+    pub revocation_date: i64,
+    /// Optional `reasonCode` extension (RFC 5280 §5.3.1). `None` if absent.
+    pub reason_code: Option<u8>,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum CrlError {
+    #[error("CRL DER parse failed: {0}")]
+    Parse(String),
+}
+
+/// Indexed CRL — a parsed RFC 5280 v2 CRL with a `BTreeMap` keyed on serial
+/// for `O(log n)` lookups. We hold the *normalised* big-endian serial bytes
+/// (leading 0x00 sign-extension byte stripped), so callers can pass
+/// either `cert.serial_be` or a raw hex value normalised the same way.
+pub struct CrlIndex {
+    pub issuer: String,
+    pub this_update: i64,
+    pub next_update: Option<i64>,
+    revoked: std::collections::BTreeMap<Vec<u8>, RevocationEntry>,
+}
+
+impl CrlIndex {
+    pub fn issuer(&self) -> &str {
+        &self.issuer
+    }
+    pub fn len(&self) -> usize {
+        self.revoked.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.revoked.is_empty()
+    }
+    /// Fast lookup. Pass big-endian serial bytes; we normalise the leading
+    /// 0x00 byte that DER inserts on positive integers whose top bit is
+    /// set, so `0x00 || …` and the bare integer compare equal.
+    pub fn is_revoked(&self, serial_be: &[u8]) -> Option<&RevocationEntry> {
+        let key = normalise_serial(serial_be);
+        self.revoked.get(&key)
+    }
+    /// Iterator over all entries (sorted by serial).
+    pub fn entries(&self) -> impl Iterator<Item = &RevocationEntry> {
+        self.revoked.values()
+    }
+}
+
+fn normalise_serial(serial_be: &[u8]) -> Vec<u8> {
+    let mut s = serial_be;
+    while s.len() > 1 && s[0] == 0x00 {
+        s = &s[1..];
+    }
+    s.to_vec()
+}
+
+pub struct CrlCheck;
+
+impl CrlCheck {
+    pub fn load(crl_bytes: &[u8]) -> Result<CrlIndex, CrlError> {
+        use x509_parser::revocation_list::CertificateRevocationList;
+        let (_, crl) = CertificateRevocationList::from_der(crl_bytes)
+            .map_err(|e| CrlError::Parse(format!("{}", e)))?;
+        let issuer = crl.issuer().to_string();
+        let this_update = crl.last_update().timestamp();
+        let next_update = crl.next_update().map(|t| t.timestamp());
+        let mut revoked = std::collections::BTreeMap::new();
+        for r in crl.iter_revoked_certificates() {
+            let serial_be = normalise_serial(r.raw_serial());
+            let revocation_date = r.revocation_date.timestamp();
+            let reason_code = r
+                .extensions()
+                .iter()
+                .find_map(|ext| match ext.parsed_extension() {
+                    x509_parser::extensions::ParsedExtension::ReasonCode(rc) => Some(rc.0),
+                    _ => None,
+                });
+            revoked.insert(
+                serial_be.clone(),
+                RevocationEntry {
+                    serial_be,
+                    revocation_date,
+                    reason_code,
+                },
+            );
+        }
+        Ok(CrlIndex {
+            issuer,
+            this_update,
+            next_update,
+            revoked,
+        })
+    }
+}
+
+// ----- Exporter binding ------------------------------------------------------
+
+pub struct ExporterBinding;
+
+impl ExporterBinding {
+    /// Mirrors `TlsBridge.deriveExporterKey` in TS:
+    ///   salt = utf8("tf-tls-exporter:" + label)
+    ///   ikm  = transport_secret || context
+    ///   prk1 = HMAC-SHA256(salt, ikm)
+    ///   okm  = HKDF(sha256, prk1, salt=undefined, info=salt, length)
+    ///        = HKDF-Expand(HMAC-SHA256(zeros[32], prk1), info=salt, length)
+    ///
+    /// This is *not* RFC 5705 by itself — the `transport_secret` is the
+    /// output of `RFC 5705 §4` exporter on the underlying TLS / QUIC
+    /// session, and we layer another HKDF on top so the TrustForge
+    /// session PSK is domain-separated from anything the application
+    /// may already derive from the same exporter.
+    pub fn derive(
+        transport_secret: &[u8],
+        label: &str,
+        context: &[u8],
+        length: usize,
+    ) -> Vec<u8> {
+        if transport_secret.is_empty() {
+            // Stay in lock-step with the TS bridge, which throws on empty.
+            // We can't return BridgeError here; the TS shape uses a runtime
+            // exception. Returning an empty vec would be misleading, so we
+            // panic — same effect as a thrown exception, same surface as
+            // `expect("non-empty")` elsewhere in this crate.
+            panic!("ExporterBinding::derive: transport_secret must be non-empty");
+        }
+        let salt_str = format!("tf-tls-exporter:{}", label);
+        let salt = salt_str.as_bytes();
+
+        // prk1 = HMAC-SHA256(salt, ikm)
+        use hmac::{Hmac, Mac};
+        type HmacSha256 = Hmac<sha2::Sha256>;
+        let mut mac = HmacSha256::new_from_slice(salt).expect("hmac key");
+        mac.update(transport_secret);
+        mac.update(context);
+        let prk1 = mac.finalize().into_bytes();
+
+        // okm = HKDF(prk1, salt=undefined → zero, info=salt, length)
+        // i.e. extract zeros over prk1, then expand with info=salt.
+        let hk = hkdf::Hkdf::<sha2::Sha256>::new(None, &prk1);
+        let mut out = vec![0u8; length];
+        hk.expand(salt, &mut out).expect("HKDF expand");
+        out
+    }
+}
+
+// ----- Post-handshake re-auth ------------------------------------------------
+
+pub struct PostHandshakeReauth;
+
+impl PostHandshakeReauth {
+    /// Returns 32 random challenge bytes the verifier sends to the peer.
+    pub fn challenge() -> Vec<u8> {
+        use rand::RngCore;
+        let mut buf = vec![0u8; 32];
+        rand::rngs::OsRng.fill_bytes(&mut buf);
+        buf
+    }
+
+    /// Verifies an Ed25519 signature over the previously issued challenge.
+    /// Returns `true` iff the signature is valid.
+    pub fn verify_response(
+        challenge: &[u8],
+        pubkey: &[u8; 32],
+        signature: &[u8; 64],
+    ) -> bool {
+        crate::crypto::ed25519_verify(pubkey, challenge, signature).is_ok()
+    }
+}

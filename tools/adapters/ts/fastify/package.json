@@ -1,0 +1,28 @@
+{
+  "name": "@trustforge/fastify",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge Fastify plugin: gates every request through tf-daemon /v1/decide.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@trustforge/sdk": "workspace:*",
+    "fastify-plugin": "^5.0.1"
+  },
+  "peerDependencies": {
+    "fastify": "^4.28.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "@trustforge/test-utils": "workspace:*",
+    "@types/bun": "^1.3.9",
+    "fastify": "^5.1.0",
+    "typescript": "^5.6.3"
+  }
+}

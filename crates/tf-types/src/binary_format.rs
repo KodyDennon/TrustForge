@@ -15,6 +15,23 @@
 //! The Rust encoder must produce byte-identical output to the TS
 //! encoder for the same canonical input — verified by
 //! `conformance/binary-format-vectors.yaml`.
+//!
+//! --- CBOR DETERMINISM (READ BEFORE EDITING) ---
+//!
+//! For wire-level parity with the TS encoder (cbor-x with sorted keys
+//! + `variableMapSize: true`), the Rust encoder converts through
+//! `serde_json::Value` first. `serde_json::Value::Object` is a
+//! `BTreeMap`, so its keys are emitted in lexicographic byte order
+//! when ciborium walks it — which matches RFC 8949 §4.2.3 deterministic
+//! encoding and matches the TS side. Without this intermediate, a
+//! native `#[derive(Serialize)]` struct would emit fields in
+//! declaration order and break parity.
+//!
+//! Yes, this costs one extra ser/deser per encode. The packets are
+//! small (typical .tfpkt <1 KiB) and constrained-mode use cases never
+//! hot-loop the encoder, so the trade for a stable wire format is
+//! correct. Do NOT remove the round-trip without first updating
+//! `conformance/binary-format-vectors.yaml` and the matching TS test.
 
 use crate::generated::Packet;
 use ciborium::value::Value as CborValue;
@@ -57,8 +74,12 @@ fn read_u32_be(buf: &[u8], off: usize) -> Result<u32, BinaryFormatError> {
 }
 
 fn cbor_encode<T: Serialize>(v: &T) -> Result<Vec<u8>, BinaryFormatError> {
+    // RFC 8949 §4.2.3 deterministic encoding via the BTreeMap-backed
+    // `serde_json::Value` intermediate (see module docstring).
+    let json_value: serde_json::Value =
+        serde_json::to_value(v).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
     let mut out = Vec::new();
-    ciborium::ser::into_writer(v, &mut out)
+    ciborium::ser::into_writer(&json_value, &mut out)
         .map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
     Ok(out)
 }
