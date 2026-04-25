@@ -14,6 +14,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::bridges::{Bridge, BridgeError, BridgeKind};
 use crate::canonicalize;
+use crate::rpc::RpcTransport;
+use crate::session::SessionFrame;
 
 #[derive(Clone, Debug)]
 pub struct GrpcCallContext {
@@ -52,7 +54,7 @@ pub struct GrpcBridgeConfig {
 pub struct GrpcBridge {
     cfg: GrpcBridgeConfig,
     channel: Arc<dyn GrpcChannel>,
-    listeners: Mutex<Vec<Arc<dyn Fn(&[u8]) + Send + Sync>>>,
+    listeners: Mutex<Vec<Arc<dyn Fn(SessionFrame) + Send + Sync>>>,
 }
 
 impl GrpcBridge {
@@ -76,8 +78,10 @@ impl GrpcBridge {
         };
         let reply = self.channel.unary(&ctx, frame_canonical_json)?;
         if let Ok(listeners) = self.listeners.lock() {
-            for l in listeners.iter() {
-                l(&reply.body);
+            if let Ok(frame) = serde_json::from_slice::<SessionFrame>(&reply.body) {
+                for l in listeners.iter() {
+                    l(frame.clone());
+                }
             }
         }
         Ok(reply.body)
@@ -90,17 +94,21 @@ impl GrpcBridge {
         self.send_frame(bytes.as_bytes())
     }
 
-    pub fn on_frame<F>(&self, f: F)
-    where
-        F: Fn(&[u8]) + Send + Sync + 'static,
-    {
-        if let Ok(mut listeners) = self.listeners.lock() {
-            listeners.push(Arc::new(f));
-        }
-    }
-
     pub fn close(&self) -> Result<(), BridgeError> {
         self.channel.close()
+    }
+}
+
+impl RpcTransport for GrpcBridge {
+    fn send(&self, frame: SessionFrame) {
+        let json = serde_json::to_vec(&frame).unwrap_or_default();
+        let _ = self.send_frame(&json);
+    }
+
+    fn on_frame(&self, listener: Arc<dyn Fn(SessionFrame) + Send + Sync>) {
+        if let Ok(mut listeners) = self.listeners.lock() {
+            listeners.push(listener);
+        }
     }
 }
 
@@ -153,7 +161,11 @@ mod tests {
 
     #[test]
     fn send_and_receive_round_trip() {
-        let chan = Arc::new(FakeChannel::new(b"reply-bytes".to_vec()));
+        let reply_frame = SessionFrame::Data {
+            payload: serde_json::json!({"ok": true}),
+        };
+        let reply_bytes = serde_json::to_vec(&reply_frame).unwrap();
+        let chan = Arc::new(FakeChannel::new(reply_bytes));
         let bridge = GrpcBridge::new(
             chan.clone(),
             GrpcBridgeConfig {
@@ -167,14 +179,20 @@ mod tests {
         let counter = Arc::new(AtomicUsize::new(0));
         {
             let counter = counter.clone();
-            bridge.on_frame(move |b| {
-                assert_eq!(b, b"reply-bytes");
+            bridge.on_frame(Arc::new(move |f| {
+                match f {
+                    SessionFrame::Data { payload } => {
+                        assert_eq!(payload, serde_json::json!({"ok": true}));
+                    }
+                    _ => panic!("unexpected frame"),
+                }
                 counter.fetch_add(1, Ordering::SeqCst);
-            });
+            }));
         }
-        let reply = bridge.send_frame(b"hello-world").expect("send");
-        assert_eq!(reply, b"reply-bytes");
-        assert_eq!(*chan.last_body.lock().unwrap(), b"hello-world");
+        let frame = SessionFrame::Data {
+            payload: serde_json::json!("hello"),
+        };
+        bridge.send(frame);
         assert_eq!(counter.load(Ordering::SeqCst), 1);
         bridge.close().expect("close");
         assert_eq!(chan.close_calls.load(Ordering::SeqCst), 1);

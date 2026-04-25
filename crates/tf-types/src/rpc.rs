@@ -79,6 +79,27 @@ pub enum RpcMethodKind {
     Telemetry,
     RemoteShell,
     AgentSession,
+    HttpBridge,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum HttpFrame {
+    RequestHeaders {
+        method: String,
+        path: String,
+        headers: HashMap<String, String>,
+    },
+    ResponseHeaders {
+        status: u16,
+        headers: HashMap<String, String>,
+    },
+    BodyChunk {
+        data: String, // base64
+    },
+    Trailers {
+        headers: HashMap<String, String>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -1214,6 +1235,19 @@ pub type AgentSessionHandler = Arc<
         + Sync,
 >;
 
+/// Http-bridge handler. Both directions carry `HttpFrame` enums
+/// (headers, chunks, trailers).
+pub type HttpBridgeHandler = Arc<
+    dyn Fn(
+            Value,
+            RpcContext,
+            mpsc::UnboundedReceiver<HttpFrame>,
+            mpsc::UnboundedSender<HttpFrame>,
+        ) -> Pin<Box<dyn Future<Output = ()> + Send>>
+        + Send
+        + Sync,
+>;
+
 #[derive(Clone, Debug)]
 pub struct RemoteShellOut {
     pub stream: RemoteShellStream,
@@ -1269,6 +1303,10 @@ enum Handler {
         capability: String,
         handler: AgentSessionHandler,
     },
+    HttpBridge {
+        capability: String,
+        handler: HttpBridgeHandler,
+    },
 }
 
 impl Handler {
@@ -1283,7 +1321,9 @@ impl Handler {
             | Handler::BulkTransfer { capability, .. }
             | Handler::Telemetry { capability, .. }
             | Handler::RemoteShell { capability, .. }
-            | Handler::AgentSession { capability, .. } => capability.as_str(),
+            | Handler::AgentSession { capability, .. }
+            | Handler::HttpBridge { capability, .. } => capability,
+
         }
     }
 
@@ -1298,6 +1338,7 @@ impl Handler {
                 | Handler::CommandChannel { .. }
                 | Handler::RemoteShell { .. }
                 | Handler::AgentSession { .. }
+                | Handler::HttpBridge { .. }
         )
     }
 }
@@ -1544,6 +1585,12 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                         dispatch_agent_session(transport, inflight, ctx, request, handler).await;
                     });
                 }
+                Handler::HttpBridge { handler, .. } => {
+                    let handler = handler.clone();
+                    tokio::spawn(async move {
+                        dispatch_http_bridge(transport, inflight, ctx, request, handler).await;
+                    });
+                }
             }
         }));
         RpcServer {
@@ -1703,6 +1750,21 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
         self.handlers.lock().unwrap().insert(
             method.into(),
             Arc::new(Handler::AgentSession {
+                capability: capability.into(),
+                handler,
+            }),
+        );
+    }
+
+    pub fn register_http_bridge(
+        &self,
+        method: impl Into<String>,
+        capability: impl Into<String>,
+        handler: HttpBridgeHandler,
+    ) {
+        self.handlers.lock().unwrap().insert(
+            method.into(),
+            Arc::new(Handler::HttpBridge {
                 capability: capability.into(),
                 handler,
             }),
@@ -2313,6 +2375,69 @@ async fn dispatch_agent_session<T: RpcTransport + 'static>(
     remove_inflight(&inflight, &call_id);
 }
 
+async fn dispatch_http_bridge<T: RpcTransport>(
+    transport: Arc<T>,
+    inflight: Arc<Mutex<HashMap<String, InflightCall>>>,
+    ctx: RpcContext,
+    request: Value,
+    handler: HttpBridgeHandler,
+) {
+    let call_id = ctx.call_id.clone();
+    let mut rx = install_client_pipe(&inflight, &call_id);
+
+    let (frames_tx, frames_rx) = mpsc::unbounded_channel::<HttpFrame>();
+    let inflight_inner = inflight.clone();
+    let call_id_inner = call_id.clone();
+
+    tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            match msg {
+                InflightMsg::Value(v, _) => {
+                    if let Ok(frame) = serde_json::from_value::<HttpFrame>(v) {
+                        let _ = frames_tx.send(frame);
+                    }
+                }
+                InflightMsg::Done | InflightMsg::Error(_) => {
+                    remove_inflight(&inflight_inner, &call_id_inner);
+                    return;
+                }
+            }
+        }
+    });
+
+    let (out_tx, mut out_rx) = mpsc::unbounded_channel::<HttpFrame>();
+    let fut = handler(request, ctx, frames_rx, out_tx);
+    tokio::spawn(fut);
+
+    let mut seq: i64 = 0;
+    while let Some(frame) = out_rx.recv().await {
+        transport.send(encode_rpc(RpcFrame::RpcStream {
+            call_id: call_id.clone(),
+            seq,
+            more: true,
+            value: Some(serde_json::to_value(frame).unwrap_or_default()),
+            error: None,
+            ext: Some(RpcFrameExt {
+                method_kind: Some(RpcMethodKind::HttpBridge),
+                ..Default::default()
+            }),
+        }));
+        seq += 1;
+    }
+    transport.send(encode_rpc(RpcFrame::RpcStream {
+        call_id: call_id.clone(),
+        seq,
+        more: false,
+        value: None,
+        error: None,
+        ext: Some(RpcFrameExt {
+            method_kind: Some(RpcMethodKind::HttpBridge),
+            ..Default::default()
+        }),
+    }));
+    remove_inflight(&inflight, &call_id);
+}
+
 #[cfg(test)]
 mod method_kind_tests {
     use super::*;
@@ -2330,6 +2455,7 @@ mod method_kind_tests {
             RpcMethodKind::Telemetry,
             RpcMethodKind::RemoteShell,
             RpcMethodKind::AgentSession,
+            RpcMethodKind::HttpBridge,
         ];
         let json = serde_json::to_string(&kinds).unwrap();
         assert!(json.contains("unary"));
@@ -2342,6 +2468,7 @@ mod method_kind_tests {
         assert!(json.contains("telemetry"));
         assert!(json.contains("remote-shell"));
         assert!(json.contains("agent-session"));
+        assert!(json.contains("http-bridge"));
         let parsed: Vec<RpcMethodKind> = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, kinds);
     }

@@ -22,8 +22,8 @@
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "enum": ["websocket"],
-          "description": "Carrier kind. Only WebSocket is supported in this phase."
+          "enum": ["websocket", "tcp", "tls"],
+          "description": "Carrier kind. websocket: drive session over Bun.serve. tcp: drive session over raw Bun.listen. tls: drive session over raw Bun.listen with TLS termination."
         },
         "bind": {
           "type": "string",

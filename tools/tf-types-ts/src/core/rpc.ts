@@ -57,7 +57,7 @@ export type RpcFrame =
   | { kind: "rpc-response"; call_id: string; status: "ok" | "error"; response?: unknown; error?: RpcError; ext?: RpcFrameExt }
   | { kind: "rpc-stream"; call_id: string; seq: number; more: boolean; value?: unknown; error?: RpcError; ext?: RpcFrameExt }
   /** Client → server stream message used by client-streaming, bidi, command-channel,
-   *  bulk-transfer, telemetry, remote-shell, agent-session method kinds. */
+   *  bulk-transfer, telemetry, remote-shell, agent-session, http-bridge method kinds. */
   | { kind: "rpc-client-stream"; call_id: string; seq: number; more: boolean; value?: unknown; error?: RpcError; ext?: RpcFrameExt };
 
 /** ProofRPC method kind enum. Mirrors `proofrpc.schema.json`. */
@@ -71,7 +71,14 @@ export type RpcMethodKind =
   | "bulk-transfer"
   | "telemetry"
   | "remote-shell"
-  | "agent-session";
+  | "agent-session"
+  | "http-bridge";
+
+export type HttpFrame =
+  | { kind: "request-headers"; method: string; path: string; headers: Record<string, string> }
+  | { kind: "response-headers"; status: number; headers: Record<string, string> }
+  | { kind: "body-chunk"; data: string /* base64 */ }
+  | { kind: "trailers"; headers: Record<string, string> };
 
 export type RemoteShellStream = "stdin" | "stdout" | "stderr";
 
@@ -693,6 +700,15 @@ export class RpcClient {
     };
   }
 
+  /** Http-bridge — bidi stream helper that carries HTTP frames. */
+  httpBridge(
+    method: string,
+    frames: AsyncIterable<HttpFrame>,
+    initial?: unknown,
+  ): AsyncIterable<HttpFrame> {
+    return this.bidiStreamWithExt<any, any>(method, frames, initial, { method_kind: "http-bridge" });
+  }
+
   private bidiStreamWithExt<Req, Res>(
     method: string,
     requests: AsyncIterable<Req>,
@@ -980,15 +996,24 @@ export type RemoteShellHandler = (
 ) => AsyncIterable<RemoteShellFrame>;
 
 /** Agent-session handler: bidi that carries a delegation chain on every
- *  frame. The handler receives the chain as part of `ctx` and may
- *  augment it before forwarding to downstream tools. */
+   *  frame. The handler receives the chain as part of `ctx` and may
+   *  augment it before forwarding to downstream tools. */
 export type AgentSessionHandler<Req = unknown, Res = unknown> = (
   initial: unknown,
   messages: AsyncIterable<{ value: Req; responsibility_chain: string[] }>,
   ctx: AgentSessionContext,
 ) => AsyncIterable<{ value: Res; responsibility_chain: string[] }>;
 
+/** Http-bridge handler: bidi stream that carries HTTP/1.1 or HTTP/2
+ *  frames (headers, chunks, trailers). */
+export type HttpBridgeHandler = (
+  initial: unknown,
+  frames: AsyncIterable<HttpFrame>,
+  ctx: RpcContext,
+) => AsyncIterable<HttpFrame>;
+
 export interface RemoteShellFrame {
+
   stream: RemoteShellStream;
   data: Uint8Array;
 }
@@ -1034,7 +1059,8 @@ type Handler =
   | { kind: "bulk-transfer"; capability: string; handler: BulkTransferHandler }
   | { kind: "telemetry"; capability: string; handler: TelemetryHandler; priority: StreamingPriority }
   | { kind: "remote-shell"; capability: string; handler: RemoteShellHandler }
-  | { kind: "agent-session"; capability: string; handler: AgentSessionHandler };
+  | { kind: "agent-session"; capability: string; handler: AgentSessionHandler }
+  | { kind: "http-bridge"; capability: string; handler: HttpBridgeHandler };
 
 interface InflightCall {
   method: string;
@@ -1295,6 +1321,19 @@ export class RpcServer {
     });
   }
 
+  /** Http-bridge — bidi stream that carries HTTP frames. */
+  registerHttpBridge(
+    method: string,
+    capability: string,
+    handler: HttpBridgeHandler,
+  ): void {
+    this.handlers.set(method, {
+      kind: "http-bridge",
+      capability,
+      handler,
+    });
+  }
+
   private async onFrame(sessionFrame: SessionFrame): Promise<void> {
     const rpc = decodeRpc(sessionFrame);
     if (!rpc) return;
@@ -1333,7 +1372,8 @@ export class RpcServer {
       registered.kind === "subscribe" ||
       registered.kind === "command-channel" ||
       registered.kind === "remote-shell" ||
-      registered.kind === "agent-session";
+      registered.kind === "agent-session" ||
+      registered.kind === "http-bridge";
     try {
       decision = await Promise.resolve(enforcer.check(caller, rpc.method, registered.capability));
     } catch (err) {
@@ -1500,6 +1540,10 @@ export class RpcServer {
     }
     if (registered.kind === "agent-session") {
       await this.dispatchAgentSession(rpc, registered, ctx, caller);
+      return;
+    }
+    if (registered.kind === "http-bridge") {
+      await this.dispatchHttpBridge(rpc, registered, ctx, caller);
       return;
     }
   }
@@ -2167,6 +2211,113 @@ export class RpcServer {
         call_id: rpc.call_id,
         method: rpc.method,
         method_kind: "agent-session",
+        caller,
+        result: "error",
+        error_code: "internal",
+      });
+    } finally {
+      this.inflight.delete(rpc.call_id);
+    }
+  }
+
+  private async dispatchHttpBridge(
+    rpc: Extract<RpcFrame, { kind: "rpc-call" }>,
+    registered: Extract<Handler, { kind: "http-bridge" }>,
+    ctx: RpcContext,
+    caller: string,
+  ): Promise<void> {
+    const queue: HttpFrame[] = [];
+    const awaiters: Array<(v: IteratorResult<HttpFrame>) => void> = [];
+    let streamDone = false;
+    let streamError: RpcError | null = null;
+    const cs: ClientStreamQueue = {
+      push: (v) => {
+        const frame = v as HttpFrame;
+        if (awaiters.length > 0) awaiters.shift()!({ value: frame, done: false });
+        else queue.push(frame);
+      },
+      done: () => {
+        streamDone = true;
+        while (awaiters.length > 0) awaiters.shift()!({ value: undefined as any, done: true });
+      },
+      fail: (err) => {
+        streamError = err;
+        streamDone = true;
+        while (awaiters.length > 0) awaiters.shift()!({ value: undefined as any, done: true });
+      },
+    };
+    const iter: AsyncIterable<HttpFrame> = {
+      [Symbol.asyncIterator]() {
+        return {
+          async next(): Promise<IteratorResult<HttpFrame>> {
+            if (streamError) throw new RpcCallError(streamError);
+            if (queue.length > 0) return { value: queue.shift()!, done: false };
+            if (streamDone) return { value: undefined as any, done: true };
+            return new Promise((resolve) => awaiters.push(resolve));
+          },
+        };
+      },
+    };
+    const inflight: InflightCall = {
+      method: rpc.method,
+      method_kind: "http-bridge",
+      capability: registered.capability,
+      seq: 0,
+      cancel: () => {
+        streamDone = true;
+      },
+      clientStream: cs,
+    };
+    this.inflight.set(rpc.call_id, inflight);
+    let seq = 0;
+    try {
+      for await (const frame of registered.handler(rpc.request, iter, ctx)) {
+        this.transport.send(
+          encodeRpc({
+            kind: "rpc-stream",
+            call_id: rpc.call_id,
+            seq,
+            more: true,
+            value: frame,
+            ext: { method_kind: "http-bridge" },
+          }),
+        );
+        seq += 1;
+        inflight.seq = seq;
+      }
+      this.transport.send(
+        encodeRpc({
+          kind: "rpc-stream",
+          call_id: rpc.call_id,
+          seq,
+          more: false,
+          ext: { method_kind: "http-bridge" },
+        }),
+      );
+      this.opts.onProofEvent?.({
+        type: "rpc.call",
+        call_id: rpc.call_id,
+        method: rpc.method,
+        method_kind: "http-bridge",
+        caller,
+        result: "ok",
+      });
+    } catch (err) {
+      const message = (err as Error).message ?? String(err);
+      this.transport.send(
+        encodeRpc({
+          kind: "rpc-stream",
+          call_id: rpc.call_id,
+          seq,
+          more: false,
+          error: { code: "internal", message },
+        }),
+      );
+      this.opts.onProofEvent?.({
+        type: "rpc.call",
+        call_id: rpc.call_id,
+        method: rpc.method,
+        method_kind: "http-bridge",
         caller,
         result: "error",
         error_code: "internal",

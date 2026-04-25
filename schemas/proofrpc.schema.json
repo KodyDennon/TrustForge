@@ -50,9 +50,10 @@
             "bulk-transfer",
             "telemetry",
             "remote-shell",
-            "agent-session"
+            "agent-session",
+            "http-bridge"
           ],
-          "description": "Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility."
+          "description": "Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. http-bridge: bidi stream that carries HTTP/1.1 or HTTP/2 frames (headers, chunks, trailers) for cross-site proxying."
         },
         "description": {
           "type": "string",

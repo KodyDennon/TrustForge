@@ -49,6 +49,7 @@ import {
   rpcTransportFromEndpoint,
   type SessionEndpoint,
 } from "tf-session";
+import { httpBridgeHandler } from "./http-bridge";
 import { recordDecideSpan, setupOtel, type OtelHandle } from "./otel";
 
 export interface DaemonRuntimeOptions {
@@ -672,6 +673,84 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     return new Response("not found", { status: 404 });
   }
 
+  /** Common session attachment and RPC setup logic used by both WS and TCP. */
+  async function onSessionConnected(
+    wire: { sink: any; source: any },
+    sessionId: string,
+    onEstablished?: (endpoint: SessionEndpoint) => void,
+  ) {
+    try {
+      const endpoint = await attachResponder(
+        {
+          selfActor: config.self_actor,
+          identityPriv: idEntry.key_bytes,
+          identityPub,
+        },
+        wire.sink,
+        wire.source,
+      );
+
+      const rpc = new RpcServer(rpcTransportFromEndpoint(endpoint), {
+        selfActor: config.self_actor,
+        enforcer: enforcerFromGuard(guard, queue, quorum, {
+          onCeremony: (ev) => {
+            void enqueueSigned({
+              type: `approval.ceremony.${ev.kind}`,
+              actor: ev.actor,
+              level: "L2",
+              context: { request_id: ev.request_id, action: ev.action, kind: ev.kind },
+            });
+          },
+        }),
+        getCaller: () => endpoint.peerActor(),
+        getCallerClaim: () => endpoint.peerActorClaim(),
+        onProofEvent: (ev: RpcProofEventStub) =>
+          void enqueueSigned({
+            type: ev.type,
+            actor: ev.caller ?? config.self_actor,
+            level: "L1",
+            context: ev as unknown as Record<string, unknown>,
+          }),
+        continuousReevaluation: {
+          triggers: ["revocation", "session_rekey", "delegation_change", "explicit_reauth"],
+          intervalMs: 30_000,
+        },
+      });
+
+      activeRpcServers.add(rpc);
+      const entry = {
+        id: sessionId,
+        remote_actor: endpoint.peerActor(),
+        remote_actor_claim: endpoint.peerActorClaim(),
+        opened_at: new Date().toISOString(),
+        close: () => {
+          activeRpcServers.delete(rpc);
+          endpoint.close("daemon shutdown");
+        },
+      };
+      activeSessions.set(sessionId, entry);
+      listeners.push({ close: entry.close });
+
+      // Default built-in: a tiny "ping" unary so a client can verify the
+      // pipeline without needing any registered plugin.
+      rpc.registerUnary("tf.ping", "tf.ping", async () => ({
+        pong: true,
+        at: new Date().toISOString(),
+      }));
+
+      rpc.registerHttpBridge("http.proxy", "http.proxy", httpBridgeHandler);
+
+      // Bind every loaded plugin's declared-capability handlers.
+      pluginRegistry.registerOn(rpc);
+
+      onEstablished?.(endpoint);
+    } catch (err) {
+      // Handshake failed; clean up the placeholder.
+      activeSessions.delete(sessionId);
+      wire.sink.close();
+    }
+  }
+
   // -------------------------------------------------------------------------
   // v1 HTTP endpoint suite (B1 + B2 + B3).
   // -------------------------------------------------------------------------
@@ -1114,108 +1193,104 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   const httpSocketInfo = httpListeners.find((l) => l.socket !== null);
 
   const listen = config.listen ?? { kind: "websocket", bind: "127.0.0.1", port: 0 };
-  const server = Bun.serve({
-    port: Number((listen as any).port ?? 0),
-    hostname: String((listen as any).bind ?? "127.0.0.1"),
-    async fetch(req, server) {
-      const adminResp = await handleAdmin(req);
-      if (adminResp) return adminResp;
-      if (server.upgrade(req, { data: {} as never })) return;
-      return new Response("expected websocket", { status: 400 });
-    },
-    websocket: {
-      open(ws) {
-        ws.binaryType = "uint8array";
-        const wire = wireFromBunServerSocket(ws);
-        (ws.data as any).wire = wire;
-        // Pre-register the session id at OPEN time (not after attachResponder
-        // resolves) so a `close` arriving before the handshake completes
-        // still cleans up the slot. (BUG-014)
-        sessionCounter += 1;
-        const sessionId = `sess-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
-        activeSessions.set(sessionId, {
-          id: sessionId,
-          remote_actor: "tf:actor:process:key/pending",
-          opened_at: new Date().toISOString(),
-          close: () => {
-            // best effort during pre-handshake close
-          },
-        });
-        (ws.data as any).sessionId = sessionId;
-        attachResponder(
-          {
-            selfActor: config.self_actor,
-            identityPriv: idEntry.key_bytes,
-            identityPub,
-          },
-          wire.sink,
-          wire.source,
-        ).then((endpoint: SessionEndpoint) => {
-          const rpc = new RpcServer(rpcTransportFromEndpoint(endpoint), {
-            selfActor: config.self_actor,
-            enforcer: enforcerFromGuard(guard, queue, quorum, {
-              onCeremony: (ev) => {
-                void enqueueSigned({
-                  type: `approval.ceremony.${ev.kind}`,
-                  actor: ev.actor,
-                  level: "L2",
-                  context: { request_id: ev.request_id, action: ev.action, kind: ev.kind },
-                });
-              },
-            }),
-            getCaller: () => endpoint.peerActor(),
-            getCallerClaim: () => endpoint.peerActorClaim(),
-            onProofEvent: (ev: RpcProofEventStub) =>
-              void enqueueSigned({
-                type: ev.type,
-                actor: ev.caller ?? config.self_actor,
-                level: "L1",
-                context: ev as unknown as Record<string, unknown>,
-              }),
-            // Wire continuous-reauth triggers; admin/revocation handler
-            // calls reevaluate("revocation") on every member.
-            continuousReevaluation: {
-              triggers: ["revocation", "session_rekey", "delegation_change", "explicit_reauth"],
-              intervalMs: 30_000,
-            },
-          });
-          activeRpcServers.add(rpc);
-          listeners.push({
-            close: () => {
-              activeRpcServers.delete(rpc);
-              endpoint.close("daemon shutdown");
-            },
-          });
-          // Replace the pre-handshake placeholder with the real entry.
+  let server: { port: number; stop: (closeActive?: boolean) => Promise<void> | void };
+
+  if (listen.kind === "websocket") {
+    const bunServer = Bun.serve({
+      port: Number((listen as any).port ?? 0),
+      hostname: String((listen as any).bind ?? "127.0.0.1"),
+      async fetch(req, server) {
+        const adminResp = await handleAdmin(req);
+        if (adminResp) return adminResp;
+        if (server.upgrade(req, { data: {} as never })) return;
+        return new Response("expected websocket", { status: 400 });
+      },
+      websocket: {
+        open(ws) {
+          ws.binaryType = "uint8array";
+          const wire = wireFromBunServerSocket(ws);
+          (ws.data as any).wire = wire;
+          // Pre-register the session id at OPEN time (not after attachResponder
+          // resolves) so a `close` arriving before the handshake completes
+          // still cleans up the slot. (BUG-014)
+          sessionCounter += 1;
+          const sessionId = `sess-ws-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
           activeSessions.set(sessionId, {
             id: sessionId,
-            remote_actor: endpoint.peerActor(),
-            remote_actor_claim: endpoint.peerActorClaim(),
+            remote_actor: "tf:actor:process:key/pending",
             opened_at: new Date().toISOString(),
-            close: () => endpoint.close("daemon shutdown"),
+            close: () => ws.close(),
           });
-          // Default built-in: a tiny "ping" unary so a client can verify the
-          // pipeline without needing any registered plugin.
-          rpc.registerUnary("tf.ping", "tf.ping", async () => ({ pong: true, at: new Date().toISOString() }));
-          // Bind every loaded plugin's declared-capability handlers.
-          pluginRegistry.registerOn(rpc);
-        }).catch(() => {
-          // Handshake failed; clean up the placeholder.
-          activeSessions.delete(sessionId);
-        });
+          (ws.data as any).sessionId = sessionId;
+
+          void onSessionConnected(wire, sessionId, (endpoint) => {
+            (ws.data as any).endpoint = endpoint;
+          });
+        },
+        message(ws, message) {
+          const w = (ws.data as any).wire as any;
+          if (w) w.deliverMessage(message);
+        },
+        close(ws) {
+          const w = (ws.data as any).wire as any;
+          if (w) w.deliverClose();
+          const sessionId = (ws.data as any).sessionId as string | undefined;
+          if (sessionId) activeSessions.delete(sessionId);
+        },
       },
-      message(ws, message) {
-        const w = (ws.data as any).wire as ReturnType<typeof wireFromBunServerSocket>;
-        w.deliverMessage(message);
+    });
+    server = {
+      port: bunServer.port,
+      stop: (closeActive) => {
+        bunServer.stop(closeActive);
       },
-      close(ws) {
-        const w = (ws.data as any).wire as ReturnType<typeof wireFromBunServerSocket> | undefined;
-        if (w) w.deliverClose();
-        const sessionId = (ws.data as any).sessionId as string | undefined;
-        if (sessionId) activeSessions.delete(sessionId);
+    };
+  } else {
+    // TCP or TLS
+    const bunTcp = Bun.listen({
+      port: Number((listen as any).port ?? 0),
+      hostname: String((listen as any).bind ?? "127.0.0.1"),
+      socket: {
+        open(socket) {
+          const wire = wireFromBunTcpSocket(socket);
+          (socket.data as any).wire = wire;
+          sessionCounter += 1;
+          const sessionId = `sess-tcp-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
+          activeSessions.set(sessionId, {
+            id: sessionId,
+            remote_actor: "tf:actor:process:key/pending",
+            opened_at: new Date().toISOString(),
+            close: () => socket.end(),
+          });
+          (socket.data as any).sessionId = sessionId;
+
+          void onSessionConnected(wire, sessionId, (endpoint) => {
+            (socket.data as any).endpoint = endpoint;
+          });
+        },
+        data(socket, chunk) {
+          const w = (socket.data as any).wire as any;
+          if (w) w.deliverMessage(chunk);
+        },
+        close(socket) {
+          const w = (socket.data as any).wire as any;
+          if (w) w.deliverClose();
+          const sessionId = (socket.data as any).sessionId as string | undefined;
+          if (sessionId) activeSessions.delete(sessionId);
+        },
       },
-    },
-  });
+      tls: listen.kind === "tls" ? {
+        // For v0.1.0 we expect the vault to hold the daemon's TLS cert.
+        // If missing, Bun.listen will throw.
+        cert: vault.read("daemon-tls-cert")?.value,
+        key: vault.read("daemon-tls-key")?.value,
+      } : undefined,
+    });
+    server = {
+      port: bunTcp.port,
+      stop: () => bunTcp.stop(),
+    };
+  }
 
   return {
     port: server.port ?? 0,
@@ -1236,7 +1311,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
           /* tolerate */
         }
       }
-      server.stop(true);
+      await server.stop(true);
       // Flush + tear down any OTel SDK we brought up. Best effort.
       try {
         await otelHandle.flush();
@@ -1351,6 +1426,54 @@ function wireFromBunServerSocket(ws: import("bun").ServerWebSocket<unknown>) {
       if (typeof message === "string") bytes = new TextEncoder().encode(message);
       else bytes = new Uint8Array(message);
       for (const l of messageListeners) l(bytes);
+    },
+    deliverClose() {
+      for (const l of closeListeners) l();
+    },
+  };
+}
+
+function wireFromBunTcpSocket(socket: import("bun").Socket<unknown>) {
+  const messageListeners = new Set<(b: Uint8Array) => void>();
+  const closeListeners = new Set<() => void>();
+  return {
+    sink: {
+      send(bytes: Uint8Array) {
+        // Use a 4-byte BE length prefix for TCP streaming, matching tf-session's
+        // LengthDelimitedCodec.
+        const header = new Uint8Array(4);
+        new DataView(header.buffer).setUint32(0, bytes.length, false);
+        socket.write(header);
+        socket.write(bytes);
+      },
+      close() {
+        socket.end();
+      },
+    },
+    source: {
+      onMessage(l: (b: Uint8Array) => void) {
+        messageListeners.add(l);
+      },
+      onClose(l: () => void) {
+        closeListeners.add(l);
+      },
+    },
+    // The Bun socket 'data' handler gets the raw stream; we need to buffer
+    // and frame-split it here to match LengthDelimitedCodec.
+    _buffer: new Uint8Array(0),
+    deliverMessage(chunk: Uint8Array) {
+      const next = new Uint8Array(this._buffer.length + chunk.length);
+      next.set(this._buffer);
+      next.set(chunk, this._buffer.length);
+      this._buffer = next;
+
+      while (this._buffer.length >= 4) {
+        const len = new DataView(this._buffer.buffer, this._buffer.byteOffset, 4).getUint32(0, false);
+        if (this._buffer.length < 4 + len) break;
+        const frame = this._buffer.subarray(4, 4 + len);
+        this._buffer = this._buffer.subarray(4 + len);
+        for (const l of messageListeners) l(frame);
+      }
     },
     deliverClose() {
       for (const l of closeListeners) l();

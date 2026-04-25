@@ -6,9 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **TrustForge** project. The short form used in identifiers, URIs, CLI, crate names, and file extensions is `tf` (e.g. `tf:actor:…`, `.tf/`, `.tfproof`, `tf-core`, `TF-0001`).
 
-The repo is currently **Phase 0 (repository seed)** per `ROADMAP.md`: specifications, decision logs, and directory placeholders only. **There is no code yet** — no Rust crates, no build system, no test suite, no lint config. The `crates/` tree described in `docs/repo-structure.md` is planned but absent. Do not invent commands; do not claim code exists when it doesn't.
+The repo is currently in **Phase 1/2 (core implementation & prototyping)**. Unlike earlier phases, a significant amount of the reference implementation exists in Rust (`crates/`) and TypeScript (`tools/`).
 
-`schemas/`, `test-vectors/`, `conformance/`, `examples/`, `plugins/` currently contain only stub READMEs describing what will go there.
+- `crates/tf-types/` — core protocol types, handshake state machines, and compatibility bridges.
+- `tools/tf-session/` — TS carrier driver for session handshakes (WebSocket/TCP).
+- `tools/tf-daemon/` — the core enforcement daemon.
+- `schemas/` — JSON Schema definitions for all protocol objects.
+- `conformance/` — cross-language parity vectors.
+
+The project is moving toward a functional site-to-site prototype. Do not claim code doesn't exist; instead, verify its status in the `crates/` and `tools/` directories.
 
 ## How the specification is organized
 

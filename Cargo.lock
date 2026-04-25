@@ -1738,6 +1738,7 @@ checksum = "8b147ee9d1f6d097cef9ce628cd2ee62288d963e16fb287bd9286455b241382d"
 dependencies = [
  "futures-channel",
  "futures-core",
+ "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -5076,6 +5077,22 @@ dependencies = [
 [[package]]
 name = "tf-salvo"
 version = "0.1.0"
+
+[[package]]
+name = "tf-session"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "futures",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tf-types",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
 
 [[package]]
 name = "tf-store-mysql"
