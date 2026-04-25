@@ -387,7 +387,10 @@ function tagDecision(d: GuardDecision, tag: string): GuardDecision {
 }
 
 function negativeMatches(neg: NegativeCapability, q: GuardQuery): boolean {
-  if (neg.name !== q.action) return false;
+  // Negative-capability `name` is glob-matched (post-B8). Pre-B8 the
+  // match was `===`, which only blocked exact action names — patterns
+  // like "fs.write*" failed to cover "fs.write.tmp".
+  if (!globMatch(neg.name, q.action)) return false;
   if (!neg.target) return true;
   if (!q.target) return false;
   return globMatch(neg.target, q.target);
@@ -395,6 +398,9 @@ function negativeMatches(neg: NegativeCapability, q: GuardQuery): boolean {
 
 function globMatch(pattern: string, value: string): boolean {
   // Minimal glob: `*` matches non-`/` chars, `**` matches any.
+  // Every other regex meta character — including `?`, which pre-B8 was
+  // passed through as the regex zero-or-one quantifier and made
+  // `tf:actor:user?` match `tf:actor:use` — is escaped.
   let re = "^";
   let i = 0;
   while (i < pattern.length) {
@@ -407,7 +413,7 @@ function globMatch(pattern: string, value: string): boolean {
         re += "[^/]*";
         i += 1;
       }
-    } else if (".+^${}()|[]\\".includes(c)) {
+    } else if (".+^${}()|[]\\?".includes(c)) {
       re += "\\" + c;
       i += 1;
     } else {

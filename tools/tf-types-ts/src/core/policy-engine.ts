@@ -226,11 +226,15 @@ function ruleMatches(
   }
   const pattern = (rule as unknown as { action_pattern?: string }).action_pattern;
   if (pattern) {
-    if (!new RegExp(pattern).test(query.action)) return false;
+    // Match through globMatch instead of `new RegExp` to:
+    //   1. avoid catastrophic-backtracking ReDoS from untrusted policies
+    //   2. give TS and Rust identical match semantics (both implement
+    //      the same minimal `*` / `**` glob).
+    if (!globMatch(pattern, query.action)) return false;
   }
   const subjectPattern = (rule as unknown as { subject_pattern?: string }).subject_pattern;
   if (subjectPattern) {
-    if (!new RegExp(subjectPattern).test(query.subject)) return false;
+    if (!globMatch(subjectPattern, query.subject)) return false;
   }
   const targets = (rule as unknown as { target_patterns?: string[] }).target_patterns ?? [];
   if (targets.length > 0) {
@@ -242,7 +246,10 @@ function ruleMatches(
 }
 
 function negativeCapMatches(neg: NegativeCapability, q: PolicyQuery): boolean {
-  if (neg.name !== q.action) return false;
+  // Negative-capability `name` is glob-matched against the action so
+  // patterns like `fs.write*` cover `fs.write.tmp`. Pre-B8 the match
+  // was `===`, which only blocked exact action names.
+  if (!globMatch(neg.name, q.action)) return false;
   if (!neg.target) return true;
   if (!q.target) return false;
   return globMatch(neg.target, q.target);
@@ -259,7 +266,7 @@ function globMatch(pattern: string, value: string): boolean {
       } else {
         re += "[^/]*";
       }
-    } else if (".+^${}()|[]\\".includes(c)) {
+    } else if (".+^${}()|[]\\?".includes(c)) {
       re += "\\" + c;
     } else {
       re += c;
@@ -274,20 +281,43 @@ function toHex(bytes: Uint8Array): string {
   return out;
 }
 
-/** Cedar adapter stub. v0.1.0 carries the indirection so callers don't
- *  have to refactor when Cedar lands; right now it throws. */
+/**
+ * Cedar adapter stub. v0.1.0 ships the indirection so callers don't
+ * have to refactor when the real Cedar runtime lands; until then the
+ * engine returns a graceful deny so a misconfigured `engine_hint:
+ * cedar` doesn't crash the daemon mid-RPC. Pre-B8 this threw, which
+ * caused the daemon's enforcer to surface "internal: capability
+ * enforcer threw" errors to clients.
+ */
+function unavailableDecision(engine: "cedar" | "rego", q: PolicyQuery): PolicyDecision {
+  const out: PolicyDecision = {
+    decision_version: "1",
+    policy_engine: engine,
+    engine_version: `${engine}-stub-0.1.0`,
+    trust_domain: "unknown",
+    subject: q.subject,
+    action: q.action,
+    decision: "deny",
+    evaluated_at: new Date().toISOString(),
+    reason: `${engine} adapter not implemented in v0.1.0; configure engine_hint: native or wait for the v0.2.0 ${engine}-wasm integration`,
+  };
+  if (q.target) out.target = q.target;
+  if (q.enforcementLevel) out.enforcement_level = q.enforcementLevel;
+  return out;
+}
+
 export class CedarPolicyEngine implements PolicyEngine {
   readonly engine = "cedar" as const;
-  evaluate(_q: PolicyQuery): PolicyDecision {
-    throw new Error("Cedar adapter not implemented in v0.1.0; use NativePolicyEngine");
+  evaluate(q: PolicyQuery): PolicyDecision {
+    return unavailableDecision("cedar", q);
   }
 }
 
-/** Rego adapter stub — same shape as Cedar's. */
+/** Rego adapter — same graceful-deny shape as Cedar's. */
 export class RegoPolicyEngine implements PolicyEngine {
   readonly engine = "rego" as const;
-  evaluate(_q: PolicyQuery): PolicyDecision {
-    throw new Error("Rego adapter not implemented in v0.1.0; use NativePolicyEngine");
+  evaluate(q: PolicyQuery): PolicyDecision {
+    return unavailableDecision("rego", q);
   }
 }
 

@@ -566,7 +566,9 @@ fn tag_decision(d: GuardDecision, tag: &str) -> GuardDecision {
 }
 
 fn negative_matches(neg: &NegativeCapability, q: &GuardQuery) -> bool {
-    if neg.name != q.action {
+    // Glob-match the action name (post-B8). Pre-B8 it was `==`, which
+    // only blocked exact action strings.
+    if !glob_match(&neg.name, &q.action) {
         return false;
     }
     let Some(target_pattern) = neg.target.as_deref() else {
@@ -579,14 +581,18 @@ fn negative_matches(neg: &NegativeCapability, q: &GuardQuery) -> bool {
 }
 
 fn glob_match(pattern: &str, value: &str) -> bool {
+    // Iterate as Unicode chars (NOT bytes). Pre-B8 we cast each UTF-8
+    // byte to char, which corrupted any non-ASCII pattern (e.g. an
+    // `é` in a target_set name produced two Latin-1 chars in the regex
+    // and never matched the actual `é`).
     let mut re = String::from("^");
-    let bytes = pattern.as_bytes();
+    let chars: Vec<char> = pattern.chars().collect();
     let mut i = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        match b {
-            b'*' => {
-                if i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+    while i < chars.len() {
+        let c = chars[i];
+        match c {
+            '*' => {
+                if i + 1 < chars.len() && chars[i + 1] == '*' {
                     re.push_str(".*");
                     i += 2;
                 } else {
@@ -594,13 +600,15 @@ fn glob_match(pattern: &str, value: &str) -> bool {
                     i += 1;
                 }
             }
-            b'.' | b'+' | b'^' | b'$' | b'{' | b'}' | b'(' | b')' | b'|' | b'[' | b']' | b'\\' => {
+            // Escape every regex meta character (including `?` — pre-B8
+            // it was passed through as the regex zero-or-one quantifier).
+            '.' | '+' | '^' | '$' | '{' | '}' | '(' | ')' | '|' | '[' | ']' | '\\' | '?' => {
                 re.push('\\');
-                re.push(b as char);
+                re.push(c);
                 i += 1;
             }
             _ => {
-                re.push(b as char);
+                re.push(c);
                 i += 1;
             }
         }

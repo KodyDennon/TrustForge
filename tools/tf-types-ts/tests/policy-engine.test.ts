@@ -21,7 +21,10 @@ const policy: Policy = {
     {
       id: "escalate.payments",
       effect: "escalate",
-      action_pattern: "^payment\\.",
+      // Glob pattern (post-B8). Pre-B8 this was a regex; the engine now
+      // matches policy patterns through the same glob impl as
+      // negative_capabilities so untrusted policies can't ReDoS.
+      action_pattern: "payment.*",
       reason: "payments require human approval",
       approval: "quorum",
     } as Policy["rules"][number],
@@ -131,11 +134,19 @@ describe("NativePolicyEngine", () => {
     expect(e.engine).toBe("native");
   });
 
-  test("Cedar/Rego stubs throw a clear error when invoked", () => {
+  test("Cedar/Rego stubs return a graceful deny (post-B8) instead of throwing", () => {
+    // Pre-B8 the stubs threw, which let plugin RPCs surface as
+    // "internal: capability enforcer threw". Post-B8 they fail closed
+    // with a clear engine-unavailable reason so callers get a normal
+    // PolicyDecision they can route through the same audit path.
     const cedar = policyEngineForManifest({ ...policy, engine_hint: "cedar" } as Policy);
-    expect(() => cedar.evaluate({ subject: "tf:actor:human:example.com/u", action: "file.read" })).toThrow();
+    const cedarDecision = cedar.evaluate({ subject: "tf:actor:human:example.com/u", action: "file.read" });
+    expect(cedarDecision.decision).toBe("deny");
+    expect(cedarDecision.reason).toContain("cedar adapter not implemented");
     const rego = policyEngineForManifest({ ...policy, engine_hint: "rego" } as Policy);
-    expect(() => rego.evaluate({ subject: "tf:actor:human:example.com/u", action: "file.read" })).toThrow();
+    const regoDecision = rego.evaluate({ subject: "tf:actor:human:example.com/u", action: "file.read" });
+    expect(regoDecision.decision).toBe("deny");
+    expect(regoDecision.reason).toContain("rego adapter not implemented");
   });
 
   test("explicit negative capabilities passed in the query override any rule", () => {
