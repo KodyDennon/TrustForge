@@ -110,6 +110,18 @@ vectors:
   - schema: dangerous-actions
     fixture: schemas/fixtures/dangerous-actions/invalid/missing-actions.yaml
     expect: invalid
+  - schema: plugin-manifest
+    fixture: schemas/fixtures/plugin-manifest/valid/basic.yaml
+    expect: valid
+  - schema: plugin-manifest
+    fixture: schemas/fixtures/plugin-manifest/invalid/bad-kind.yaml
+    expect: invalid
+  - schema: plugin-manifest
+    fixture: schemas/fixtures/plugin-manifest/invalid/bad-plugin-id.yaml
+    expect: invalid
+  - schema: plugin-manifest
+    fixture: schemas/fixtures/plugin-manifest/invalid/missing-capabilities.yaml
+    expect: invalid
   - schema: policy
     fixture: schemas/fixtures/policy/valid/basic.yaml
     expect: valid

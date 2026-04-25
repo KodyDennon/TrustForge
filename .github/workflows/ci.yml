@@ -43,6 +43,12 @@ jobs:
       - name: tf-session smoke test (in-memory + Bun WebSocket carrier)
         run: |
           bun test tools/tf-session/tests/e2e.test.ts
+      - name: tf-daemon smoke test
+        run: |
+          bun test tools/tf-daemon/tests/e2e.test.ts
+      - name: plugin registry smoke test
+        run: |
+          bun test tools/tf-types-ts/tests/plugin.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci
