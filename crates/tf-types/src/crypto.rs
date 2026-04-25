@@ -28,6 +28,8 @@ pub enum CryptoError {
     BadBase64(String),
     #[error("unknown algorithm: {0}")]
     UnknownAlgorithm(String),
+    #[error("{0}")]
+    Generic(String),
 }
 
 /// ED25519 signing key.

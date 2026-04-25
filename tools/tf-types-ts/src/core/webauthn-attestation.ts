@@ -272,11 +272,11 @@ export function parseClientDataJSON(buf: Uint8Array): ClientDataJsonParsed {
   return o;
 }
 
-export function verifyAttestation(
+export async function verifyAttestation(
   attestationObject: Uint8Array,
   clientDataJSON: Uint8Array,
   opts: VerifyAttestationOptions,
-): VerifiedAttestation {
+): Promise<VerifiedAttestation> {
   const att = decodeAttestationObject(attestationObject);
   const authData = parseAuthenticatorData(att.authData);
   const clientData = parseClientDataJSON(clientDataJSON);
@@ -345,9 +345,9 @@ export function verifyAttestation(
   // Verify the attestation signature (if any).
   const clientDataHash = sha256(clientDataJSON);
   if (att.fmt === "packed") {
-    verifyPackedSignature(att, authData, clientDataHash);
+    await verifyPackedSignature(att, authData, clientDataHash);
   } else if (att.fmt === "fido-u2f") {
-    verifyFidoU2fSignature(att, authData, clientDataHash);
+    await verifyFidoU2fSignature(att, authData, clientDataHash);
   } else if (opts.requireAttestationSignature && att.fmt === "none") {
     throw new BridgeFailure({
       code: "rejected",
@@ -381,11 +381,11 @@ function pickX5c(attStmt: Record<string, unknown>): Uint8Array[] | undefined {
   return out.length > 0 ? out : undefined;
 }
 
-function verifyPackedSignature(
+async function verifyPackedSignature(
   att: AttestationObjectRaw,
   authData: ParsedAuthData,
   clientDataHash: Uint8Array,
-): void {
+): Promise<void> {
   const sig = att.attStmt["sig"];
   const alg = att.attStmt["alg"];
   if (!(sig instanceof Uint8Array)) {
@@ -399,19 +399,19 @@ function verifyPackedSignature(
   if (x5c && x5c.length > 0) {
     // Full attestation: signature is over (authData||clientDataHash) using
     // attestation cert's public key.
-    verifyWithCertChain(x5c, verificationData, sig, alg);
+    await verifyWithCertChain(x5c, verificationData, sig, alg);
     return;
   }
   // Self-attestation: signature is over (authData||clientDataHash) using the
   // attested credential's own public key.
-  verifyCoseSignature(authData.credentialPublicKey!, verificationData, sig, alg);
+  await verifyCoseSignature(authData.credentialPublicKey!, verificationData, sig, alg);
 }
 
-function verifyFidoU2fSignature(
+async function verifyFidoU2fSignature(
   att: AttestationObjectRaw,
   authData: ParsedAuthData,
   clientDataHash: Uint8Array,
-): void {
+): Promise<void> {
   const sig = att.attStmt["sig"];
   const x5c = pickX5c(att.attStmt);
   if (!(sig instanceof Uint8Array) || !x5c || x5c.length === 0) {
@@ -437,26 +437,98 @@ function verifyFidoU2fSignature(
     cose.x,
     cose.y,
   );
-  verifyWithCertChain(x5c, verificationData, sig, -7); // U2F is always ECDSA-P256-SHA-256.
+  await verifyWithCertChain(x5c, verificationData, sig, -7); // U2F is always ECDSA-P256-SHA-256.
 }
 
-function verifyWithCertChain(
+/**
+ * Validate the X.509 chain and verify the leaf-key signature over `data`.
+ *
+ * Steps:
+ *   1. Parse every cert in `x5c` via @peculiar/x509.
+ *   2. For each consecutive (subject, issuer) pair, verify the issuer
+ *      signed the subject AND the issuer's Subject DN matches the subject's
+ *      Issuer DN.
+ *   3. Check `notBefore <= now <= notAfter` for every cert.
+ *   4. Use the leaf certificate's SPKI public key to verify `signature`
+ *      over `data` for the requested COSE algorithm.
+ *
+ * The chain root is the LAST entry of `x5c` (FIDO MDS / WebAuthn does not
+ * require us to anchor in a separate trust store for this build; AAGUID-
+ * pinning lives in the bridge layer above).
+ */
+async function verifyWithCertChain(
   x5c: Uint8Array[],
   data: Uint8Array,
   signature: Uint8Array,
   alg: number,
-): void {
-  const cert = x5c[0]!;
-  const pub = extractSpkiPublicKey(cert);
-  verifyAlgorithmSignature(pub.alg, pub.publicKey, data, signature, alg);
+): Promise<void> {
+  const x509 = await import("@peculiar/x509");
+  if (x5c.length === 0) {
+    throw new BridgeFailure({ code: "invalid-input", message: "x5c is empty" });
+  }
+  const certs = x5c.map((der) => {
+    const ab = new ArrayBuffer(der.byteLength);
+    new Uint8Array(ab).set(der);
+    return new x509.X509Certificate(ab);
+  });
+  const now = new Date();
+  for (const c of certs) {
+    if (c.notBefore.getTime() > now.getTime()) {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `cert notBefore ${c.notBefore.toISOString()} is in the future`,
+      });
+    }
+    if (c.notAfter.getTime() < now.getTime()) {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `cert notAfter ${c.notAfter.toISOString()} has passed`,
+      });
+    }
+  }
+  for (let i = 0; i < certs.length - 1; i++) {
+    const subject = certs[i]!;
+    const issuer = certs[i + 1]!;
+    if (subject.issuer !== issuer.subject) {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `cert chain link ${i}->${i + 1}: issuer DN mismatch`,
+      });
+    }
+    const ok = await subject.verify({ publicKey: await issuer.publicKey.export() });
+    if (!ok) {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `cert chain link ${i}->${i + 1}: issuer signature invalid`,
+      });
+    }
+  }
+  // Self-signed root sanity check on the last cert (skip for single-element
+  // chains where the leaf is the root).
+  const root = certs[certs.length - 1]!;
+  if (root.issuer === root.subject) {
+    const ok = await root.verify({ publicKey: await root.publicKey.export() });
+    if (!ok) {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: "self-signed root signature invalid",
+      });
+    }
+  }
+  const leaf = certs[0]!;
+  // Extract the SPKI public-key bytes from the leaf and dispatch to the
+  // algorithm-specific verifier — same algorithm gating as before.
+  const leafDer = new Uint8Array(leaf.rawData);
+  const pub = extractSpkiPublicKey(leafDer);
+  await verifyAlgorithmSignature(pub.alg, pub.publicKey, data, signature, alg);
 }
 
-function verifyCoseSignature(
+async function verifyCoseSignature(
   cose: CosePublicKey,
   data: Uint8Array,
   signature: Uint8Array,
   alg: number,
-): void {
+): Promise<void> {
   if (alg === -7 && cose.kty === 2 && cose.x && cose.y) {
     const pub = concatBytes(new Uint8Array([0x04]), cose.x, cose.y);
     if (!p256.verify(derToCompactSig(signature), sha256(data), pub)) {
@@ -553,13 +625,13 @@ export function extractSpkiPublicKey(certDer: Uint8Array): CertPublicKey {
   });
 }
 
-function verifyAlgorithmSignature(
+async function verifyAlgorithmSignature(
   alg: "p256" | "ed25519" | "rsa",
   publicKey: Uint8Array,
   data: Uint8Array,
   signature: Uint8Array,
   coseAlg: number,
-): void {
+): Promise<void> {
   if (coseAlg === -7 && alg === "p256") {
     if (!p256.verify(derToCompactSig(signature), sha256(data), publicKey)) {
       throw new BridgeFailure({
@@ -579,9 +651,11 @@ function verifyAlgorithmSignature(
     return;
   }
   if (coseAlg === -257 && alg === "rsa") {
-    // RS256 PKCS#1 v1.5 verification — implemented inline so we don't pull
-    // in another crypto dep.
-    verifyRsaPkcs1Sha256(publicKey, data, signature);
+    // RS256 PKCS#1 v1.5 — verified via the platform Web Crypto subtle
+    // implementation (Bun-native, identical algorithm in Node 20+).
+    // No hand-rolled PKCS#1 padding parsing; SECURITY.md "no custom
+    // crypto" applies.
+    await verifyRsaPkcs1Sha256ViaSubtle(publicKey, data, signature);
     return;
   }
   throw new BridgeFailure({
@@ -590,76 +664,122 @@ function verifyAlgorithmSignature(
   });
 }
 
-function verifyRsaPkcs1Sha256(
+/**
+ * Verify RS256 (RSASSA-PKCS1-v1_5 / SHA-256) using Web Crypto subtle.
+ *
+ * `spkiKeyBytes` here is the BIT STRING content from the SPKI — i.e.
+ * `RSAPublicKey ::= SEQUENCE { modulus INTEGER, publicExponent INTEGER }`.
+ * To use crypto.subtle.importKey we need the FULL SubjectPublicKeyInfo
+ * DER, so we wrap RSAPublicKey in the standard rsaEncryption
+ * AlgorithmIdentifier and BIT STRING.
+ */
+async function verifyRsaPkcs1Sha256ViaSubtle(
   spkiKeyBytes: Uint8Array,
   data: Uint8Array,
   signature: Uint8Array,
-): void {
-  // Parse RSAPublicKey: SEQUENCE { modulus INTEGER, publicExponent INTEGER }.
-  const rsa = readSeq(spkiKeyBytes, 0);
-  if (!rsa) throw new BridgeFailure({ code: "invalid-input", message: "RSA SPKI not a SEQUENCE" });
-  const nNode = readInteger(spkiKeyBytes, rsa.contentStart);
-  if (!nNode) throw new BridgeFailure({ code: "invalid-input", message: "RSA modulus parse" });
-  const eNode = readInteger(spkiKeyBytes, nNode.next);
-  if (!eNode) throw new BridgeFailure({ code: "invalid-input", message: "RSA exponent parse" });
-  const n = bigintFromBytes(nNode.bytes);
-  const e = bigintFromBytes(eNode.bytes);
-  const sigInt = bigintFromBytes(signature);
-  // m = sig^e mod n
-  const m = modPow(sigInt, e, n);
-  const emLen = (n.toString(2).length + 7) >> 3;
-  const em = bigintToBytes(m, emLen);
-  // EMSA-PKCS1-v1_5 encoding: 0x00 0x01 PS 0x00 T (DigestInfo for SHA-256).
-  if (em.length < 11 || em[0] !== 0x00 || em[1] !== 0x01) {
-    throw new BridgeFailure({ code: "rejected", message: "PKCS1 padding mismatch" });
+): Promise<void> {
+  const subtle = (globalThis as unknown as { crypto: { subtle: SubtleCrypto } }).crypto?.subtle;
+  if (!subtle) {
+    throw new BridgeFailure({
+      code: "unsupported",
+      message: "no globalThis.crypto.subtle — RS256 verification requires Web Crypto",
+    });
   }
-  let i = 2;
-  while (i < em.length && em[i] === 0xff) i++;
-  if (i === em.length || em[i] !== 0x00) {
-    throw new BridgeFailure({ code: "rejected", message: "PKCS1 padding mismatch" });
+  // Copy each byte slice into a fresh ArrayBuffer; SubtleCrypto rejects
+  // SharedArrayBuffer-backed inputs and DOM lib types treat ArrayBufferLike
+  // as ambiguous between ArrayBuffer / SharedArrayBuffer.
+  const toArrayBuffer = (u: Uint8Array): ArrayBuffer => {
+    const ab = new ArrayBuffer(u.byteLength);
+    new Uint8Array(ab).set(u);
+    return ab;
+  };
+  const spki = toArrayBuffer(wrapRsaPublicKeyAsSpki(spkiKeyBytes));
+  const key = await subtle.importKey(
+    "spki",
+    spki,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const ok = await subtle.verify(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    toArrayBuffer(signature),
+    toArrayBuffer(data),
+  );
+  if (!ok) {
+    throw new BridgeFailure({
+      code: "rejected",
+      message: "RS256 PKCS#1 v1.5 signature verification failed",
+    });
   }
-  i++;
-  // SHA-256 DigestInfo prefix
-  const sha256DigestInfo = new Uint8Array([
-    0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
-    0x00, 0x04, 0x20,
+}
+
+/** Wrap a raw RSAPublicKey DER (`SEQUENCE{n, e}`) inside a full SPKI:
+ *  `SEQUENCE { AlgorithmIdentifier(rsaEncryption, NULL), BIT STRING(rsaPub) }`. */
+function wrapRsaPublicKeyAsSpki(rsaPublicKey: Uint8Array): Uint8Array {
+  // AlgorithmIdentifier rsaEncryption: SEQUENCE { OID 1.2.840.113549.1.1.1, NULL }
+  // SEQUENCE LEN OID-prefix LEN OID-bytes NULL-tag NULL-len
+  const algId = new Uint8Array([
+    0x30, 0x0d,
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+    0x05, 0x00,
   ]);
-  if (!bytesEqual(em.subarray(i, i + sha256DigestInfo.length), sha256DigestInfo)) {
-    throw new BridgeFailure({ code: "rejected", message: "PKCS1 DigestInfo mismatch" });
-  }
-  i += sha256DigestInfo.length;
-  const expectedHash = sha256(data);
-  if (!bytesEqual(em.subarray(i, i + 32), expectedHash)) {
-    throw new BridgeFailure({ code: "rejected", message: "RS256 hash mismatch" });
-  }
+  // BIT STRING wrapping the rsaPublicKey: 0x03, len, 0x00 (no unused bits), bytes
+  const bitStringInner = new Uint8Array(rsaPublicKey.length + 1);
+  bitStringInner[0] = 0x00;
+  bitStringInner.set(rsaPublicKey, 1);
+  const bitString = new Uint8Array(2 + lenWidth(bitStringInner.length) + bitStringInner.length);
+  bitString[0] = 0x03;
+  writeLen(bitString, 1, bitStringInner.length);
+  bitString.set(bitStringInner, 1 + lenWidth(bitStringInner.length));
+  // Outer SEQUENCE wrapping algId + bitString
+  const inner = new Uint8Array(algId.length + bitString.length);
+  inner.set(algId, 0);
+  inner.set(bitString, algId.length);
+  const outer = new Uint8Array(2 + lenWidth(inner.length) + inner.length);
+  outer[0] = 0x30;
+  writeLen(outer, 1, inner.length);
+  outer.set(inner, 1 + lenWidth(inner.length));
+  return outer;
 }
 
-function bigintFromBytes(b: Uint8Array): bigint {
-  let acc = 0n;
-  for (const byte of b) acc = (acc << 8n) | BigInt(byte);
-  return acc;
+function lenWidth(n: number): number {
+  if (n < 0x80) return 1;
+  if (n <= 0xff) return 2;
+  if (n <= 0xffff) return 3;
+  if (n <= 0xffffff) return 4;
+  return 5;
 }
 
-function bigintToBytes(n: bigint, len: number): Uint8Array {
-  const out = new Uint8Array(len);
-  let v = n;
-  for (let i = len - 1; i >= 0; i--) {
-    out[i] = Number(v & 0xffn);
-    v >>= 8n;
+function writeLen(buf: Uint8Array, offset: number, n: number): void {
+  if (n < 0x80) {
+    buf[offset] = n;
+    return;
   }
-  return out;
-}
-
-function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
-  let result = 1n;
-  let b = base % mod;
-  let e = exp;
-  while (e > 0n) {
-    if (e & 1n) result = (result * b) % mod;
-    e >>= 1n;
-    b = (b * b) % mod;
+  if (n <= 0xff) {
+    buf[offset] = 0x81;
+    buf[offset + 1] = n;
+    return;
   }
-  return result;
+  if (n <= 0xffff) {
+    buf[offset] = 0x82;
+    buf[offset + 1] = (n >> 8) & 0xff;
+    buf[offset + 2] = n & 0xff;
+    return;
+  }
+  if (n <= 0xffffff) {
+    buf[offset] = 0x83;
+    buf[offset + 1] = (n >> 16) & 0xff;
+    buf[offset + 2] = (n >> 8) & 0xff;
+    buf[offset + 3] = n & 0xff;
+    return;
+  }
+  buf[offset] = 0x84;
+  buf[offset + 1] = (n >> 24) & 0xff;
+  buf[offset + 2] = (n >> 16) & 0xff;
+  buf[offset + 3] = (n >> 8) & 0xff;
+  buf[offset + 4] = n & 0xff;
 }
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {

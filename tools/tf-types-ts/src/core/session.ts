@@ -21,6 +21,8 @@ import {
   ed25519Sign,
   ed25519Verify,
   hkdfSha256,
+  mldsaSign,
+  mldsaVerify,
   toHex,
   utf8encode,
   x25519DiffieHellman,
@@ -30,6 +32,10 @@ import {
 } from "./crypto.js";
 import { derivePeerActor } from "./actor-id.js";
 import { sha256 } from "@noble/hashes/sha2";
+
+function isHybridSuite(suite: string): boolean {
+  return suite.endsWith("+ml-dsa-65");
+}
 
 export const SESSION_VERSION = 0;
 export const SESSION_SUITE = "x25519-hkdf-sha256-chacha20poly1305-ed25519";
@@ -143,8 +149,11 @@ export class Initiator {
     if (sessionIdBytes.length !== 16) throw new SessionError("session_id must be 16 bytes");
     this.ephPriv = eph.privateKey;
     const preferred = (this.cfg.preferredSuite ?? SESSION_SUITE) as SessionSuite;
-    const supported = this.cfg.supportedSuites ?? Array.from(KNOWN_SESSION_SUITES);
-    if (!supported.includes(preferred)) supported.unshift(preferred);
+    let supported = (this.cfg.supportedSuites ?? Array.from(KNOWN_SESSION_SUITES)) as SessionSuite[];
+    // Move preferred to the front so the responder's first-match negotiation
+    // honours the initiator's preference.
+    supported = supported.filter((s) => s !== preferred);
+    supported.unshift(preferred);
     this.helloI = {
       kind: "hello-i",
       version: SESSION_VERSION,
@@ -164,7 +173,13 @@ export class Initiator {
     if (!this.helloI || !this.ephPriv) throw new SessionError("missing initiator state");
 
     // Verify responder's identity signature over (HelloI || HelloR_without_sig).
-    const helloRUnsigned: HelloR = { ...msg, signature: "" };
+    // For the hybrid suite both ed25519 AND ml-dsa-65 must verify (parallel
+    // composition: a break of either algorithm leaves the other intact).
+    const helloRUnsigned: HelloR = {
+      ...msg,
+      signature: "",
+      signature_mldsa: undefined,
+    };
     const transcript = utf8encode(canonicalize(this.helloI) + canonicalize(helloRUnsigned));
     const transcriptHash = sha256(transcript);
     const identPub = b64decode(msg.ident_pub);
@@ -172,16 +187,35 @@ export class Initiator {
     const ok = await ed25519Verify(identPub, transcriptHash, sig);
     if (!ok) throw new SessionError("responder identity signature invalid");
 
+    const negotiatedSuite = msg.selected_suite ?? this.helloI.suite;
+    if (isHybridSuite(negotiatedSuite)) {
+      if (!msg.signature_mldsa || !msg.ident_pub_mldsa) {
+        throw new SessionError(
+          `negotiated hybrid suite ${negotiatedSuite} but HelloR missing signature_mldsa / ident_pub_mldsa`,
+        );
+      }
+      const pqOk = mldsaVerify(
+        "ml-dsa-65",
+        b64decode(msg.ident_pub_mldsa),
+        transcriptHash,
+        b64decode(msg.signature_mldsa),
+      );
+      if (!pqOk) throw new SessionError("responder ml-dsa-65 signature invalid");
+    }
+
     // Derive shared secret + session keys.
     const peerEph = b64decode(msg.eph_pub);
     const shared = x25519DiffieHellman(this.ephPriv, peerEph);
     const sessionIdBytes = b64decode(this.helloI.session_id);
 
     // Build Auth (initiator's identity signature over the post-HelloR transcript +
-    // Auth_without_signature).
+    // Auth_without_signature). Hybrid suite: sign with both keys.
     const authUnsigned: Auth = {
       kind: "auth",
       ident_pub: b64encode(this.cfg.identityPub),
+      ident_pub_mldsa: isHybridSuite(negotiatedSuite) && this.cfg.identityMldsaPub
+        ? b64encode(this.cfg.identityMldsaPub)
+        : undefined,
       signature: "",
     };
     const fullTranscript = utf8encode(
@@ -189,7 +223,20 @@ export class Initiator {
     );
     const fullTranscriptHash = sha256(fullTranscript);
     const authSig = await ed25519Sign(fullTranscriptHash, this.cfg.identityPriv);
-    const auth: Auth = { ...authUnsigned, signature: b64encode(authSig) };
+    let authPqSig: Uint8Array | undefined;
+    if (isHybridSuite(negotiatedSuite)) {
+      if (!this.cfg.identityMldsaPriv || !this.cfg.identityMldsaPub) {
+        throw new SessionError(
+          `negotiated hybrid suite ${negotiatedSuite} but initiator is missing identity_mldsa_{priv,pub}`,
+        );
+      }
+      authPqSig = mldsaSign("ml-dsa-65", this.cfg.identityMldsaPriv, fullTranscriptHash);
+    }
+    const auth: Auth = {
+      ...authUnsigned,
+      signature: b64encode(authSig),
+      signature_mldsa: authPqSig ? b64encode(authPqSig) : undefined,
+    };
 
     const peerActor = derivePeerActor(identPub);
     // peer_hint on HelloI was the initiator's belief about the responder;
@@ -256,12 +303,28 @@ export class Responder {
       ident_pub: b64encode(this.cfg.identityPub),
       selected_suite: chosen,
       self_hint: this.cfg.selfHint,
+      ident_pub_mldsa: isHybridSuite(chosen) && this.cfg.identityMldsaPub
+        ? b64encode(this.cfg.identityMldsaPub)
+        : undefined,
       signature: "",
     };
     const transcript = utf8encode(canonicalize(msg) + canonicalize(helloRUnsigned));
     const transcriptHash = sha256(transcript);
     const sig = await ed25519Sign(transcriptHash, this.cfg.identityPriv);
-    const helloR: HelloR = { ...helloRUnsigned, signature: b64encode(sig) };
+    let pqSig: Uint8Array | undefined;
+    if (isHybridSuite(chosen)) {
+      if (!this.cfg.identityMldsaPriv || !this.cfg.identityMldsaPub) {
+        throw new SessionError(
+          `negotiated hybrid suite ${chosen} but responder is missing identity_mldsa_{priv,pub}`,
+        );
+      }
+      pqSig = mldsaSign("ml-dsa-65", this.cfg.identityMldsaPriv, transcriptHash);
+    }
+    const helloR: HelloR = {
+      ...helloRUnsigned,
+      signature: b64encode(sig),
+      signature_mldsa: pqSig ? b64encode(pqSig) : undefined,
+    };
 
     this.helloI = msg;
     this.helloR = helloR;
@@ -273,13 +336,29 @@ export class Responder {
     if (this.state !== "awaiting-auth") throw new SessionError("not awaiting auth");
     if (!this.helloI || !this.helloR || !this.sharedSecret) throw new SessionError("missing responder state");
 
-    const authUnsigned: Auth = { ...msg, signature: "" };
+    const authUnsigned: Auth = { ...msg, signature: "", signature_mldsa: undefined };
     const fullTranscript = utf8encode(
       canonicalize(this.helloI) + canonicalize(this.helloR) + canonicalize(authUnsigned),
     );
     const fullTranscriptHash = sha256(fullTranscript);
     const ok = await ed25519Verify(b64decode(msg.ident_pub), fullTranscriptHash, b64decode(msg.signature));
     if (!ok) throw new SessionError("initiator identity signature invalid");
+
+    const negotiatedSuite = this.helloR.selected_suite ?? this.helloI.suite;
+    if (isHybridSuite(negotiatedSuite)) {
+      if (!msg.signature_mldsa || !msg.ident_pub_mldsa) {
+        throw new SessionError(
+          `negotiated hybrid suite ${negotiatedSuite} but Auth missing signature_mldsa / ident_pub_mldsa`,
+        );
+      }
+      const pqOk = mldsaVerify(
+        "ml-dsa-65",
+        b64decode(msg.ident_pub_mldsa),
+        fullTranscriptHash,
+        b64decode(msg.signature_mldsa),
+      );
+      if (!pqOk) throw new SessionError("initiator ml-dsa-65 signature invalid");
+    }
 
     const peerIdentPub = b64decode(msg.ident_pub);
     const peerActor = derivePeerActor(peerIdentPub);

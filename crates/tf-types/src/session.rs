@@ -14,6 +14,11 @@ use crate::crypto::{
     ed25519_verify, hkdf_sha256, x25519_diffie_hellman, x25519_from_bytes, x25519_generate,
     AeadError, CryptoError, Ed25519Signer, X25519KeyPair,
 };
+use crate::crypto_pq::{ml_dsa_65_sign, ml_dsa_65_verify};
+
+fn is_hybrid_suite(suite: &str) -> bool {
+    suite.ends_with("+ml-dsa-65")
+}
 
 pub const SESSION_VERSION: u32 = 0;
 pub const SESSION_SUITE: &str = "x25519-hkdf-sha256-chacha20poly1305-ed25519";
@@ -134,6 +139,10 @@ pub struct SessionConfig {
     pub preferred_suite: Option<String>,
     /// Suites this peer is willing to accept; defaults to KNOWN_SESSION_SUITES.
     pub supported_suites: Option<Vec<String>>,
+    /// ml-dsa-65 secret key. Required when the negotiated suite is hybrid.
+    pub identity_mldsa_priv: Option<Vec<u8>>,
+    /// ml-dsa-65 public key. Required when the negotiated suite is hybrid.
+    pub identity_mldsa_pub: Option<Vec<u8>>,
     pub eph_seed: Option<[u8; 32]>,
     pub session_id_seed: Option<[u8; 16]>,
 }
@@ -148,6 +157,8 @@ impl Default for SessionConfig {
             identity_pub: [0u8; 32],
             preferred_suite: None,
             supported_suites: None,
+            identity_mldsa_priv: None,
+            identity_mldsa_pub: None,
             eph_seed: None,
             session_id_seed: None,
         }
@@ -207,9 +218,10 @@ impl Initiator {
             .supported_suites
             .clone()
             .unwrap_or_else(|| KNOWN_SESSION_SUITES.iter().map(|s| s.to_string()).collect());
-        if !supported.iter().any(|s| s == &preferred) {
-            supported.insert(0, preferred.clone());
-        }
+        // Move preferred to the front so the responder's first-match
+        // negotiation honours preference.
+        supported.retain(|s| s != &preferred);
+        supported.insert(0, preferred.clone());
         let hello_i = HelloI {
             version: SESSION_VERSION,
             suite: preferred,
@@ -232,8 +244,12 @@ impl Initiator {
             _ => return Err(SessionError::Generic("not awaiting hello-r".into())),
         };
 
+        // For canonical transcript bytes both parties drop ed25519+mldsa
+        // signature fields together so neither side embeds the wrong pair
+        // of signatures.
         let hello_r_unsigned = HelloR {
             signature: String::new(),
+            signature_mldsa: None,
             ..msg.clone()
         };
         let transcript = canonical_concat(&[
@@ -247,6 +263,32 @@ impl Initiator {
         ed25519_verify(&ident_pub, &transcript_hash, &sig)
             .map_err(|_| SessionError::Generic("responder identity signature invalid".into()))?;
 
+        let negotiated_suite = msg
+            .selected_suite
+            .clone()
+            .unwrap_or_else(|| hello_i.suite.clone());
+        if is_hybrid_suite(&negotiated_suite) {
+            let pq_sig_b64 = msg.signature_mldsa.as_deref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but HelloR missing signature_mldsa",
+                    negotiated_suite
+                ))
+            })?;
+            let pq_pub_b64 = msg.ident_pub_mldsa.as_deref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but HelloR missing ident_pub_mldsa",
+                    negotiated_suite
+                ))
+            })?;
+            let pq_sig = b64decode(pq_sig_b64)?;
+            let pq_pub = b64decode(pq_pub_b64)?;
+            if !ml_dsa_65_verify(&pq_pub, transcript_hash.as_slice(), &pq_sig) {
+                return Err(SessionError::Generic(
+                    "responder ml-dsa-65 signature invalid".into(),
+                ));
+            }
+        }
+
         let peer_eph: [u8; 32] = b64decode(&msg.eph_pub)?
             .try_into()
             .map_err(|_| SessionError::Generic("eph_pub not 32 bytes".into()))?;
@@ -255,7 +297,11 @@ impl Initiator {
         let auth_unsigned = Auth {
             ident_pub: b64encode(&self.cfg.identity_pub),
             signature_mldsa: None,
-            ident_pub_mldsa: None,
+            ident_pub_mldsa: if is_hybrid_suite(&negotiated_suite) {
+                self.cfg.identity_mldsa_pub.as_deref().map(b64encode)
+            } else {
+                None
+            },
             signature: String::new(),
         };
         let full_transcript = canonical_concat(&[
@@ -267,10 +313,22 @@ impl Initiator {
 
         let signer = Ed25519Signer::from_bytes(&self.cfg.identity_priv);
         let auth_sig = signer.sign(&full_hash);
+        let auth_pq_sig = if is_hybrid_suite(&negotiated_suite) {
+            let priv_bytes = self.cfg.identity_mldsa_priv.as_ref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but initiator is missing identity_mldsa_priv",
+                    negotiated_suite
+                ))
+            })?;
+            Some(b64encode(&ml_dsa_65_sign(priv_bytes, full_hash.as_slice())
+                .map_err(|e| SessionError::Generic(e.to_string()))?))
+        } else {
+            None
+        };
         let auth = Auth {
             ident_pub: b64encode(&self.cfg.identity_pub),
-            signature_mldsa: None,
-            ident_pub_mldsa: None,
+            signature_mldsa: auth_pq_sig,
+            ident_pub_mldsa: auth_unsigned.ident_pub_mldsa.clone(),
             signature: b64encode(&auth_sig),
         };
 
@@ -374,7 +432,11 @@ impl Responder {
             selected_suite: Some(chosen.clone()),
             self_hint: self.cfg.self_hint.clone(),
             signature_mldsa: None,
-            ident_pub_mldsa: None,
+            ident_pub_mldsa: if is_hybrid_suite(&chosen) {
+                self.cfg.identity_mldsa_pub.as_deref().map(b64encode)
+            } else {
+                None
+            },
             signature: String::new(),
         };
         let transcript = canonical_concat(&[
@@ -385,8 +447,21 @@ impl Responder {
 
         let signer = Ed25519Signer::from_bytes(&self.cfg.identity_priv);
         let sig = signer.sign(&transcript_hash);
+        let pq_sig = if is_hybrid_suite(&chosen) {
+            let priv_bytes = self.cfg.identity_mldsa_priv.as_ref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but responder is missing identity_mldsa_priv",
+                    chosen
+                ))
+            })?;
+            Some(b64encode(&ml_dsa_65_sign(priv_bytes, transcript_hash.as_slice())
+                .map_err(|e| SessionError::Generic(e.to_string()))?))
+        } else {
+            None
+        };
         let hello_r = HelloR {
             signature: b64encode(&sig),
+            signature_mldsa: pq_sig,
             ..hello_r_unsigned
         };
 
@@ -410,6 +485,7 @@ impl Responder {
 
         let auth_unsigned = Auth {
             signature: String::new(),
+            signature_mldsa: None,
             ..msg.clone()
         };
         let full_transcript = canonical_concat(&[
@@ -423,6 +499,32 @@ impl Responder {
         let sig = b64decode(&msg.signature)?;
         ed25519_verify(&ident_pub, &full_hash, &sig)
             .map_err(|_| SessionError::Generic("initiator identity signature invalid".into()))?;
+
+        let negotiated_suite = hello_r
+            .selected_suite
+            .clone()
+            .unwrap_or_else(|| hello_i.suite.clone());
+        if is_hybrid_suite(&negotiated_suite) {
+            let pq_sig_b64 = msg.signature_mldsa.as_deref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but Auth missing signature_mldsa",
+                    negotiated_suite
+                ))
+            })?;
+            let pq_pub_b64 = msg.ident_pub_mldsa.as_deref().ok_or_else(|| {
+                SessionError::Generic(format!(
+                    "negotiated hybrid suite {} but Auth missing ident_pub_mldsa",
+                    negotiated_suite
+                ))
+            })?;
+            let pq_sig = b64decode(pq_sig_b64)?;
+            let pq_pub = b64decode(pq_pub_b64)?;
+            if !ml_dsa_65_verify(&pq_pub, full_hash.as_slice(), &pq_sig) {
+                return Err(SessionError::Generic(
+                    "initiator ml-dsa-65 signature invalid".into(),
+                ));
+            }
+        }
 
         let session_id_bytes = b64decode(&hello_i.session_id)?;
         let peer_actor = derive_peer_actor(&ident_pub)

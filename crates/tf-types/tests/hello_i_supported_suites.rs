@@ -2,6 +2,7 @@
 //! and negotiates the suite from the offered list. Closes BUG-003.
 
 use serde_json::json;
+use tf_types::crypto_pq::ml_dsa_65_generate;
 use tf_types::session::{
     HelloI, Responder, SessionConfig, SESSION_SUITE, SESSION_SUITE_HYBRID_ED25519_MLDSA65,
 };
@@ -53,10 +54,13 @@ fn responder_picks_first_mutually_supported_suite() {
     let signing = SigningKey::from_bytes(&priv_bytes);
     let pub_bytes = signing.verifying_key().to_bytes();
 
+    let (mldsa_priv, mldsa_pub) = ml_dsa_65_generate().expect("mldsa keygen");
     let mut responder = Responder::new(SessionConfig {
         self_actor: "tf:actor:service:example.com/server".into(),
         identity_priv: priv_bytes,
         identity_pub: pub_bytes,
+        identity_mldsa_priv: Some(mldsa_priv),
+        identity_mldsa_pub: Some(mldsa_pub),
         supported_suites: Some(vec![
             SESSION_SUITE.to_owned(),
             SESSION_SUITE_HYBRID_ED25519_MLDSA65.to_owned(),
@@ -82,6 +86,8 @@ fn responder_picks_first_mutually_supported_suite() {
         hello_r.selected_suite.as_deref(),
         Some(SESSION_SUITE_HYBRID_ED25519_MLDSA65)
     );
+    assert!(hello_r.signature_mldsa.is_some(), "hybrid responder must populate signature_mldsa");
+    assert!(hello_r.ident_pub_mldsa.is_some(), "hybrid responder must populate ident_pub_mldsa");
 }
 
 #[test]

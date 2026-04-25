@@ -26,6 +26,7 @@ pub mod canonical;
 pub mod capability;
 pub mod chain;
 pub mod crypto;
+pub mod crypto_pq;
 pub mod delegation;
 pub mod envelope;
 pub mod evidence;

@@ -133,7 +133,7 @@ const AAGUID = new Uint8Array(16).fill(0xab);
 const CREDENTIAL_ID = new Uint8Array([10, 20, 30, 40, 50, 60, 70, 80]);
 
 describe("WebAuthn attestation parsing", () => {
-  test("parseAuthenticatorData reads rpIdHash/flags/counter/credential", () => {
+  test("parseAuthenticatorData reads rpIdHash/flags/counter/credential", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -152,7 +152,7 @@ describe("WebAuthn attestation parsing", () => {
     expect(parsed.credentialPublicKey?.alg).toBe("ES256");
   });
 
-  test("parseCosePublicKey recognises Ed25519", () => {
+  test("parseCosePublicKey recognises Ed25519", async () => {
     const cred = makeEd25519Credential();
     const cose = cborEncode(cred.cose);
     const parsed = parseCosePublicKey(new Uint8Array(cose));
@@ -160,7 +160,7 @@ describe("WebAuthn attestation parsing", () => {
     expect(parsed.kty).toBe(1);
   });
 
-  test("decodeAttestationObject splits fmt/attStmt/authData", () => {
+  test("decodeAttestationObject splits fmt/attStmt/authData", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -176,7 +176,7 @@ describe("WebAuthn attestation parsing", () => {
     expect(decoded.authData).toEqual(authData);
   });
 
-  test("parseClientDataJSON enforces required fields", () => {
+  test("parseClientDataJSON enforces required fields", async () => {
     const ok = parseClientDataJSON(
       buildClientData({ type: "webauthn.create", challenge: CHALLENGE, origin: ORIGIN }),
     );
@@ -185,7 +185,7 @@ describe("WebAuthn attestation parsing", () => {
 });
 
 describe("WebAuthnBridge.verifyRegistration", () => {
-  test("verifies fmt=none ES256 attestation", () => {
+  test("verifies fmt=none ES256 attestation", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -206,7 +206,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       rpId: RP_ID,
       allowedAlgorithms: ["p256", "ed25519"],
     });
-    const result = bridge.verifyRegistration(
+    const result = await bridge.verifyRegistration(
       new Uint8Array(attestationObject),
       clientDataJSON,
       {
@@ -220,7 +220,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
     expect(result.credential.algorithm).toBe("p256");
   });
 
-  test("verifies packed self-attestation ES256", () => {
+  test("verifies packed self-attestation ES256", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -247,7 +247,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       rpId: RP_ID,
       allowedAlgorithms: ["p256"],
     });
-    const result = bridge.verifyRegistration(new Uint8Array(attestationObject), clientDataJSON, {
+    const result = await bridge.verifyRegistration(new Uint8Array(attestationObject), clientDataJSON, {
       expectedChallenge: CHALLENGE,
       expectedOrigin: ORIGIN,
       userHandle: "user-002",
@@ -256,7 +256,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
     expect(result.credential.algorithm).toBe("p256");
   });
 
-  test("verifies packed self-attestation Ed25519", () => {
+  test("verifies packed self-attestation Ed25519", async () => {
     const cred = makeEd25519Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -283,7 +283,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       rpId: RP_ID,
       allowedAlgorithms: ["ed25519"],
     });
-    const result = bridge.verifyRegistration(new Uint8Array(attestationObject), clientDataJSON, {
+    const result = await bridge.verifyRegistration(new Uint8Array(attestationObject), clientDataJSON, {
       expectedChallenge: CHALLENGE,
       expectedOrigin: ORIGIN,
       userHandle: "user-003",
@@ -312,13 +312,11 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       bridgeId: "tf-webauthn",
       rpId: RP_ID,
     });
-    expect(() =>
-      bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
+    expect(bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
         expectedChallenge: CHALLENGE,
         expectedOrigin: ORIGIN,
         userHandle: "user-bad",
-      }),
-    ).toThrow(BridgeFailure);
+      }),).rejects.toThrow(BridgeFailure);
   });
 
   test("rejects mismatched rpIdHash", () => {
@@ -341,16 +339,14 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       bridgeId: "tf-webauthn",
       rpId: RP_ID,
     });
-    expect(() =>
-      bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
+    expect(bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
         expectedChallenge: CHALLENGE,
         expectedOrigin: ORIGIN,
         userHandle: "user-x",
-      }),
-    ).toThrow(BridgeFailure);
+      }),).rejects.toThrow(BridgeFailure);
   });
 
-  test("rejects forged packed signature", () => {
+  test("rejects forged packed signature", async () => {
     const cred = makeP256Credential();
     const otherCred = makeP256Credential();
     const authData = buildAuthData({
@@ -372,16 +368,14 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       bridgeId: "tf-webauthn",
       rpId: RP_ID,
     });
-    expect(() =>
-      bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
+    expect(bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
         expectedChallenge: CHALLENGE,
         expectedOrigin: ORIGIN,
         userHandle: "user-forged",
-      }),
-    ).toThrow(BridgeFailure);
+      }),).rejects.toThrow(BridgeFailure);
   });
 
-  test("rejects missing UP flag", () => {
+  test("rejects missing UP flag", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -401,16 +395,14 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       bridgeId: "tf-webauthn",
       rpId: RP_ID,
     });
-    expect(() =>
-      bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
+    expect(bridge.verifyRegistration(new Uint8Array(att), clientDataJSON, {
         expectedChallenge: CHALLENGE,
         expectedOrigin: ORIGIN,
         userHandle: "user-noup",
-      }),
-    ).toThrow(BridgeFailure);
+      }),).rejects.toThrow(BridgeFailure);
   });
 
-  test("verifyAttestation can be called directly without the bridge", () => {
+  test("verifyAttestation can be called directly without the bridge", async () => {
     const cred = makeP256Credential();
     const authData = buildAuthData({
       rpId: RP_ID,
@@ -426,7 +418,7 @@ describe("WebAuthnBridge.verifyRegistration", () => {
       challenge: CHALLENGE,
       origin: ORIGIN,
     });
-    const result = verifyAttestation(new Uint8Array(att), clientDataJSON, {
+    const result = await verifyAttestation(new Uint8Array(att), clientDataJSON, {
       rpId: RP_ID,
       expectedOrigin: ORIGIN,
       expectedChallenge: CHALLENGE,

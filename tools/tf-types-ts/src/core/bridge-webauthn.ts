@@ -148,15 +148,15 @@ export class WebAuthnBridge implements Bridge {
   /** Verify a real WebAuthn registration (CBOR-encoded attestationObject +
    *  clientDataJSON) and project the verified credential into a TrustForge
    *  actor identity. Supports `none`, `packed`, and `fido-u2f` formats. */
-  verifyRegistration(
+  async verifyRegistration(
     attestationObject: Uint8Array,
     clientDataJSON: Uint8Array,
     opts: Omit<VerifyAttestationOptions, "rpId" | "allowedAlgorithms"> & {
       userHandle: string;
     },
-  ): { identity: ActorIdentity; credential: WebAuthnCredential; verified: VerifiedAttestation } {
+  ): Promise<{ identity: ActorIdentity; credential: WebAuthnCredential; verified: VerifiedAttestation }> {
     const allowedCose = mapAlgorithmsToCose(this.cfg.allowedAlgorithms);
-    const verified = verifyAttestation(attestationObject, clientDataJSON, {
+    const verified = await verifyAttestation(attestationObject, clientDataJSON, {
       ...opts,
       rpId: this.cfg.rpId,
       allowedAlgorithms: allowedCose,
