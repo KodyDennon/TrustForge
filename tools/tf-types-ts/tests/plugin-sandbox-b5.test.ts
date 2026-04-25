@@ -63,7 +63,7 @@ async function makeSignedNativePlugin(args: MakeManifestArgs): Promise<{
     actor_id,
     kind: "native",
     entry: "entry.ts",
-    capabilities: [{ name: args.capabilityName ?? "p.method" }],
+    capabilities: [{ name: args.capabilityName ?? "p.method", risk: "R0" }],
     identity_pub: Buffer.from(pluginKey.publicKey).toString("base64"),
     signature: { algorithm: "ed25519", signer: actor_id, signature: "" },
   };
@@ -137,16 +137,9 @@ describe("B5 — runtime revocation re-check", () => {
       await reg.load(manifestPath, { log: () => {} } as PluginHost);
 
       // Build a tiny in-memory RpcServer that the plugin registers on.
-      const queue: Array<unknown> = [];
-      const transport = {
-        send: (b: Uint8Array) => queue.push(b),
-        onFrame: () => {},
-      };
-      const server = new RpcServer(transport, {
-        selfActor: "tf:actor:service:example.com/test",
-        callerActor: "tf:actor:agent:example.com/me",
-      });
-      reg.registerOn(server);
+      // We don't actually need an RpcServer here — the runtime checks
+      // run through the registry's wrapper, which we exercise directly
+      // below via a fakeServer that just captures the registered fn.
 
       // Direct invocation through the registered handler. Use Bun's
       // testing path: simulate a call by reaching into the plugin's

@@ -44,6 +44,9 @@ export interface OfflineApprovalPacket {
   responder: ActorId;
   responded_at: Timestamp;
   transport_hint: OfflineTransportHint;
+  /** Per-packet nonce — base64 of 16 random bytes. Used by the verifier
+   *  to reject replays of an already-consumed packet. */
+  nonce: string;
   signature: SignatureEnvelope;
 }
 
@@ -67,11 +70,18 @@ export async function signOfflineApprovalPacket(
   args: SignOfflineApprovalArgs,
 ): Promise<OfflineApprovalPacket> {
   const respondedAt = args.respondedAt ?? new Date().toISOString();
+  const nonceBytes = new Uint8Array(16);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = Buffer.from(nonceBytes).toString("base64");
+  // The signature now covers transport_hint + nonce so a relay can't
+  // rewrite either without invalidating the signature.
   const payload = {
     request: args.request,
     decision: args.decision,
     responder: args.responder,
     responded_at: respondedAt,
+    transport_hint: args.transportHint,
+    nonce,
   };
   const digest = sha256(new TextEncoder().encode(canonicalize(payload as unknown)));
   const sig = await ed25519Sign(digest, args.privateKey);
@@ -82,6 +92,7 @@ export async function signOfflineApprovalPacket(
     responder: args.responder,
     responded_at: respondedAt,
     transport_hint: args.transportHint,
+    nonce,
     signature: {
       algorithm: "ed25519",
       signer: args.responder,
@@ -98,6 +109,13 @@ export interface VerifyOfflineApprovalArgs {
   now?: Timestamp;
   /** Reject packets older than this many seconds (default 86400). */
   maxAgeSeconds?: number;
+  /** Verifier-supplied set of (responder, request_id, nonce) triples
+   *  already consumed. The verifier returns an error if the packet
+   *  was previously seen — and the caller MUST add the new packet's
+   *  triple before calling again. Pre-B6 the verifier had no replay
+   *  defence; an attacker could re-feed the same signed packet to
+   *  drive any number of approvals. */
+  isConsumed?: (key: { responder: ActorId; request_id: string; nonce: string }) => boolean;
 }
 
 export interface VerifyOfflineApprovalResult {
@@ -142,11 +160,26 @@ export async function verifyOfflineApprovalPacket(
       return { ok: false, reason: "packet timestamp is in the future" };
     }
   }
+  if (typeof p.nonce !== "string" || p.nonce.length === 0) {
+    return { ok: false, reason: "missing nonce" };
+  }
+  if (args.isConsumed) {
+    const seen = args.isConsumed({
+      responder: p.responder,
+      request_id: p.request.id,
+      nonce: p.nonce,
+    });
+    if (seen) {
+      return { ok: false, reason: "packet has already been consumed (replay)" };
+    }
+  }
   const payload = {
     request: p.request,
     decision: p.decision,
     responder: p.responder,
     responded_at: p.responded_at,
+    transport_hint: p.transport_hint,
+    nonce: p.nonce,
   };
   const digest = sha256(new TextEncoder().encode(canonicalize(payload as unknown)));
   const sigBytes = new Uint8Array(Buffer.from(p.signature.signature, "base64"));

@@ -99,6 +99,16 @@ export function evidenceBundleSigningBytes(b: EvidenceBundle): Uint8Array {
   return sha256(new TextEncoder().encode(canonicalize(rest as unknown)));
 }
 
+/** Compute the canonical hash of an event for chain linking. Mirrors
+ *  ProofChain.hashRef in proof-event-builder. */
+function eventHashRefForChain(ev: ProofEvent): string {
+  const unsigned = { ...ev, signature: undefined };
+  const digest = sha256(new TextEncoder().encode(canonicalize(unsigned as unknown)));
+  let hex = "";
+  for (const b of digest) hex += b.toString(16).padStart(2, "0");
+  return `sha256:${hex}`;
+}
+
 /** Assemble an evidence bundle from a tflog + caller-supplied policy /
  *  approval / ceremony records. The bundle is fully signed before
  *  return; pass it to `sealEvidenceBundle` for L4 encryption or
@@ -143,6 +153,16 @@ export async function assembleEvidenceBundle(
   }
   if (events.length === 0) {
     throw new Error("evidence bundle requires at least one matching event");
+  }
+
+  // Recompute parent_hash on the filtered set so verifyChain succeeds
+  // on a bundle assembled from a sparser tflog. (Pre-B6 the assembler
+  // preserved the source-log chain; verifyChain then failed any time
+  // the filter dropped intermediate events.)
+  for (let i = 0; i < events.length; i++) {
+    const prev = i === 0 ? undefined : events[i - 1]!;
+    const prevHash = prev ? eventHashRefForChain(prev) : undefined;
+    events[i] = { ...events[i]!, parent_hash: prevHash };
   }
 
   const distinctActors = Array.from(new Set(events.map((e) => e.actor_id))).sort();
@@ -318,10 +338,18 @@ export interface VerifyEvidenceArgs {
     anchor: NonNullable<EvidenceBundle["anchors"]>[number],
     bundleBytes: Uint8Array,
   ) => Promise<boolean>;
-  /** Optional event-signer key resolver. Returns null when the verifier
-   *  doesn't know that signer (event signature validation is then
-   *  skipped for that event but flagged). */
+  /** Event-signer key resolver. Returns null when the verifier doesn't
+   *  know that signer (the event signature for that event is then
+   *  treated as unverified — the bundle fails-closed unless the caller
+   *  opted into `skipPerEventVerification`). */
   resolveEventSigner?: (signer: ActorId) => Promise<Uint8Array | null>;
+  /** Explicit opt-out: skip per-event signature verification entirely.
+   *  Pre-B6 the verifier silently skipped events when no resolver was
+   *  supplied; auditors who didn't notice `eventsSkipped` accepted
+   *  fake-signer events. Fail-closed is the default; this flag is
+   *  meant only for replay tooling that has already verified
+   *  out-of-band. */
+  skipPerEventVerification?: boolean;
 }
 
 export interface VerifyEvidenceResult {
@@ -358,13 +386,20 @@ export async function verifyEvidenceBundle(
     return result;
   }
 
-  // Per-event signature verification.
-  if (args.resolveEventSigner) {
+  // Per-event signature verification. Fail-closed default (post-B6):
+  // a caller MUST either supply `resolveEventSigner` so the verifier
+  // can check each event signature OR explicitly opt out via
+  // `skipPerEventVerification: true`. The previous silent-skip
+  // behavior let bundles with unknown signers pass auditors.
+  if (args.skipPerEventVerification) {
+    // Caller acknowledges this bundle's events are out-of-band-verified.
+  } else if (args.resolveEventSigner) {
     for (const ev of args.bundle.events) {
       const pk = await args.resolveEventSigner(ev.signature.signer);
       if (!pk) {
         result.eventsSkipped += 1;
-        continue;
+        result.reason = `event ${ev.id} signer ${ev.signature.signer} unknown to verifier (no resolver entry)`;
+        return result;
       }
       const eventDigest = sha256(
         new TextEncoder().encode(canonicalize({ ...ev, signature: undefined } as unknown)),
@@ -377,6 +412,10 @@ export async function verifyEvidenceBundle(
         return result;
       }
     }
+  } else if (args.bundle.events.length > 0) {
+    result.reason =
+      "verifyEvidenceBundle requires resolveEventSigner OR skipPerEventVerification:true";
+    return result;
   }
 
   // Hash chain — verifyChain throws on the first chain mismatch.
@@ -452,7 +491,18 @@ export function replayEvidence(bundle: EvidenceBundle): TimelineEntry[] {
       notes: a.note,
     });
   }
-  entries.sort((x, y) => (x.timestamp < y.timestamp ? -1 : x.timestamp > y.timestamp ? 1 : 0));
+  // Sort by parsed Date so events with mixed `Z` / `+00:00` ISO formats
+  // interleave correctly. (Pre-B6 lexicographic sort put e.g.
+  // "2026-04-25T10:00:00.500Z" AFTER "2026-04-25T10:00:01+00:00" because
+  // the strings differed at the timezone position.)
+  entries.sort((x, y) => {
+    const dx = Date.parse(x.timestamp);
+    const dy = Date.parse(y.timestamp);
+    if (Number.isNaN(dx) || Number.isNaN(dy)) {
+      return x.timestamp < y.timestamp ? -1 : x.timestamp > y.timestamp ? 1 : 0;
+    }
+    return dx - dy;
+  });
   return entries;
 }
 

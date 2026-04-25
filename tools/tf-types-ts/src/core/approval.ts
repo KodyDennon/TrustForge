@@ -21,6 +21,7 @@ export interface ApprovalQueueOptions {
 }
 
 export class ApprovalQueueFullError extends Error {}
+export class ApprovalQueueDuplicateError extends Error {}
 
 export class ApprovalQueue {
   private pending = new Map<string, ApprovalRecord>();
@@ -31,6 +32,13 @@ export class ApprovalQueue {
     const max = this.opts.maxPending ?? 32;
     if (this.pending.size >= max) {
       throw new ApprovalQueueFullError(`approval queue is full (max ${max})`);
+    }
+    if (this.pending.has(request.id)) {
+      // Pre-B6 a re-push silently orphaned the prior promise (it would
+      // hang until its timeout fired). Reject the new push instead.
+      throw new ApprovalQueueDuplicateError(
+        `approval request ${request.id} is already pending`,
+      );
     }
     return new Promise((resolve) => {
       const record: ApprovalRecord = {

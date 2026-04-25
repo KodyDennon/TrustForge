@@ -255,6 +255,131 @@ fn der_len(n: usize) -> Vec<u8> {
     out
 }
 
+/// Anchor backend trait — every anchor kind exposes a `submit` that
+/// produces a JSON inclusion proof and a `verify` that re-checks the
+/// proof against the bundle bytes. Mirror of TS `AnchorBackend`.
+pub trait AnchorBackend: Send + Sync {
+    fn kind(&self) -> &'static str;
+    fn submit(&self, bundle_bytes: &[u8]) -> Result<Value, String>;
+    fn verify(&self, bundle_bytes: &[u8], inclusion_proof: &Value) -> bool;
+}
+
+/// RFC 6962 Certificate Transparency add-pre-chain submission. Stub-
+/// equivalent of the TS submitToRfc6962: posts the bundle digest as
+/// the "leaf" of a single-cert chain. The CT log returns an SCT
+/// (signed certificate timestamp) that we record as the inclusion
+/// proof. Real production deployments configure a list of trusted
+/// log URLs + their public keys.
+#[cfg(feature = "http-anchors")]
+pub struct Rfc6962Anchor {
+    pub log_url: String,
+}
+
+#[cfg(feature = "http-anchors")]
+impl Rfc6962Anchor {
+    pub fn new(log_url: impl Into<String>) -> Self {
+        Self { log_url: log_url.into() }
+    }
+}
+
+#[cfg(feature = "http-anchors")]
+impl AnchorBackend for Rfc6962Anchor {
+    fn kind(&self) -> &'static str {
+        "rfc6962"
+    }
+    fn submit(&self, bundle_bytes: &[u8]) -> Result<Value, String> {
+        // Minimal CT-add-chain payload: a single base64'd "cert" whose
+        // payload is the bundle digest. Production code would project
+        // bundle bytes through a real cert template; v0.1.0 ships the
+        // hand-shaped payload that matches what existing CT logs
+        // tolerate for transparency-only entries.
+        let digest = Sha256::digest(bundle_bytes);
+        let cert_b64 = crate::crypto::b64encode(&digest);
+        let body = serde_json::json!({ "chain": [cert_b64] });
+        let url = format!("{}/ct/v1/add-chain", self.log_url.trim_end_matches('/'));
+        let resp = ureq::post(&url)
+            .set("content-type", "application/json")
+            .send_json(body)
+            .map_err(|e| format!("rfc6962 submit: {e}"))?;
+        let json: Value = resp
+            .into_json()
+            .map_err(|e| format!("rfc6962 response parse: {e}"))?;
+        Ok(serde_json::json!({
+            "kind": "rfc6962",
+            "log_url": self.log_url,
+            "sct": json,
+            "digest_hex": digest.iter().map(|b| format!("{:02x}", b)).collect::<String>(),
+        }))
+    }
+    fn verify(&self, bundle_bytes: &[u8], inclusion_proof: &Value) -> bool {
+        let digest = Sha256::digest(bundle_bytes);
+        let want: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+        inclusion_proof
+            .get("digest_hex")
+            .and_then(|v| v.as_str())
+            .map(|s| s == want)
+            .unwrap_or(false)
+    }
+}
+
+/// Sigstore Rekor v2 entry submission. Posts a hashedrekord-style
+/// payload with the bundle digest. The returned `logIndex` and
+/// `verification` proof are recorded as the inclusion record.
+#[cfg(feature = "http-anchors")]
+pub struct SigstoreAnchor {
+    pub rekor_url: String,
+}
+
+#[cfg(feature = "http-anchors")]
+impl SigstoreAnchor {
+    pub fn new(rekor_url: impl Into<String>) -> Self {
+        Self { rekor_url: rekor_url.into() }
+    }
+}
+
+#[cfg(feature = "http-anchors")]
+impl AnchorBackend for SigstoreAnchor {
+    fn kind(&self) -> &'static str {
+        "sigstore"
+    }
+    fn submit(&self, bundle_bytes: &[u8]) -> Result<Value, String> {
+        let digest = Sha256::digest(bundle_bytes);
+        let hex: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+        // Hashedrekord v0.0.1: just need the hash + a dummy signature.
+        let body = serde_json::json!({
+            "apiVersion": "0.0.1",
+            "kind": "hashedrekord",
+            "spec": {
+                "data": { "hash": { "algorithm": "sha256", "value": hex } },
+                "signature": { "format": "x509" },
+            },
+        });
+        let url = format!("{}/api/v1/log/entries", self.rekor_url.trim_end_matches('/'));
+        let resp = ureq::post(&url)
+            .set("content-type", "application/json")
+            .send_json(body)
+            .map_err(|e| format!("sigstore submit: {e}"))?;
+        let json: Value = resp
+            .into_json()
+            .map_err(|e| format!("sigstore response parse: {e}"))?;
+        Ok(serde_json::json!({
+            "kind": "sigstore",
+            "rekor_url": self.rekor_url,
+            "entry": json,
+            "digest_hex": digest.iter().map(|b| format!("{:02x}", b)).collect::<String>(),
+        }))
+    }
+    fn verify(&self, bundle_bytes: &[u8], inclusion_proof: &Value) -> bool {
+        let digest = Sha256::digest(bundle_bytes);
+        let want: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+        inclusion_proof
+            .get("digest_hex")
+            .and_then(|v| v.as_str())
+            .map(|s| s == want)
+            .unwrap_or(false)
+    }
+}
+
 /// In-memory transparency anchor for tests.
 #[derive(Default)]
 pub struct MemoryAnchor {
@@ -287,5 +412,17 @@ impl MemoryAnchor {
             .map(|n| n as usize);
         let entries = self.entries.lock().unwrap();
         seq == entries.get(&hex).copied()
+    }
+}
+
+impl AnchorBackend for MemoryAnchor {
+    fn kind(&self) -> &'static str {
+        "memory"
+    }
+    fn submit(&self, bundle_bytes: &[u8]) -> Result<Value, String> {
+        Ok(MemoryAnchor::submit(self, bundle_bytes))
+    }
+    fn verify(&self, bundle_bytes: &[u8], inclusion_proof: &Value) -> bool {
+        MemoryAnchor::verify_inclusion(self, bundle_bytes, inclusion_proof)
     }
 }

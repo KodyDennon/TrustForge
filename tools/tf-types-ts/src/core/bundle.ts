@@ -138,14 +138,35 @@ export interface OpenBundleArgs {
   recipientPrivateKey: Uint8Array;
   /** Recipient actor URI to look up the right wrapped key. */
   recipientActor: ActorId;
-  /** Optional public key for verifying the outer signature. */
+  /** Public key for verifying the outer signature. REQUIRED post-B6;
+   *  pre-B6 the verification was opt-in and a caller could decrypt +
+   *  parse arbitrary attacker-controlled content before any signature
+   *  check. To preserve that path explicitly, set
+   *  `acceptUnsignedBundle: true` (intended only for internal replay
+   *  tooling that has already verified the bundle out-of-band). */
   signerPublicKey?: Uint8Array;
+  acceptUnsignedBundle?: boolean;
 }
 
 export async function openBundle(args: OpenBundleArgs): Promise<ProofBundle> {
   const enc = args.encrypted;
+  // Fail-closed: refuse to decrypt at all when the caller has not
+  // committed to verifying the outer signature OR explicitly opted out.
+  if (!args.signerPublicKey && !args.acceptUnsignedBundle) {
+    throw new Error(
+      "openBundle requires signerPublicKey (or explicit acceptUnsignedBundle:true for replay tooling)",
+    );
+  }
   const wrap = enc.wrapped_keys.find((w) => w.recipient === args.recipientActor);
   if (!wrap) throw new Error(`no wrapped key for recipient ${args.recipientActor}`);
+  // Verify FIRST so we never decrypt + parse attacker-controlled bytes
+  // for a bundle whose signature can't be checked.
+  if (args.signerPublicKey) {
+    const digest = encryptedSigningBytes(enc);
+    const sig = unb64(enc.signature.signature);
+    const verified = await ed25519Verify(args.signerPublicKey, digest, sig);
+    if (!verified) throw new Error("encrypted bundle signature did not verify");
+  }
   const ephemeralPub = unb64(wrap.ephemeral_public);
   const wrapped = unb64(wrap.wrapped);
   const wrapNonce = unb64(wrap.wrap_nonce);
@@ -156,12 +177,6 @@ export async function openBundle(args: OpenBundleArgs): Promise<ProofBundle> {
   const nonce = unb64(enc.nonce);
   const plaintext = chacha20poly1305(dataKey, nonce).decrypt(ciphertext);
   const json = new TextDecoder().decode(plaintext);
-  if (args.signerPublicKey) {
-    const digest = encryptedSigningBytes(enc);
-    const sig = unb64(enc.signature.signature);
-    const verified = await ed25519Verify(args.signerPublicKey, digest, sig);
-    if (!verified) throw new Error("encrypted bundle signature did not verify");
-  }
   return JSON.parse(json) as ProofBundle;
 }
 

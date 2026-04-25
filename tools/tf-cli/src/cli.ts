@@ -324,13 +324,16 @@ async function packetInspect(args: string[]): Promise<number> {
   return 0;
 }
 
-async function evidenceAssemble(args: string[]): Promise<number> {
-  // Forward to tf-evidence assemble.
-  const child = Bun.spawn(["bun", "run", resolve(__dirname, "../../tf-evidence/src/cli.ts"), "assemble", ...args], {
-    stdio: ["inherit", "inherit", "inherit"],
-  });
-  const code = await child.exited;
-  return code;
+async function evidenceForward(sub: string, args: string[]): Promise<number> {
+  // Forward to tf-evidence's CLI. tf-cli refuses to shell out for
+  // schema/proof/daemon (those are a different process surface), but
+  // tf-evidence is a sibling tool that we expose under `tf evidence`
+  // for ergonomics; killing the dispatcher entirely is post-0.1.0.
+  const child = Bun.spawn(
+    ["bun", "run", resolve(__dirname, "../../tf-evidence/src/cli.ts"), sub, ...args],
+    { stdio: ["inherit", "inherit", "inherit"] },
+  );
+  return await child.exited;
 }
 
 async function pluginList(args: string[]): Promise<number> {
@@ -657,7 +660,10 @@ async function main(): Promise<number> {
   if (cmd === "revoke") return revoke([sub ?? "", ...rest].filter((s) => s !== ""));
   if (cmd === "plugin" && sub === "list") return pluginList(rest);
   if (cmd === "rpc" && sub === "call") return rpcCall(rest);
-  if (cmd === "evidence" && sub === "assemble") return evidenceAssemble(rest);
+  if (cmd === "evidence" && typeof sub === "string") {
+    const allowed = new Set(["assemble", "verify", "seal", "open", "anchor", "replay", "redact"]);
+    if (allowed.has(sub)) return evidenceForward(sub, rest);
+  }
   if (cmd === "conformance" && sub === "run") return conformanceRun(rest);
   if (cmd === "generate") return generate([sub ?? "", ...rest].filter((s) => s !== ""));
 
