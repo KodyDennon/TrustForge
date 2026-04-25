@@ -7,9 +7,8 @@
 *.swp
 *.swo
 
-# Rust (future)
+# Rust
 target/
-Cargo.lock
 
 # Node (future tooling)
 node_modules/

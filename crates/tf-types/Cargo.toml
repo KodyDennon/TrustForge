@@ -1,0 +1,21 @@
+[package]
+name = "tf-types"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "TrustForge typed schema bindings and semantic core."
+
+[features]
+default = ["serde"]
+serde = ["dep:serde", "dep:serde_json"]
+fuzz = ["dep:proptest"]
+
+[dependencies]
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+proptest = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
