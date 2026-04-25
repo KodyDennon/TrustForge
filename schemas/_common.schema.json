@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/_common.schema.json",
+  "title": "TrustForge Common Definitions",
+  "description": "Shared $defs referenced by every other TrustForge schema. Has no top-level instance.",
+  "$defs": {
+    "ActorType": {
+      "enum": [
+        "human",
+        "agent",
+        "device",
+        "service",
+        "site",
+        "organization",
+        "relay",
+        "plugin",
+        "process",
+        "tool",
+        "model-provider",
+        "policy-engine",
+        "proof-anchor",
+        "emergency-authority"
+      ],
+      "description": "Canonical actor types from TF-0002."
+    },
+    "ActorId": {
+      "type": "string",
+      "pattern": "^tf:actor:(human|agent|device|service|site|organization|relay|plugin|process|tool|model-provider|policy-engine|proof-anchor|emergency-authority):[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]+$",
+      "description": "Universal actor URI: tf:actor:<type>:<path>. See TF-0002."
+    },
+    "InstanceId": {
+      "type": "string",
+      "pattern": "^tf:instance:(human|agent|device|service|site|organization|relay|plugin|process|tool|model-provider|policy-engine|proof-anchor|emergency-authority):[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]+$",
+      "description": "Actor instance URI: tf:instance:<type>:<path>/<instance-path>."
+    },
+    "TrustDomain": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._/-]*[A-Za-z0-9])?$",
+      "description": "Trust-domain identifier. DNS-like (e.g. example.com), or local-scoped (e.g. local/home)."
+    },
+    "RiskClass": {
+      "enum": ["R0", "R1", "R2", "R3", "R4", "R5"],
+      "description": "Risk classes from TF-0004."
+    },
+    "TrustLevel": {
+      "enum": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+      "description": "Trust levels from TF-0002."
+    },
+    "ProofLevel": {
+      "enum": ["L0", "L1", "L2", "L3", "L4", "L5"],
+      "description": "Proof levels from TF-0005."
+    },
+    "EnforcementLevel": {
+      "enum": ["E0", "E1", "E2", "E3", "E4", "E5"],
+      "description": "Enforcement levels (see DECISIONS.md)."
+    },
+    "ApprovalRequirement": {
+      "enum": ["none", "conditional", "required", "quorum"],
+      "description": "Default approval requirement modes."
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+      "description": "RFC 3339 timestamp with required timezone."
+    },
+    "HashRef": {
+      "type": "string",
+      "pattern": "^(sha256|sha384|sha512|blake3):[0-9a-f]+$",
+      "description": "Algorithm-prefixed lowercase-hex hash."
+    },
+    "AlgorithmId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Signature or KEM algorithm identifier, e.g. ed25519, ml-dsa-65, p256."
+    },
+    "SignatureEnvelope": {
+      "type": "object",
+      "required": ["algorithm", "signer", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "$ref": "#/$defs/AlgorithmId"
+        },
+        "signer": {
+          "$ref": "#/$defs/ActorId"
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 1,
+          "description": "Base64-encoded signature bytes. Not verified in the foundation phase."
+        },
+        "hash_alg": {
+          "type": "string",
+          "description": "Optional hash used before signing, e.g. sha256."
+        },
+        "alt_algorithm": {
+          "$ref": "#/$defs/AlgorithmId"
+        },
+        "alt_signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 1,
+          "description": "Optional second signature for hybrid post-quantum signing."
+        }
+      },
+      "description": "Opaque signature envelope. No crypto performed in the foundation phase."
+    },
+    "ActionName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Dotted lowercase action identifier, e.g. file.write, shell.exec."
+    },
+    "Constraint": {
+      "description": "Capability/grant constraint, discriminated by `kind`.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "until"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "time_window", "description": "Time-window constraint discriminator." },
+            "from": { "$ref": "#/$defs/Timestamp" },
+            "until": { "$ref": "#/$defs/Timestamp" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "patterns"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "target", "description": "Target-pattern constraint discriminator." },
+            "patterns": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Glob or regex patterns the action target must match."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "max"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "quantity", "description": "Quantity cap discriminator." },
+            "max": { "type": "integer", "minimum": 1, "description": "Maximum invocations allowed." },
+            "unit": { "type": "string", "description": "Unit of the quantity, e.g. requests, bytes." }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "max_per_window", "window_seconds"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "rate", "description": "Rate-limit discriminator." },
+            "max_per_window": { "type": "integer", "minimum": 1, "description": "Cap per sliding window." },
+            "window_seconds": { "type": "integer", "minimum": 1, "description": "Sliding window size in seconds." }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "session_id"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "session", "description": "Session-binding discriminator." },
+            "session_id": { "type": "string", "minLength": 1, "description": "Session identifier this constraint binds to." }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "approval"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "approval", "description": "Approval-requirement discriminator." },
+            "approval": { "$ref": "#/$defs/ApprovalRequirement" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "quorum", "of"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "quorum", "description": "Quorum-approval discriminator." },
+            "quorum": { "type": "integer", "minimum": 2, "description": "Number of approvers required." },
+            "of": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/ActorId" },
+              "minItems": 2,
+              "description": "Eligible approvers."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "device_actor"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "device_binding", "description": "Device-binding discriminator." },
+            "device_actor": { "$ref": "#/$defs/ActorId" }
+          }
+        }
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "required": ["name", "risk"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/ActionName" },
+        "risk": { "$ref": "#/$defs/RiskClass" },
+        "proof_required": { "$ref": "#/$defs/ProofLevel" },
+        "approval": { "$ref": "#/$defs/ApprovalRequirement" },
+        "constraints": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Constraint" },
+          "description": "Constraints that must all hold for the capability to apply."
+        },
+        "single_use": { "type": "boolean", "description": "If true, consumed after one invocation." },
+        "delegable": { "type": "boolean", "description": "If true, subject may delegate this capability." },
+        "revocable": { "type": "boolean", "description": "If false, revocation is ineffective." },
+        "offline_valid": { "type": "boolean", "description": "If true, usable without live authority checks." },
+        "expires_at": { "$ref": "#/$defs/Timestamp" }
+      },
+      "description": "Capability grant shape (TF-0004)."
+    },
+    "NegativeCapability": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/ActionName" },
+        "target": { "type": "string", "description": "Optional target pattern the denial applies to." },
+        "reason": { "type": "string", "minLength": 1, "description": "Human-readable denial reason." },
+        "overrides": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Grant IDs this negative capability explicitly overrides."
+        }
+      },
+      "description": "Explicit denial; overrides overlapping grants."
+    },
+    "DelegationLink": {
+      "type": "object",
+      "required": ["delegator", "delegate", "capabilities"],
+      "additionalProperties": false,
+      "properties": {
+        "delegator": { "$ref": "#/$defs/ActorId" },
+        "delegate": { "$ref": "#/$defs/ActorId" },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Capability" },
+          "minItems": 1,
+          "description": "Capabilities being delegated at this step."
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Constraint" },
+          "description": "Additional constraints imposed at this step."
+        },
+        "expires_at": { "$ref": "#/$defs/Timestamp" },
+        "redelegation": {
+          "type": "object",
+          "required": ["allowed"],
+          "additionalProperties": false,
+          "properties": {
+            "allowed": { "type": "boolean", "description": "If true, delegate may redelegate onward." },
+            "max_depth": { "type": "integer", "minimum": 0, "description": "Maximum further delegation depth." }
+          },
+          "description": "Redelegation rules for this step."
+        },
+        "proof_ref": { "$ref": "#/$defs/HashRef" }
+      },
+      "description": "One step in a delegation chain (TF-0004)."
+    }
+  }
+}
