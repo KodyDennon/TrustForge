@@ -1,0 +1,46 @@
+# Binary framing parity vectors.
+#
+# `.tflog` and `.tfproof` are byte-level formats; both runtimes must
+# produce identical output for identical inputs. Each case supplies a
+# raw structure; the test computes the canonical framing and asserts
+# the hex of the output matches `expect.framed_hex`.
+#
+# Signatures here are placeholder bytes — the framing is independent of
+# whether the signature verifies.
+
+tflog:
+  - name: single-event-log
+    events:
+      - event_version: "1"
+        id: "evt-1"
+        type: "session.established"
+        actor_id: "tf:actor:agent:example.com/a"
+        timestamp: "2026-04-24T12:00:00Z"
+        level: "L1"
+        signature:
+          algorithm: "ed25519"
+          signer: "tf:actor:agent:example.com/a"
+          signature: "AAAA"
+    expected_hex: "54464c4f47010000000000f87b226163746f725f6964223a2274663a6163746f723a6167656e743a6578616d706c652e636f6d2f61222c226576656e745f76657273696f6e223a2231222c226964223a226576742d31222c226c6576656c223a224c31222c227369676e6174757265223a7b22616c676f726974686d223a2265643235353139222c227369676e6174757265223a2241414141222c227369676e6572223a2274663a6163746f723a6167656e743a6578616d706c652e636f6d2f61227d2c2274696d657374616d70223a22323032362d30342d32345431323a30303a30305a222c2274797065223a2273657373696f6e2e65737461626c6973686564227d"
+
+tfproof:
+  - name: minimal-bundle
+    bundle:
+      bundle_version: "1"
+      events:
+        - event_version: "1"
+          id: "evt-1"
+          type: "session.established"
+          actor_id: "tf:actor:agent:example.com/a"
+          timestamp: "2026-04-24T12:00:00Z"
+          level: "L1"
+          signature:
+            algorithm: "ed25519"
+            signer: "tf:actor:agent:example.com/a"
+            signature: "AAAA"
+      signature:
+        algorithm: "ed25519"
+        signer: "tf:actor:organization:example.com"
+        signature: "QkJCQg=="
+    signature_hex: "cafebabe"
+    expected_hex: "544650524f4f4601000001827b2262756e646c655f76657273696f6e223a2231222c226576656e7473223a5b7b226163746f725f6964223a2274663a6163746f723a6167656e743a6578616d706c652e636f6d2f61222c226576656e745f76657273696f6e223a2231222c226964223a226576742d31222c226c6576656c223a224c31222c227369676e6174757265223a7b22616c676f726974686d223a2265643235353139222c227369676e6174757265223a2241414141222c227369676e6572223a2274663a6163746f723a6167656e743a6578616d706c652e636f6d2f61227d2c2274696d657374616d70223a22323032362d30342d32345431323a30303a30305a222c2274797065223a2273657373696f6e2e65737461626c6973686564227d5d2c227369676e6174757265223a7b22616c676f726974686d223a2265643235353139222c227369676e6174757265223a22516b4a4351673d3d222c227369676e6572223a2274663a6163746f723a6f7267616e697a6174696f6e3a6578616d706c652e636f6d227d7d00000004cafebabe"

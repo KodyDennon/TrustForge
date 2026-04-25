@@ -14,6 +14,7 @@ pub mod chain;
 pub mod crypto;
 pub mod delegation;
 pub mod envelope;
+pub mod format;
 pub mod instance_id;
 pub mod revocation;
 pub mod trust_domain;
