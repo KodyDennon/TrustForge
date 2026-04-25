@@ -1,0 +1,16 @@
+# SPIFFE bridge byte-exact parity vectors. Both TS spiffeToActorId() and
+# Rust spiffe_to_actor_id() must produce the exact actor_id below; the
+# reverse (actor_id → SPIFFE) must produce the same input string.
+
+spiffe:
+  - name: api-prod
+    spiffe_id: "spiffe://example.org/ns/prod/sa/api"
+    actor_id: "tf:actor:service:example.org/ns/prod/sa/api"
+
+  - name: database-staging
+    spiffe_id: "spiffe://internal.company.net/workload/database/staging"
+    actor_id: "tf:actor:service:internal.company.net/workload/database/staging"
+
+  - name: short-path
+    spiffe_id: "spiffe://simple.dev/worker"
+    actor_id: "tf:actor:service:simple.dev/worker"

@@ -9,6 +9,8 @@ pub mod generated;
 
 pub mod actor_id;
 pub mod approval;
+pub mod bridge_spiffe;
+pub mod bridges;
 pub mod canonical;
 pub mod capability;
 pub mod chain;
