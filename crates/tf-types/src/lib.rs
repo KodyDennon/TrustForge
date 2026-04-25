@@ -20,6 +20,7 @@ pub mod chain;
 pub mod crypto;
 pub mod delegation;
 pub mod envelope;
+pub mod expiration;
 pub mod format;
 pub mod guard;
 pub mod instance_id;

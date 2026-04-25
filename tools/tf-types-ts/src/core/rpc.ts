@@ -258,18 +258,94 @@ type Handler =
   | { kind: "unary"; capability: string; handler: UnaryHandler }
   | { kind: "server-streaming"; capability: string; handler: ServerStreamHandler };
 
+interface InflightCall {
+  method: string;
+  capability: string;
+  seq: number;
+  cancel: () => void;
+}
+
 export interface RpcServerOptions {
   selfActor: string;
   enforcer?: CapabilityEnforcer;
   callerActor?: string;
   onProofEvent?: (ev: RpcProofEventStub) => void;
+  /** Triggers that force the server to re-run capability enforcement on
+   *  in-flight server-streaming responses. Maps to TF-0004's
+   *  `continuous_reevaluation`. */
+  continuousReevaluation?: ContinuousReevaluationOptions;
+}
+
+export interface ContinuousReevaluationOptions {
+  triggers: Array<"time" | "delegation_change" | "revocation" | "session_rekey" | "explicit_reauth">;
+  /** Re-check interval for `time` trigger, in ms. Default 30000. */
+  intervalMs?: number;
 }
 
 export class RpcServer {
   private handlers = new Map<string, Handler>();
+  private inflight = new Map<string, InflightCall>();
+  private timeReevalTimer?: ReturnType<typeof setInterval>;
 
   constructor(private transport: RpcTransport, private opts: RpcServerOptions) {
     this.transport.onFrame((f) => this.onFrame(f));
+    if (opts.continuousReevaluation?.triggers.includes("time")) {
+      const interval = opts.continuousReevaluation.intervalMs ?? 30_000;
+      this.timeReevalTimer = setInterval(() => {
+        void this.reevaluateAll("time");
+      }, interval);
+    }
+  }
+
+  /** Trigger continuous reevaluation. Server-streaming calls in flight
+   *  will have their capability re-checked; if the re-check no longer
+   *  permits the call, the stream is closed with permission_denied. */
+  async reevaluate(trigger: ContinuousReevaluationOptions["triggers"][number]): Promise<void> {
+    if (!this.opts.continuousReevaluation?.triggers.includes(trigger)) return;
+    await this.reevaluateAll(trigger);
+  }
+
+  private async reevaluateAll(trigger: string): Promise<void> {
+    const enforcer = this.opts.enforcer ?? allowAllEnforcer;
+    const caller = this.opts.callerActor ?? "tf:actor:process:local/anonymous";
+    for (const [callId, call] of [...this.inflight]) {
+      try {
+        const verdict = await Promise.resolve(enforcer.check(caller, call.method, call.capability));
+        if (verdict !== "allow") {
+          this.transport.send(
+            encodeRpc({
+              kind: "rpc-stream",
+              call_id: callId,
+              seq: call.seq,
+              more: false,
+              error: { code: "permission_denied", message: `revoked on ${trigger}: ${verdict.deny}` },
+            }),
+          );
+          this.opts.onProofEvent?.({
+            type: "rpc.call",
+            call_id: callId,
+            method: call.method,
+            caller,
+            result: "error",
+            error_code: "permission_denied",
+          });
+          this.inflight.delete(callId);
+          call.cancel();
+        }
+      } catch {
+        // ignore enforcer errors during reeval; next call will surface them
+      }
+    }
+  }
+
+  /** Stop background reevaluation timers. Call when shutting the server down. */
+  shutdown(): void {
+    if (this.timeReevalTimer) {
+      clearInterval(this.timeReevalTimer);
+      this.timeReevalTimer = undefined;
+    }
+    for (const [, call] of this.inflight) call.cancel();
+    this.inflight.clear();
   }
 
   registerUnary<Req, Res>(method: string, capability: string, handler: UnaryHandler<Req, Res>): void {
@@ -345,36 +421,54 @@ export class RpcServer {
 
     // server-streaming
     let seq = 0;
+    let cancelled = false;
+    const inflight: InflightCall = {
+      method: rpc.method,
+      capability: registered.capability,
+      seq,
+      cancel: () => {
+        cancelled = true;
+      },
+    };
+    this.inflight.set(rpc.call_id, inflight);
     try {
       for await (const value of registered.handler(rpc.request, ctx)) {
+        if (cancelled) break;
         this.transport.send(
           encodeRpc({ kind: "rpc-stream", call_id: rpc.call_id, seq, more: true, value }),
         );
         seq += 1;
+        inflight.seq = seq;
       }
-      this.transport.send(
-        encodeRpc({ kind: "rpc-stream", call_id: rpc.call_id, seq, more: false }),
-      );
-      this.opts.onProofEvent?.({ type: "rpc.call", call_id: rpc.call_id, method: rpc.method, caller, result: "ok" });
+      if (!cancelled) {
+        this.transport.send(
+          encodeRpc({ kind: "rpc-stream", call_id: rpc.call_id, seq, more: false }),
+        );
+        this.opts.onProofEvent?.({ type: "rpc.call", call_id: rpc.call_id, method: rpc.method, caller, result: "ok" });
+      }
     } catch (err) {
-      const message = (err as Error).message ?? String(err);
-      this.transport.send(
-        encodeRpc({
-          kind: "rpc-stream",
+      if (!cancelled) {
+        const message = (err as Error).message ?? String(err);
+        this.transport.send(
+          encodeRpc({
+            kind: "rpc-stream",
+            call_id: rpc.call_id,
+            seq,
+            more: false,
+            error: { code: "internal", message },
+          }),
+        );
+        this.opts.onProofEvent?.({
+          type: "rpc.call",
           call_id: rpc.call_id,
-          seq,
-          more: false,
-          error: { code: "internal", message },
-        }),
-      );
-      this.opts.onProofEvent?.({
-        type: "rpc.call",
-        call_id: rpc.call_id,
-        method: rpc.method,
-        caller,
-        result: "error",
-        error_code: "internal",
-      });
+          method: rpc.method,
+          caller,
+          result: "error",
+          error_code: "internal",
+        });
+      }
+    } finally {
+      this.inflight.delete(rpc.call_id);
     }
   }
 

@@ -83,6 +83,7 @@ function enforcerFromGuard(
       });
       switch (decision.kind) {
         case "allow":
+        case "log-only":
           return "allow";
         case "deny":
           return { deny: decision.reason };

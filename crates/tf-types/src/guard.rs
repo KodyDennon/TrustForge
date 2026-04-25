@@ -29,6 +29,62 @@ pub enum GuardDecision {
         reason: String,
         danger_tags: Vec<String>,
     },
+    LogOnly {
+        reason: String,
+        danger_tags: Vec<String>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum EnforcementLevel {
+    E0,
+    E1,
+    E2,
+    E3,
+    E4,
+    E5,
+}
+
+impl Default for EnforcementLevel {
+    fn default() -> Self {
+        EnforcementLevel::E4
+    }
+}
+
+impl EnforcementLevel {
+    pub fn parse(s: &str) -> Option<EnforcementLevel> {
+        match s {
+            "E0" => Some(Self::E0),
+            "E1" => Some(Self::E1),
+            "E2" => Some(Self::E2),
+            "E3" => Some(Self::E3),
+            "E4" => Some(Self::E4),
+            "E5" => Some(Self::E5),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::E0 => "E0",
+            Self::E1 => "E1",
+            Self::E2 => "E2",
+            Self::E3 => "E3",
+            Self::E4 => "E4",
+            Self::E5 => "E5",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NegativeCapability {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub overrides: Option<Vec<String>>,
 }
 
 impl GuardDecision {
@@ -38,6 +94,7 @@ impl GuardDecision {
             GuardDecision::ApprovalRequired { .. } => "approval-required",
             GuardDecision::Escalate { .. } => "escalate",
             GuardDecision::Deny { .. } => "deny",
+            GuardDecision::LogOnly { .. } => "log-only",
         }
     }
 
@@ -46,7 +103,18 @@ impl GuardDecision {
             GuardDecision::Allow { danger_tags }
             | GuardDecision::ApprovalRequired { danger_tags, .. }
             | GuardDecision::Escalate { danger_tags, .. }
-            | GuardDecision::Deny { danger_tags, .. } => danger_tags,
+            | GuardDecision::Deny { danger_tags, .. }
+            | GuardDecision::LogOnly { danger_tags, .. } => danger_tags,
+        }
+    }
+
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            GuardDecision::Allow { .. } => None,
+            GuardDecision::ApprovalRequired { reason, .. }
+            | GuardDecision::Escalate { reason, .. }
+            | GuardDecision::Deny { reason, .. }
+            | GuardDecision::LogOnly { reason, .. } => Some(reason),
         }
     }
 }
@@ -68,6 +136,8 @@ pub struct GuardEventStub {
     pub target: Option<String>,
     pub decision: String,
     pub danger_tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub enforcement_level: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -92,6 +162,8 @@ pub struct AgentGuard {
     forbidden_by_name: HashMap<String, String>,
     target_sets: HashMap<String, Vec<String>>,
     on_event: Option<Box<dyn Fn(&GuardEventStub) + Send + Sync>>,
+    enforcement_level: EnforcementLevel,
+    negative_capabilities: Vec<NegativeCapability>,
 }
 
 impl AgentGuard {
@@ -182,7 +254,23 @@ impl AgentGuard {
             forbidden_by_name: forbidden,
             target_sets,
             on_event: None,
+            enforcement_level: EnforcementLevel::default(),
+            negative_capabilities: Vec::new(),
         }
+    }
+
+    /// Replace the negative capability list (e.g. on policy reload).
+    pub fn set_negative_capabilities(&mut self, caps: Vec<NegativeCapability>) {
+        self.negative_capabilities = caps;
+    }
+
+    /// Replace the enforcement level (e.g. when shadow-mode toggles).
+    pub fn set_enforcement_level(&mut self, level: EnforcementLevel) {
+        self.enforcement_level = level;
+    }
+
+    pub fn enforcement_level(&self) -> EnforcementLevel {
+        self.enforcement_level
     }
 
     pub fn set_event_listener<F>(&mut self, f: F)
@@ -212,13 +300,33 @@ impl AgentGuard {
     }
 
     pub fn check(&self, query: &GuardQuery) -> GuardDecision {
+        let raw = self.check_raw(query);
+        let adjusted = apply_enforcement_level(raw, self.enforcement_level);
         let actor = query
             .actor
             .clone()
             .unwrap_or_else(|| "tf:actor:process:local/unknown".to_string());
+        self.emit(&adjusted, &actor, query);
+        adjusted
+    }
+
+    /// Run the rule logic without applying the EnforcementLevel filter.
+    pub fn check_raw(&self, query: &GuardQuery) -> GuardDecision {
+        // 1. Negative capabilities take absolute precedence.
+        for neg in &self.negative_capabilities {
+            if negative_matches(neg, query) {
+                let reason = neg.reason.clone().unwrap_or_else(|| {
+                    format!("action {} is denied by negative_capability", query.action)
+                });
+                return GuardDecision::Deny {
+                    reason,
+                    danger_tags: vec!["explicit-denial".to_string()],
+                };
+            }
+        }
 
         if let Some(reason) = self.forbidden_by_name.get(&query.action) {
-            let decision = GuardDecision::Deny {
+            return GuardDecision::Deny {
                 reason: if reason.is_empty() {
                     "action listed in forbidden".to_string()
                 } else {
@@ -226,17 +334,13 @@ impl AgentGuard {
                 },
                 danger_tags: Vec::new(),
             };
-            self.emit(&decision, &actor, query);
-            return decision;
         }
 
         let Some(action) = self.action_by_name.get(&query.action) else {
-            let decision = GuardDecision::Deny {
+            return GuardDecision::Deny {
                 reason: format!("action \"{}\" is not declared", query.action),
                 danger_tags: Vec::new(),
             };
-            self.emit(&decision, &actor, query);
-            return decision;
         };
 
         let tags = action.danger_tags.clone();
@@ -244,12 +348,10 @@ impl AgentGuard {
         if let Some(target) = &query.target {
             for pattern in &action.deny_targets {
                 if self.match_target(pattern, target) {
-                    let decision = GuardDecision::Deny {
+                    return GuardDecision::Deny {
                         reason: format!("target {} is in deny_targets ({})", target, pattern),
                         danger_tags: tags.clone(),
                     };
-                    self.emit(&decision, &actor, query);
-                    return decision;
                 }
             }
             if !action.allow_targets.is_empty() {
@@ -258,12 +360,10 @@ impl AgentGuard {
                     .iter()
                     .any(|p| self.match_target(p, target));
                 if !allowed {
-                    let decision = GuardDecision::Deny {
+                    return GuardDecision::Deny {
                         reason: format!("target {} is not in allow_targets", target),
                         danger_tags: tags.clone(),
                     };
-                    self.emit(&decision, &actor, query);
-                    return decision;
                 }
             }
         }
@@ -275,30 +375,22 @@ impl AgentGuard {
                 .filter(|t| ESCALATE_TAGS.contains(&t.as_str()))
                 .map(String::as_str)
                 .collect();
-            let decision = GuardDecision::Escalate {
+            return GuardDecision::Escalate {
                 reason: format!("danger_tags require escalation: {}", escalating.join(", ")),
                 danger_tags: tags.clone(),
             };
-            self.emit(&decision, &actor, query);
-            return decision;
         }
 
         match action.approval.as_deref() {
             Some("required") | Some("quorum") => {
                 let approval = action.approval.clone().unwrap();
-                let decision = GuardDecision::ApprovalRequired {
+                GuardDecision::ApprovalRequired {
                     approval,
                     reason: format!("action \"{}\" requires approval", query.action),
-                    danger_tags: tags.clone(),
-                };
-                self.emit(&decision, &actor, query);
-                decision
+                    danger_tags: tags,
+                }
             }
-            _ => {
-                let decision = GuardDecision::Allow { danger_tags: tags };
-                self.emit(&decision, &actor, query);
-                decision
-            }
+            _ => GuardDecision::Allow { danger_tags: tags },
         }
     }
 
@@ -321,8 +413,111 @@ impl AgentGuard {
             target: query.target.clone(),
             decision: decision.kind().to_string(),
             danger_tags: decision.danger_tags().to_vec(),
+            enforcement_level: Some(self.enforcement_level.as_str().to_string()),
         });
     }
+}
+
+/// Apply the EnforcementLevel filter described in DECISIONS.md
+/// "Progressive enforcement levels are core". Maps the raw rule
+/// decision to the actual decision the caller will execute against.
+pub fn apply_enforcement_level(raw: GuardDecision, level: EnforcementLevel) -> GuardDecision {
+    match level {
+        EnforcementLevel::E0 => match raw {
+            GuardDecision::Deny { reason, mut danger_tags }
+            | GuardDecision::Escalate { reason, mut danger_tags }
+            | GuardDecision::ApprovalRequired { reason, mut danger_tags, .. } => {
+                danger_tags.push("shadow".to_string());
+                GuardDecision::LogOnly {
+                    reason: format!("[shadow] would have decided: {}", reason),
+                    danger_tags,
+                }
+            }
+            other => other,
+        },
+        EnforcementLevel::E1 => match raw {
+            GuardDecision::Deny { reason, mut danger_tags } => {
+                danger_tags.push("warn".to_string());
+                danger_tags.push(format!("would-deny:{}", reason));
+                GuardDecision::Allow { danger_tags }
+            }
+            GuardDecision::Escalate { reason, mut danger_tags } => {
+                danger_tags.push("warn".to_string());
+                GuardDecision::LogOnly {
+                    reason: format!("[warn] {}", reason),
+                    danger_tags,
+                }
+            }
+            other => other,
+        },
+        EnforcementLevel::E2 => tag_decision(raw, "proof-log-required"),
+        EnforcementLevel::E3 => match raw {
+            GuardDecision::Allow { danger_tags } if !danger_tags.is_empty() => {
+                GuardDecision::Escalate {
+                    reason: format!(
+                        "E3 escalates allow with danger tags: {}",
+                        danger_tags.join(", ")
+                    ),
+                    danger_tags,
+                }
+            }
+            other => other,
+        },
+        EnforcementLevel::E4 => raw,
+        EnforcementLevel::E5 => match raw {
+            GuardDecision::Escalate { reason, danger_tags }
+            | GuardDecision::ApprovalRequired { reason, danger_tags, .. } => GuardDecision::Deny {
+                reason: format!("E5 fail-closed: {}", reason),
+                danger_tags,
+            },
+            GuardDecision::Allow { danger_tags } if !danger_tags.is_empty() => GuardDecision::Deny {
+                reason: format!(
+                    "E5 fail-closed: allow with danger tags {} blocked",
+                    danger_tags.join(", ")
+                ),
+                danger_tags,
+            },
+            other => other,
+        },
+    }
+}
+
+fn tag_decision(d: GuardDecision, tag: &str) -> GuardDecision {
+    match d {
+        GuardDecision::Allow { mut danger_tags } => {
+            danger_tags.push(tag.to_string());
+            GuardDecision::Allow { danger_tags }
+        }
+        GuardDecision::ApprovalRequired { approval, reason, mut danger_tags } => {
+            danger_tags.push(tag.to_string());
+            GuardDecision::ApprovalRequired { approval, reason, danger_tags }
+        }
+        GuardDecision::Escalate { reason, mut danger_tags } => {
+            danger_tags.push(tag.to_string());
+            GuardDecision::Escalate { reason, danger_tags }
+        }
+        GuardDecision::Deny { reason, mut danger_tags } => {
+            danger_tags.push(tag.to_string());
+            GuardDecision::Deny { reason, danger_tags }
+        }
+        GuardDecision::LogOnly { reason, mut danger_tags } => {
+            danger_tags.push(tag.to_string());
+            GuardDecision::LogOnly { reason, danger_tags }
+        }
+    }
+}
+
+fn negative_matches(neg: &NegativeCapability, q: &GuardQuery) -> bool {
+    if neg.name != q.action {
+        return false;
+    }
+    let Some(target_pattern) = neg.target.as_deref() else {
+        return true;
+    };
+    let Some(query_target) = q.target.as_deref() else {
+        return false;
+    };
+    glob_match(target_pattern, query_target)
 }
 
 fn glob_match(pattern: &str, value: &str) -> bool {

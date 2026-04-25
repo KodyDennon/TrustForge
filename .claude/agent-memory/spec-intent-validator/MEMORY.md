@@ -1,0 +1,1 @@
+- [v0.1.0 audit snapshot](project_v0_1_0_audit.md) — exhaustive gap list TrustForge needs closed before cutting v0.1.0 (snapshot 2026-04-24)
