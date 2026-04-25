@@ -53,6 +53,11 @@ jobs:
       - name: plugin registry smoke test
         run: |
           bun test tools/tf-types-ts/tests/plugin.test.ts
+      - name: compatibility bridge smoke test
+        run: |
+          bun test tools/tf-types-ts/tests/bridge-spiffe.test.ts
+          bun test tools/tf-types-ts/tests/bridge-webauthn.test.ts
+          bun test tools/tf-types-ts/tests/bridge-mcp.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci
