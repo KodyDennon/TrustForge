@@ -23,6 +23,12 @@ pub struct Action {
     /// Glob patterns or @target-set references the action must not target.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub deny_targets: Option<Vec<String>>,
+    /// Glob patterns matching caller actor URIs that MAY invoke this action. Empty / omitted means 'every authenticated actor is allowed' (subject to deny_actors and other guard rules). The matcher checks both the cryptographic actor URI (tf:actor:process:key/<thumbprint>) and the self-claimed peer_hint URI when present.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub allow_actors: Option<Vec<String>>,
+    /// Glob patterns matching caller actor URIs that MUST NOT invoke this action. Overrides allow_actors. The matcher checks both the cryptographic actor URI and the self-claimed peer_hint URI.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub deny_actors: Option<Vec<String>>,
     /// Inline JSON Schema describing the parameters this action accepts.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub parameters: Option<serde_json::Value>,

@@ -80,6 +80,7 @@ fn every_vector_matches() {
         }
         let decision = guard.check(&GuardQuery {
             actor: None,
+            actor_claim: None,
             action: v.query.action,
             target: v.query.target,
         });

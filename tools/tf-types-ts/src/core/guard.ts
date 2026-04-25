@@ -32,7 +32,11 @@ export type GuardDecision =
   | { kind: "log-only"; reason: string; danger_tags: string[] };
 
 export interface GuardQuery {
+  /** Cryptographic, key-derived caller URI. Authoritative. */
   actor?: string;
+  /** Self-claimed peer_hint URI. Advisory; matched alongside `actor` against
+   *  allow_actors / deny_actors. */
+  actor_claim?: string;
   action: string;
   target?: string;
   context?: Record<string, unknown>;
@@ -68,6 +72,8 @@ interface IndexedAction {
   danger_tags: string[];
   allow_targets: string[];
   deny_targets: string[];
+  allow_actors: string[];
+  deny_actors: string[];
 }
 
 const ESCALATE_TAGS = new Set<string>([
@@ -112,6 +118,8 @@ export class AgentGuard {
       danger_tags: ((a.danger_tags as string[] | undefined) ?? []).slice(),
       allow_targets: ((a.allow_targets as string[] | undefined) ?? []).slice(),
       deny_targets: ((a.deny_targets as string[] | undefined) ?? []).slice(),
+      allow_actors: ((a.allow_actors as string[] | undefined) ?? []).slice(),
+      deny_actors: ((a.deny_actors as string[] | undefined) ?? []).slice(),
     }));
     const forbidden = new Map<string, string>();
     for (const f of (c.forbidden as Record<string, unknown>[] | undefined) ?? []) {
@@ -181,6 +189,43 @@ export class AgentGuard {
     }
 
     const tags = action.danger_tags.slice();
+
+    // Actor-scope: deny_actors wins over allow_actors. Both lists are matched
+    // against the cryptographic actor URI AND the self-claimed peer_hint URI;
+    // a hit on either form blocks (deny) or unblocks (allow). Empty lists
+    // mean "no restriction".
+    const callerActor = query.actor;
+    const callerClaim = query.actor_claim;
+    if (callerActor !== undefined) {
+      for (const pattern of action.deny_actors) {
+        if (globMatch(pattern, callerActor) || (callerClaim !== undefined && globMatch(pattern, callerClaim))) {
+          return {
+            kind: "deny",
+            reason: `actor ${callerActor} matches deny_actors (${pattern})`,
+            danger_tags: tags,
+          };
+        }
+      }
+      if (action.allow_actors.length > 0) {
+        const matches = action.allow_actors.some(
+          (p) => globMatch(p, callerActor) || (callerClaim !== undefined && globMatch(p, callerClaim)),
+        );
+        if (!matches) {
+          return {
+            kind: "deny",
+            reason: `actor ${callerActor} not in allow_actors`,
+            danger_tags: tags,
+          };
+        }
+      }
+    } else if (action.allow_actors.length > 0) {
+      // Action restricts callers but no actor was supplied — fail closed.
+      return {
+        kind: "deny",
+        reason: `action ${action.name} requires an authenticated actor`,
+        danger_tags: tags,
+      };
+    }
 
     if (query.target) {
       for (const pattern of action.deny_targets) {

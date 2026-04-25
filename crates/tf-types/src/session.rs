@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::actor_id::derive_peer_actor;
 use crate::canonical::canonicalize;
 use crate::crypto::{
     b64decode, b64encode, chacha20poly1305_decrypt, chacha20poly1305_encrypt,
@@ -193,13 +194,18 @@ impl Initiator {
         };
 
         let session_id_bytes = b64decode(&hello_i.session_id)?;
-        let session = SessionState::derive(
+        let peer_actor = derive_peer_actor(&ident_pub)
+            .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
+        // peer_hint is the initiator's belief about the responder, not a
+        // self-claim. Self-claim plumbing arrives in B2.
+        let session = SessionState::derive_with_claim(
             Role::Initiator,
             &shared,
             &session_id_bytes,
             &full_hash,
             &self.cfg.self_actor,
-            self.cfg.peer_hint.as_deref().unwrap_or("(unknown)"),
+            &peer_actor,
+            None,
         );
         self.state = InitiatorState::Established(session.clone());
         Ok((auth, session))
@@ -308,13 +314,18 @@ impl Responder {
             .map_err(|_| SessionError::Generic("initiator identity signature invalid".into()))?;
 
         let session_id_bytes = b64decode(&hello_i.session_id)?;
-        let session = SessionState::derive(
+        let peer_actor = derive_peer_actor(&ident_pub)
+            .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
+        // peer_hint is the initiator's belief about the responder, not the
+        // initiator's self-claim. Self-claim plumbing arrives in B2.
+        let session = SessionState::derive_with_claim(
             Role::Responder,
             &shared,
             &session_id_bytes,
             &full_hash,
             &self.cfg.self_actor,
-            self.cfg.peer_hint.as_deref().unwrap_or("(unknown)"),
+            &peer_actor,
+            None,
         );
         self.state = ResponderState::Established(session.clone());
         Ok(session)
@@ -330,7 +341,10 @@ pub enum Role {
 #[derive(Clone, Debug)]
 pub struct SessionState {
     pub self_actor: String,
+    /// Key-derived canonical peer actor URI. Authoritative.
     pub peer_actor: String,
+    /// Self-claimed peer actor URI from `peer_hint`. Advisory only.
+    pub peer_actor_claim: Option<String>,
     pub session_id: Vec<u8>,
     pub generation: u32,
     pub send_key: [u8; 32],
@@ -350,6 +364,26 @@ impl SessionState {
         self_actor: &str,
         peer_actor: &str,
     ) -> Self {
+        Self::derive_with_claim(
+            role,
+            shared_secret,
+            session_id,
+            transcript_hash,
+            self_actor,
+            peer_actor,
+            None,
+        )
+    }
+
+    pub fn derive_with_claim(
+        role: Role,
+        shared_secret: &[u8; 32],
+        session_id: &[u8],
+        transcript_hash: &[u8],
+        self_actor: &str,
+        peer_actor: &str,
+        peer_actor_claim: Option<String>,
+    ) -> Self {
         let mut info = b"tf-session/v0/keys".to_vec();
         info.extend_from_slice(transcript_hash);
         let ikm = hkdf_sha256(shared_secret, session_id, &info, 64);
@@ -362,6 +396,7 @@ impl SessionState {
         SessionState {
             self_actor: self_actor.to_owned(),
             peer_actor: peer_actor.to_owned(),
+            peer_actor_claim,
             session_id: session_id.to_vec(),
             generation: 0,
             send_key,

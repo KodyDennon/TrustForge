@@ -1,4 +1,6 @@
 import type { ActorType } from "../generated/_common.js";
+import { sha256 } from "@noble/hashes/sha2";
+import { toHex } from "./crypto.js";
 
 export class ActorIdParseError extends Error {}
 
@@ -62,6 +64,23 @@ export function actorIdEquals(a: string, b: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Derive the canonical actor URI for a peer identified by an ed25519 public
+ * key. The URI is bound to the key by construction: `tf:actor:process:key/<hex>`
+ * where `<hex>` is the lowercase hex prefix of `sha256(ident_pub)` truncated
+ * to 8 bytes (16 hex chars). This is the cryptographic identity the daemon
+ * passes to AgentGuard; callers can additionally accept a `peer_hint` as a
+ * self-claimed alias, but it is advisory only — never used for authority.
+ */
+export function derivePeerActor(identPub: Uint8Array): string {
+  if (identPub.length !== 32) {
+    throw new ActorIdParseError(`derivePeerActor expects 32-byte ed25519 public key, got ${identPub.length}`);
+  }
+  const digest = sha256(identPub);
+  const thumbprint = toHex(digest.slice(0, 8));
+  return `tf:actor:process:key/${thumbprint}`;
 }
 
 export function splitScheme(s: string): { kind: string; typeSegment: string; path: string } | null {

@@ -28,6 +28,7 @@ import {
   chacha20poly1305Decrypt,
   chacha20poly1305Encrypt,
 } from "./crypto.js";
+import { derivePeerActor } from "./actor-id.js";
 import { sha256 } from "@noble/hashes/sha2";
 
 export const SESSION_VERSION = 0;
@@ -168,13 +169,19 @@ export class Initiator {
     const authSig = await ed25519Sign(fullTranscriptHash, this.cfg.identityPriv);
     const auth: Auth = { ...authUnsigned, signature: b64encode(authSig) };
 
+    const peerActor = derivePeerActor(identPub);
+    // The initiator's `peerHint` is its OWN belief about who the responder
+    // should be; it does not become the responder's claim. Self-claim
+    // plumbing arrives with the suite-negotiation wire change (B2). For B1
+    // the responder's claim is unknown to the initiator.
     const session = SessionState.derive({
       role: "initiator",
       sharedSecret: shared,
       sessionId: sessionIdBytes,
       transcriptHash: fullTranscriptHash,
       selfActor: this.cfg.selfActor,
-      peerActor: this.cfg.peerHint ?? "(unknown)",
+      peerActor,
+      peerActorClaim: undefined,
     });
     this.session = session;
     this.helloR = msg;
@@ -240,13 +247,21 @@ export class Responder {
     const ok = await ed25519Verify(b64decode(msg.ident_pub), fullTranscriptHash, b64decode(msg.signature));
     if (!ok) throw new SessionError("initiator identity signature invalid");
 
+    const peerIdentPub = b64decode(msg.ident_pub);
+    const peerActor = derivePeerActor(peerIdentPub);
+    // peer_hint on HelloI is the initiator's BELIEF about the responder
+    // (used by the initiator to detect wrong-peer connections), NOT the
+    // initiator's self-claim. A dedicated `self_hint` field for self-claims
+    // is added in the suite-negotiation wire change (B2). For B1 the claim
+    // is left undefined; downstream `actor_claim` checks tolerate that.
     const session = SessionState.derive({
       role: "responder",
       sharedSecret: this.sharedSecret,
       sessionId: b64decode(this.helloI.session_id),
       transcriptHash: fullTranscriptHash,
       selfActor: this.cfg.selfActor,
-      peerActor: this.cfg.peerHint ?? "(unknown)",
+      peerActor,
+      peerActorClaim: undefined,
     });
     this.session = session;
     this.state = "established";
@@ -261,11 +276,19 @@ interface DeriveArgs {
   transcriptHash: Uint8Array;
   selfActor: string;
   peerActor: string;
+  peerActorClaim?: string;
 }
 
 export class SessionState {
   selfActor: string;
+  /** Key-derived canonical peer actor URI (`tf:actor:process:key/<thumbprint>`).
+   *  This is the cryptographic identity of the peer — bound to the public key
+   *  used in the handshake. AgentGuard authority is anchored here. */
   peerActor: string;
+  /** Self-claimed actor URI carried in `peer_hint` of HelloI. Advisory only:
+   *  not verified against any PKI. Guards may match against this for
+   *  human-readable allow/deny lists. */
+  peerActorClaim?: string;
   sessionId: Uint8Array;
   generation: number;
   sendKey: Uint8Array;
@@ -282,6 +305,7 @@ export class SessionState {
   private constructor(init: {
     selfActor: string;
     peerActor: string;
+    peerActorClaim?: string;
     sessionId: Uint8Array;
     sendKey: Uint8Array;
     recvKey: Uint8Array;
@@ -289,6 +313,7 @@ export class SessionState {
   }) {
     this.selfActor = init.selfActor;
     this.peerActor = init.peerActor;
+    this.peerActorClaim = init.peerActorClaim;
     this.sessionId = init.sessionId;
     this.sendKey = init.sendKey;
     this.recvKey = init.recvKey;
@@ -307,6 +332,7 @@ export class SessionState {
     return new SessionState({
       selfActor: args.selfActor,
       peerActor: args.peerActor,
+      peerActorClaim: args.peerActorClaim,
       sessionId: args.sessionId,
       sendKey: isInitiator ? i_to_r : r_to_i,
       recvKey: isInitiator ? r_to_i : i_to_r,

@@ -1,6 +1,7 @@
 //! Actor-URI parser and formatter mirroring `tools/tf-types-ts/src/core/actor-id.ts`.
 
 use crate::generated::common::ActorType;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ActorIdParseError {
@@ -56,6 +57,22 @@ pub fn actor_id_equals(a: &str, b: &str) -> bool {
         (Ok(pa), Ok(pb)) => pa.actor_type == pb.actor_type && pa.path == pb.path,
         _ => false,
     }
+}
+
+/// Derive the canonical actor URI for a peer identified by an ed25519 public
+/// key. Mirrors `derivePeerActor` in `tools/tf-types-ts/src/core/actor-id.ts`.
+/// Returns `tf:actor:process:key/<hex>` where `<hex>` is the lowercase hex of
+/// the first 8 bytes of `sha256(ident_pub)`.
+pub fn derive_peer_actor(ident_pub: &[u8]) -> Result<String, ActorIdParseError> {
+    if ident_pub.len() != 32 {
+        return Err(ActorIdParseError::EmptyPath);
+    }
+    let digest = Sha256::digest(ident_pub);
+    let thumbprint = digest[..8]
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
+    Ok(format!("tf:actor:process:key/{}", thumbprint))
 }
 
 pub(crate) struct SchemeParts<'a> {

@@ -32,6 +32,11 @@ export interface SessionEndpoint {
   onClose(listener: () => void): void;
   close(reason?: string): void;
   state(): SessionState;
+  /** Cryptographic peer identity derived from the handshake's `ident_pub`. */
+  peerActor(): string;
+  /** The peer's self-claimed actor URI from `peer_hint`. Advisory only;
+   *  never use this for authority decisions. */
+  peerActorClaim(): string | undefined;
 }
 
 interface WireSink {
@@ -245,6 +250,8 @@ function buildEndpoint(
       }
     },
     state: () => session,
+    peerActor: () => session.peerActor,
+    peerActorClaim: () => session.peerActorClaim,
   };
 }
 

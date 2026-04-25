@@ -395,11 +395,16 @@ async function rpcCall(args: string[]): Promise<number> {
   const method = arg(args, "--method");
   const requestPath = arg(args, "--request");
   const keyPath = arg(args, "--key");
-  const callerActor = arg(args, "--caller") ?? "tf:actor:process:local/cli";
-  const selfActor = arg(args, "--self") ?? callerActor;
+  const claim = arg(args, "--claim");
+  if (arg(args, "--caller")) {
+    console.error(
+      "error: --caller was removed; the caller actor URI is now derived from the key (tf:actor:process:key/<thumbprint>). Use --claim <uri> if you want to advertise a self-claimed alias.",
+    );
+    return 2;
+  }
   if (!url || !method || !keyPath) {
     console.error(
-      "usage: tf rpc call --url <ws://host:port> --method <name> --key <priv> [--request <json|@file>] [--caller <actor>] [--self <actor>]",
+      "usage: tf rpc call --url <ws://host:port> --method <name> --key <priv> [--request <json|@file>] [--claim <self-claimed-actor-uri>]",
     );
     return 2;
   }
@@ -414,6 +419,9 @@ async function rpcCall(args: string[]): Promise<number> {
   const keyJson = JSON.parse(readFileSync(resolve(keyPath), "utf8")) as { key_bytes_b64?: string; key_bytes?: string };
   const privBytes = new Uint8Array(Buffer.from(keyJson.key_bytes_b64 ?? keyJson.key_bytes ?? "", "base64"));
   const pubBytes = await ed25519PublicKey(privBytes);
+  const tf = await import("tf-types");
+  const callerActor = tf.derivePeerActor(pubBytes);
+  const selfActor = claim ?? callerActor;
 
   const ws = new WebSocket(url);
   ws.binaryType = "arraybuffer";
@@ -449,7 +457,12 @@ async function rpcCall(args: string[]): Promise<number> {
   });
 
   const endpoint: SessionEndpoint = await attachInitiator(
-    { selfActor, identityPriv: privBytes, identityPub: pubBytes },
+    {
+      selfActor,
+      peerHint: claim,
+      identityPriv: privBytes,
+      identityPub: pubBytes,
+    },
     sink,
     source,
   );

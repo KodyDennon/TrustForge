@@ -238,6 +238,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   interface ActiveSession {
     id: string;
     remote_actor: string;
+    remote_actor_claim?: string;
     opened_at: string;
     close: () => void;
   }
@@ -296,7 +297,10 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     if (url.pathname === "/admin/sessions" && req.method === "GET") {
       return jsonResponse({
         sessions: [...activeSessions.values()].map((s) => ({
-          id: s.id, remote_actor: s.remote_actor, opened_at: s.opened_at,
+          id: s.id,
+          remote_actor: s.remote_actor,
+          remote_actor_claim: s.remote_actor_claim,
+          opened_at: s.opened_at,
         })),
       });
     }
@@ -399,6 +403,8 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
           const rpc = new RpcServer(rpcTransportFromEndpoint(endpoint), {
             selfActor: config.self_actor,
             enforcer: enforcerFromGuard(guard, queue),
+            getCaller: () => endpoint.peerActor(),
+            getCallerClaim: () => endpoint.peerActorClaim(),
             onProofEvent: (ev: RpcProofEventStub) => appendEventLine(proofLogPath, ev),
           });
           listeners.push({ close: () => endpoint.close("daemon shutdown") });
@@ -406,7 +412,8 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
           const sessionId = `sess-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
           activeSessions.set(sessionId, {
             id: sessionId,
-            remote_actor: (endpoint as unknown as { remoteActor?: string }).remoteActor ?? "tf:actor:unknown",
+            remote_actor: endpoint.peerActor(),
+            remote_actor_claim: endpoint.peerActorClaim(),
             opened_at: new Date().toISOString(),
             close: () => endpoint.close("daemon shutdown"),
           });

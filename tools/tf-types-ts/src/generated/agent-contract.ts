@@ -16,6 +16,10 @@ export interface Action {
   allow_targets?: string[];
   /** Glob patterns or @target-set references the action must not target. */
   deny_targets?: string[];
+  /** Glob patterns matching caller actor URIs that MAY invoke this action. Empty / omitted means 'every authenticated actor is allowed' (subject to deny_actors and other guard rules). The matcher checks both the cryptographic actor URI (tf:actor:process:key/<thumbprint>) and the self-claimed peer_hint URI when present. */
+  allow_actors?: string[];
+  /** Glob patterns matching caller actor URIs that MUST NOT invoke this action. Overrides allow_actors. The matcher checks both the cryptographic actor URI and the self-claimed peer_hint URI. */
+  deny_actors?: string[];
   /** Inline JSON Schema describing the parameters this action accepts. */
   parameters?: Record<string, unknown>;
   /** Hint that this action can be inverted by its counterpart. */

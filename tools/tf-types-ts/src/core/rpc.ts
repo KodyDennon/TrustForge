@@ -412,7 +412,10 @@ export type BidiStreamHandler<Req = unknown, Res = unknown> = (
 ) => AsyncIterable<Res>;
 
 export interface RpcContext {
+  /** Cryptographic, key-derived caller URI. The authoritative identity. */
   callerActor: string;
+  /** The peer's self-claimed actor URI from `peer_hint`. Advisory only. */
+  callerClaim?: string;
   method: string;
   callId: string;
 }
@@ -441,7 +444,20 @@ interface ClientStreamQueue {
 export interface RpcServerOptions {
   selfActor: string;
   enforcer?: CapabilityEnforcer;
+  /** Static fallback caller actor URI. The session-derived caller (via
+   *  `getCaller`) takes precedence; this is only used when the server is
+   *  driven by a transport that does not surface a peer identity (e.g.
+   *  in-process tests). Production daemons MUST supply `getCaller`. */
   callerActor?: string;
+  /** Returns the canonical, key-derived peer actor URI for the current
+   *  request. The daemon wires this to `endpoint.peerActor()`. When this
+   *  callback is set, every guard check + proof event uses its return
+   *  value instead of `callerActor`. */
+  getCaller?: () => string;
+  /** Returns the peer's self-claimed actor URI from `peer_hint`. Advisory
+   *  only — not used for authority. Surfaced in proof events under
+   *  `caller_claim`. */
+  getCallerClaim?: () => string | undefined;
   onProofEvent?: (ev: RpcProofEventStub) => void;
   /** Triggers that force the server to re-run capability enforcement on
    *  in-flight server-streaming responses. Maps to TF-0004's
@@ -478,9 +494,18 @@ export class RpcServer {
     await this.reevaluateAll(trigger);
   }
 
+  private currentCaller(): string {
+    if (this.opts.getCaller) return this.opts.getCaller();
+    return this.opts.callerActor ?? "tf:actor:process:local/anonymous";
+  }
+
+  private currentCallerClaim(): string | undefined {
+    return this.opts.getCallerClaim?.();
+  }
+
   private async reevaluateAll(trigger: string): Promise<void> {
     const enforcer = this.opts.enforcer ?? allowAllEnforcer;
-    const caller = this.opts.callerActor ?? "tf:actor:process:local/anonymous";
+    const caller = this.currentCaller();
     for (const [callId, call] of [...this.inflight]) {
       try {
         const verdict = await Promise.resolve(enforcer.check(caller, call.method, call.capability));
@@ -586,9 +611,11 @@ export class RpcServer {
     }
     if (rpc.kind !== "rpc-call") return;
 
-    const caller = this.opts.callerActor ?? "tf:actor:process:local/anonymous";
+    const caller = this.currentCaller();
+    const callerClaim = this.currentCallerClaim();
     const ctx: RpcContext = {
       callerActor: caller,
+      callerClaim,
       method: rpc.method,
       callId: rpc.call_id,
     };

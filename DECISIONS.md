@@ -259,6 +259,33 @@ tf:actor:process:local/pid-4812
 tf:actor:plugin:tf-spiffe-bridge
 ```
 
+### Key-derived actor URI (cryptographic identity)
+
+For any peer authenticated by an ed25519 identity key, TrustForge derives a
+canonical actor URI bound to the key by construction:
+
+```text
+tf:actor:process:key/<thumbprint>
+```
+
+where `<thumbprint>` is the lowercase hex of `sha256(ident_pub)` truncated to
+8 bytes (16 hex chars). This is the **authoritative** identity the daemon
+hands to AgentGuard for every RPC: it cannot be spoofed without controlling
+the corresponding private key. See `derivePeerActor` in
+`tools/tf-types-ts/src/core/actor-id.ts` and `derive_peer_actor` in
+`crates/tf-types/src/actor_id.rs`.
+
+Self-claimed URIs (e.g. `tf:actor:agent:example.com/code-helper`) MAY ride
+alongside as **advisory** aliases — guards check both forms when matching
+`allow_actors` / `deny_actors` patterns — but no claim is trusted unless
+explicitly bound to the peer's key by an out-of-band PKI (federation,
+WebAuthn attestation, SPIFFE SVID, etc.).
+
+The session handshake transmits a `peer_hint` that is the **initiator's
+belief about the responder**, not the initiator's self-claim. A dedicated
+`self_hint` field for self-claims arrives in the suite-negotiation wire
+change (B2 in the v0.1.0 completion plan).
+
 ## Actor versus actor instance
 
 Actor identity and actor instance identity are separate core concepts.

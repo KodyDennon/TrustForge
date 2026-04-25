@@ -49,6 +49,7 @@ fn guard_vectors_match_ts() {
     for c in &vectors.cases {
         let query = GuardQuery {
             actor: Some("tf:actor:agent:example.com/test".into()),
+            actor_claim: None,
             action: c.query.action.clone(),
             target: c.query.target.clone(),
         };

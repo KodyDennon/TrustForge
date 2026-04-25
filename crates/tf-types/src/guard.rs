@@ -121,7 +121,11 @@ impl GuardDecision {
 
 #[derive(Clone, Debug, Default)]
 pub struct GuardQuery {
+    /// Cryptographic, key-derived caller URI. Authoritative.
     pub actor: Option<String>,
+    /// Self-claimed peer_hint URI. Advisory; matched alongside `actor`
+    /// against `allow_actors` / `deny_actors`.
+    pub actor_claim: Option<String>,
     pub action: String,
     pub target: Option<String>,
 }
@@ -147,6 +151,8 @@ pub struct IndexedAction {
     pub danger_tags: Vec<String>,
     pub allow_targets: Vec<String>,
     pub deny_targets: Vec<String>,
+    pub allow_actors: Vec<String>,
+    pub deny_actors: Vec<String>,
 }
 
 const ESCALATE_TAGS: &[&str] = &[
@@ -204,6 +210,16 @@ impl AgentGuard {
                 .and_then(|v| v.as_array())
                 .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
                 .unwrap_or_default();
+            let allow_actors = a
+                .get("allow_actors")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .unwrap_or_default();
+            let deny_actors = a
+                .get("deny_actors")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .unwrap_or_default();
             actions.insert(
                 name.clone(),
                 IndexedAction {
@@ -212,6 +228,8 @@ impl AgentGuard {
                     danger_tags,
                     allow_targets,
                     deny_targets,
+                    allow_actors,
+                    deny_actors,
                 },
             );
         }
@@ -344,6 +362,46 @@ impl AgentGuard {
         };
 
         let tags = action.danger_tags.clone();
+
+        // Actor-scope: deny_actors > allow_actors. Matched against both the
+        // cryptographic actor URI and the self-claimed peer_hint URI.
+        if let Some(actor) = query.actor.as_deref() {
+            for pattern in &action.deny_actors {
+                if glob_match(pattern, actor)
+                    || query
+                        .actor_claim
+                        .as_deref()
+                        .map(|c| glob_match(pattern, c))
+                        .unwrap_or(false)
+                {
+                    return GuardDecision::Deny {
+                        reason: format!("actor {} matches deny_actors ({})", actor, pattern),
+                        danger_tags: tags.clone(),
+                    };
+                }
+            }
+            if !action.allow_actors.is_empty() {
+                let matches = action.allow_actors.iter().any(|p| {
+                    glob_match(p, actor)
+                        || query
+                            .actor_claim
+                            .as_deref()
+                            .map(|c| glob_match(p, c))
+                            .unwrap_or(false)
+                });
+                if !matches {
+                    return GuardDecision::Deny {
+                        reason: format!("actor {} not in allow_actors", actor),
+                        danger_tags: tags.clone(),
+                    };
+                }
+            }
+        } else if !action.allow_actors.is_empty() {
+            return GuardDecision::Deny {
+                reason: format!("action {} requires an authenticated actor", action.name),
+                danger_tags: tags.clone(),
+            };
+        }
 
         if let Some(target) = &query.target {
             for pattern in &action.deny_targets {
