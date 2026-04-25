@@ -39,6 +39,7 @@ pub mod offline_approval;
 pub mod packet;
 pub mod permission;
 pub mod plugin;
+pub mod plugin_wasm;
 pub mod policy_engine;
 pub mod profile;
 pub mod quorum;

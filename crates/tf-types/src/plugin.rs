@@ -6,8 +6,9 @@
 //! registry validates the manifest's ed25519 signature over its canonical
 //! JSON form with signature.signature cleared.
 //!
-//! WASM plugins are out of scope for the Rust side in this phase; the TS
-//! registry demonstrates the sandbox model.
+//! WASM plugins are handled by the sibling `plugin_wasm` module; instantiate
+//! a `WasmPlugin` for capability-gated WASM execution. Native Rust plugins
+//! continue to be compiled in (the registry doesn't dlopen).
 
 use std::collections::HashMap;
 use std::fs;

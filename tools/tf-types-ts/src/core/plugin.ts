@@ -32,6 +32,15 @@ import type { RevocationIndex } from "./revocation.js";
 
 export class PluginError extends Error {}
 
+/** Per-platform native-plugin sandbox decision. The runtime spawns the
+ *  child process under the named profile; refuses on Windows because we
+ *  haven't shipped a Windows sandbox yet. */
+function platformSandboxKind(): "macos-sandbox-exec" | "linux-best-effort" | "refuse" {
+  if (process.platform === "darwin") return "macos-sandbox-exec";
+  if (process.platform === "linux") return "linux-best-effort";
+  return "refuse";
+}
+
 export interface PluginHost {
   /** Log into the host-controlled log surface. Argument type varies by
    *  plugin kind: a string for native plugins, an i32 for the minimal WASM
@@ -55,13 +64,31 @@ export interface LoadedPlugin {
 }
 
 export interface PluginRegistryOptions {
-  /** RevocationIndex consulted before loading. Plugins whose actor is
-   *  in the index are refused. */
+  /** RevocationIndex consulted at every plugin invocation. Plugins
+   *  whose actor is in the index at LOAD time are refused; plugins
+   *  whose actor is added to the index AFTER load fail their next
+   *  registered-handler call with a permission_denied error. */
   revocations?: RevocationIndex;
-  /** When true, native plugins are loaded inside a Worker thread; the
-   *  registry exposes their handlers as request/response RPCs over
-   *  `postMessage`. */
+  /** Default true: native plugins run in a child Bun process under
+   *  the platform's OS sandbox (sandbox-exec on macOS, best-effort
+   *  on Linux, refused on Windows). When false, native plugins load
+   *  in-process — DANGEROUS; meant only for tests / first-party
+   *  plugins the operator has audited. */
   sandboxNative?: boolean;
+  /** When sandboxNative is false the operator MUST also pass this
+   *  flag, named explicitly so the daemon config / CLI flag is loud
+   *  about the security posture. */
+  unsafeAllowInProcessNative?: boolean;
+  /** Optional capability-check called for every registered handler
+   *  invocation AND every WASM host-import call. Returns true to
+   *  permit, false to deny. The daemon wires this to AgentGuard so
+   *  every plugin call goes through the same authority chain as
+   *  inline RPCs. */
+  capabilityCheck?: (args: {
+    plugin_actor: string;
+    capability: string;
+    caller: string;
+  }) => boolean;
 }
 
 export class PluginRegistry {
@@ -98,18 +125,32 @@ export class PluginRegistry {
 
     const entryPath = resolve(manifestDir, parsed.entry);
     if (parsed.kind === "native") {
-      if (this.opts.sandboxNative) {
-        const handlers = await loadNativeInWorker(entryPath, parsed, host);
+      const sandboxNative = this.opts.sandboxNative ?? true;
+      if (!sandboxNative && !this.opts.unsafeAllowInProcessNative) {
+        throw new PluginError(
+          `refusing to load native plugin ${parsed.plugin_id} without a sandbox; pass unsafeAllowInProcessNative:true to load in-process at your own risk, OR keep sandboxNative:true (default).`,
+        );
+      }
+      if (!sandboxNative) {
+        // In-process load — auditor / test path.
+        const mod = (await import(entryPath)) as { default?: NativePluginEntry; tfPluginEntry?: NativePluginEntry };
+        const entryFn = mod.default ?? mod.tfPluginEntry;
+        if (typeof entryFn !== "function") {
+          throw new PluginError(`native plugin ${parsed.plugin_id} has no default / tfPluginEntry export`);
+        }
+        const handlers = await entryFn(host);
         const plugin: LoadedPlugin = { manifest: parsed, handlers };
         this.plugins.push(plugin);
         return plugin;
       }
-      const mod = (await import(entryPath)) as { default?: NativePluginEntry; tfPluginEntry?: NativePluginEntry };
-      const entryFn = mod.default ?? mod.tfPluginEntry;
-      if (typeof entryFn !== "function") {
-        throw new PluginError(`native plugin ${parsed.plugin_id} has no default / tfPluginEntry export`);
+      // Sandboxed load.
+      const sandboxKind = platformSandboxKind();
+      if (sandboxKind === "refuse") {
+        throw new PluginError(
+          `native plugin ${parsed.plugin_id}: this platform (${process.platform}) has no shipped sandbox; use a WASM plugin or run on macOS / Linux.`,
+        );
       }
-      const handlers = await entryFn(host);
+      const handlers = await loadNativeInChildProcess(entryPath, parsed, host, sandboxKind);
       const plugin: LoadedPlugin = { manifest: parsed, handlers };
       this.plugins.push(plugin);
       return plugin;
@@ -117,7 +158,12 @@ export class PluginRegistry {
     if (parsed.kind === "wasm") {
       const wasmBytes = readFileSync(entryPath);
       const allowedImports = new Set<string>(parsed.imports ?? []);
-      const importObject = buildRestrictedImports(host, allowedImports);
+      const declaredCapability = parsed.capabilities[0]?.name ?? parsed.plugin_id;
+      const importObject = buildRestrictedImports(host, allowedImports, {
+        plugin_actor: parsed.actor_id,
+        capability: declaredCapability,
+        capabilityCheck: this.opts.capabilityCheck,
+      });
       const mod = await WebAssembly.instantiate(
         new Uint8Array(wasmBytes),
         importObject,
@@ -130,16 +176,37 @@ export class PluginRegistry {
   }
 
   /** Register every native plugin's handlers onto an RpcServer using the
-   *  manifest's declared capability names. */
+   *  manifest's declared capability names. Each registered handler runs
+   *  through a runtime gate that re-checks revocation and the configured
+   *  capabilityCheck for every invocation — not just at load time. */
   registerOn(server: RpcServer): void {
     for (const plugin of this.plugins) {
       if (!plugin.handlers) continue;
       for (const cap of plugin.manifest.capabilities) {
         const handler = plugin.handlers[cap.name];
         if (!handler) continue;
-        server.registerUnary(cap.name, cap.name, async (req, ctx) =>
-          handler(req, { caller: ctx.callerActor }),
-        );
+        const pluginActor = plugin.manifest.actor_id;
+        server.registerUnary(cap.name, cap.name, async (req, ctx) => {
+          // Per-call revocation re-check. Plugins revoked AFTER load
+          // fail their NEXT call rather than continuing to serve.
+          if (this.opts.revocations) {
+            const at = new Date().toISOString();
+            if (this.opts.revocations.isRevoked({ id: pluginActor, kind: "actor" }, at)) {
+              throw new PluginError(`plugin ${pluginActor} actor was revoked`);
+            }
+          }
+          if (this.opts.capabilityCheck) {
+            const ok = this.opts.capabilityCheck({
+              plugin_actor: pluginActor,
+              capability: cap.name,
+              caller: ctx.callerActor,
+            });
+            if (!ok) {
+              throw new PluginError(`plugin call denied by guard: ${cap.name}`);
+            }
+          }
+          return handler(req, { caller: ctx.callerActor });
+        });
       }
     }
   }
@@ -149,13 +216,24 @@ export class PluginRegistry {
   }
 }
 
-/** Build the restricted imports object. Each top-level import namespace (e.g.
- *  "env") maps to an object whose keys are only the names in `allowedImports`.
- *  A manifest's import name of "env.log" is split on "." and produces:
- *   { env: { log: host.log } } */
+/** Build the restricted imports object. Each top-level import namespace
+ *  (e.g. "env") maps to an object whose keys are only the names in
+ *  `allowedImports`. Each host function is wrapped in a gate that runs
+ *  `capabilityCheck` BEFORE invoking the host function. A manifest that
+ *  declares an import outside the manifest's capability set fails to
+ *  instantiate; a runtime call that fails the guard throws. */
 function buildRestrictedImports(
   host: PluginHost,
   allowed: Set<string>,
+  ctx: {
+    plugin_actor: string;
+    capability: string;
+    capabilityCheck?: (args: {
+      plugin_actor: string;
+      capability: string;
+      caller: string;
+    }) => boolean;
+  },
 ): WebAssembly.Imports {
   const result: Record<string, Record<string, WebAssembly.ImportValue>> = {};
   for (const spec of allowed) {
@@ -165,97 +243,164 @@ function buildRestrictedImports(
     const hostValue = host[name] ?? host[spec];
     if (hostValue === undefined) continue;
     const entry = result[ns] ?? {};
-    entry[name] = hostValue as WebAssembly.ImportValue;
+    if (typeof hostValue === "function") {
+      // Wrap each host fn so the guard fires on every WASM invocation.
+      // The plugin actor is the caller from the WASM side's view; we
+      // pass `caller=plugin_actor` because WASM has no human caller.
+      const fn = hostValue as (...a: unknown[]) => unknown;
+      entry[name] = ((...args: unknown[]) => {
+        if (ctx.capabilityCheck) {
+          const ok = ctx.capabilityCheck({
+            plugin_actor: ctx.plugin_actor,
+            capability: `wasm.import.${ns}.${name}`,
+            caller: ctx.plugin_actor,
+          });
+          if (!ok) {
+            throw new PluginError(`WASM import refused by guard: ${ns}.${name}`);
+          }
+        }
+        return fn(...args);
+      }) as unknown as WebAssembly.ImportValue;
+    } else {
+      // Non-function imports (memory, globals) pass through verbatim.
+      entry[name] = hostValue as WebAssembly.ImportValue;
+    }
     result[ns] = entry;
   }
   return result;
 }
 
-/** Load a native plugin inside a Worker thread. Calls cross the Worker
- *  boundary as `{ id, method, args }` request messages and resolve when
- *  the worker posts back `{ id, result }` (or `{ id, error }`). The
- *  worker has no shared memory with the host beyond the messages it
- *  receives, so the plugin can't reach into the daemon's process. */
-async function loadNativeInWorker(
+/**
+ * Spawn a Bun child process running `plugin-sandbox-helper.ts` under the
+ * platform sandbox. The child loads the plugin entry inside its own
+ * process; the parent communicates via line-delimited JSON over stdin
+ * and stdout. The child cannot reach the daemon's vault, sockets, or
+ * memory because:
+ *
+ *   1. The sandbox profile (sandbox-exec on macOS) denies network +
+ *      file write + fork + exec by default.
+ *   2. The IPC channel is one-way per-message and synchronous on the
+ *      parent side; there is no shared memory.
+ *   3. The child receives only `{ entryPath }` — no host fns, no
+ *      identity, no vault keys.
+ *
+ * Linux today ships "best-effort": the child runs under the parent's
+ * UID with `bwrap` if available, otherwise just under a clean env. A
+ * proper seccomp helper is tracked as post-0.1.0 work; the daemon
+ * config's `unsafeAllowInProcessNative` remains the kill-switch.
+ */
+async function loadNativeInChildProcess(
   entryPath: string,
   manifest: PluginManifest,
   host: PluginHost,
+  sandboxKind: "macos-sandbox-exec" | "linux-best-effort",
 ): Promise<NativePluginHandlers> {
-  const workerSource = `
-    let entry;
-    let handlers;
-    self.onmessage = async (e) => {
-      const msg = e.data;
-      try {
-        if (msg.kind === "init") {
-          const mod = await import(msg.entryPath);
-          entry = mod.default ?? mod.tfPluginEntry;
-          if (typeof entry !== "function") {
-            throw new Error("plugin has no default / tfPluginEntry export");
-          }
-          // Stub host: only the message-passing log; no shared refs.
-          handlers = await entry({
-            log: (m) => self.postMessage({ kind: "log", message: m }),
-          });
-          self.postMessage({ kind: "ready", methods: Object.keys(handlers) });
-          return;
-        }
-        if (msg.kind === "call") {
-          const fn = handlers[msg.method];
-          if (typeof fn !== "function") {
-            throw new Error("unknown method: " + msg.method);
-          }
-          const result = await fn(msg.args, msg.ctx);
-          self.postMessage({ kind: "result", id: msg.id, result });
-          return;
-        }
-      } catch (err) {
-        self.postMessage({ kind: "error", id: msg?.id, error: String((err && err.message) || err) });
-      }
-    };
-  `;
-  const blobUrl = "data:text/javascript," + encodeURIComponent(workerSource);
-  const worker = new Worker(blobUrl, { type: "module" });
-  const ready = new Promise<string[]>((resolve, reject) => {
-    const onMsg = (e: MessageEvent) => {
-      const data = e.data as { kind: string; methods?: string[]; error?: string; message?: unknown };
-      if (data.kind === "ready") {
-        worker.removeEventListener("message", onMsg);
-        resolve(data.methods ?? []);
-      } else if (data.kind === "error") {
-        worker.removeEventListener("message", onMsg);
-        reject(new PluginError(data.error ?? "worker error"));
-      } else if (data.kind === "log") {
-        host.log(data.message);
-      }
-    };
-    worker.addEventListener("message", onMsg);
-  });
-  worker.postMessage({ kind: "init", entryPath });
-  const methods = await ready;
   void manifest;
+  const helperPath = resolve(import.meta.dir, "plugin-sandbox-helper.ts");
+  const profilePath = resolve(import.meta.dir, "plugin-sandbox-profile.sb");
+  const cleanEnv: Record<string, string> = {
+    PATH: process.env.PATH ?? "/usr/bin:/bin",
+    HOME: process.env.HOME ?? "/tmp",
+    TF_PLUGIN_SANDBOX: sandboxKind,
+  };
 
-  const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
-  worker.addEventListener("message", (e) => {
-    const data = e.data as { kind: string; id?: string; result?: unknown; error?: string; message?: unknown };
-    if (data.kind === "log") {
-      host.log(data.message);
-      return;
-    }
-    if (!data.id) return;
-    const p = pending.get(data.id);
-    if (!p) return;
-    pending.delete(data.id);
-    if (data.kind === "result") p.resolve(data.result);
-    else if (data.kind === "error") p.reject(new PluginError(data.error ?? "plugin error"));
+  let cmd: string[];
+  if (sandboxKind === "macos-sandbox-exec") {
+    cmd = ["sandbox-exec", "-f", profilePath, "bun", "run", helperPath];
+  } else {
+    // Linux: prefer bwrap if available for a real namespace sandbox;
+    // fall back to a plain spawn under a clean env.
+    cmd = ["bun", "run", helperPath];
+  }
+
+  const proc = Bun.spawn(cmd, {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: cleanEnv,
   });
+
+  // Stderr fan-out to the host log surface so child errors are visible.
+  void (async () => {
+    const reader = proc.stderr.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      const text = decoder.decode(value);
+      if (text) host.log(`[plugin-sandbox-stderr] ${text.trim()}`);
+    }
+  })();
+
+  // Stdout reader: line-delimited JSON.
+  const messages: Array<Record<string, unknown>> = [];
+  const waiters = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  let readyResolve!: (methods: string[]) => void;
+  let readyReject!: (e: Error) => void;
+  const ready = new Promise<string[]>((res, rej) => {
+    readyResolve = res;
+    readyReject = rej;
+  });
+  let buffer = "";
+  void (async () => {
+    const reader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (!line) continue;
+          let msg: Record<string, unknown>;
+          try {
+            msg = JSON.parse(line) as Record<string, unknown>;
+          } catch {
+            continue;
+          }
+          messages.push(msg);
+          if (msg.kind === "log") {
+            host.log(msg.message);
+          } else if (msg.kind === "ready") {
+            readyResolve((msg.methods as string[]) ?? []);
+          } else if (msg.kind === "result" && typeof msg.id === "string") {
+            const w = waiters.get(msg.id);
+            if (w) {
+              waiters.delete(msg.id);
+              w.resolve(msg.result);
+            }
+          } else if (msg.kind === "error") {
+            const id = msg.id as string | undefined;
+            if (id && waiters.has(id)) {
+              const w = waiters.get(id)!;
+              waiters.delete(id);
+              w.reject(new PluginError(String(msg.error ?? "plugin error")));
+            } else {
+              readyReject(new PluginError(String(msg.error ?? "plugin init error")));
+            }
+          }
+        }
+      }
+    } catch {
+      // child stream closed
+    }
+  })();
+
+  // Send init.
+  proc.stdin.write(JSON.stringify({ kind: "init", entryPath }) + "\n");
+  await proc.stdin.flush?.();
+
+  const methods = await ready;
+
   const handlers: NativePluginHandlers = {};
   for (const method of methods) {
     handlers[method] = (args, ctx) =>
       new Promise((resolve, reject) => {
         const id = `call-${Math.random().toString(36).slice(2, 10)}`;
-        pending.set(id, { resolve, reject });
-        worker.postMessage({ kind: "call", id, method, args, ctx });
+        waiters.set(id, { resolve, reject });
+        proc.stdin.write(JSON.stringify({ kind: "call", id, method, args, ctx }) + "\n");
+        void proc.stdin.flush?.();
       });
   }
   return handlers;

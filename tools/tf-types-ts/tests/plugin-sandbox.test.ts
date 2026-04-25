@@ -58,7 +58,7 @@ describe("Plugin sandbox + revocation", () => {
           signature: { algorithm: "ed25519", signer: "tf:actor:service:example.com/tf-daemon", signature: "AAAA" },
         },
       ]);
-      const registry = new PluginRegistry({ revocations });
+      const registry = new PluginRegistry({ revocations, sandboxNative: false, unsafeAllowInProcessNative: true });
       const host: PluginHost = { log: () => {} };
       await expect(registry.load(manifestPath, host)).rejects.toThrow(PluginError);
     } finally {
@@ -89,7 +89,7 @@ describe("Plugin sandbox + revocation", () => {
       const signed = await signManifest(manifest, pair.privateKey);
       const manifestPath = join(dir, "plugin.yaml");
       writeFileSync(manifestPath, yamlStringify(signed));
-      const registry = new PluginRegistry();
+      const registry = new PluginRegistry({ sandboxNative: false, unsafeAllowInProcessNative: true });
       const host: PluginHost = { log: () => {} };
       const loaded = await registry.load(manifestPath, host);
       const m = loaded.manifest as unknown as { conformance_profile?: string[] };

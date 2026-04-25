@@ -139,6 +139,10 @@ async function bootTestStack(dir: string) {
       contract_path: contractPath,
       proof_log_path: proofLogPath,
       approval_queue: { max_pending: 8, default_timeout_seconds: 5 },
+      // Tests load native plugins inside the test process; production
+      // deployments leave this off and run plugins under the platform
+      // sandbox.
+      unsafe_allow_native_plugins: true,
     }),
   );
 

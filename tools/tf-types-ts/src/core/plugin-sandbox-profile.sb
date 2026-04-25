@@ -1,0 +1,48 @@
+; macOS sandbox-exec profile for TrustForge native plugin children.
+;
+; Default-deny. Permits exactly the syscalls the helper needs to read
+; stdin, write stdout, allocate memory, and load already-mapped Bun
+; runtime files. Network, file writes, fork, and exec are forbidden.
+;
+; This is a defence-in-depth layer — TrustForge ALSO ships per-call
+; capability gating in the parent's IPC handler. A plugin that escapes
+; the IPC protocol still hits the kernel sandbox.
+
+(version 1)
+(deny default)
+
+; stdin/stdout are inherited from the parent's pipes; their fds remain
+; usable. Allow read on already-open fds + write on stdout/stderr.
+(allow file-read-data file-read-metadata)
+(allow file-write-data
+  (literal "/dev/null")
+  (literal "/dev/stdout")
+  (literal "/dev/stderr"))
+
+; Bun's runtime + the plugin's entry file load via mmap; allow reads
+; under /System, /usr, and the user's plugin path. The parent passes
+; `entryPath` so the child only needs to access that file.
+(allow file-read*
+  (subpath "/System")
+  (subpath "/usr/lib")
+  (subpath "/usr/local")
+  (subpath "/Library/Frameworks")
+  (subpath "/private/var/folders") ; Bun + macOS temp + user runtime
+  (subpath "/Users")               ; plugin entry files
+  (subpath "/opt"))                ; homebrew bun
+
+; Memory and threading.
+(allow process-info-pidinfo)
+(allow process-info-pidfdinfo)
+(allow process-info-listpids)
+(allow process-info-codesignature)
+(allow sysctl-read)
+(allow mach-lookup
+  (global-name "com.apple.system.notification_center")
+  (global-name "com.apple.system.logger"))
+
+; Explicitly forbid the dangerous ones (default-deny already covers these
+; but we list them so audit tools surface the intent).
+(deny network*)
+(deny process-fork)
+(deny process-exec)

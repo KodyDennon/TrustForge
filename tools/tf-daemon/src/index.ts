@@ -320,7 +320,23 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       });
     },
   };
-  const pluginRegistry = new PluginRegistry();
+  const pluginUnsafeFlag = (config as unknown as { unsafe_allow_native_plugins?: boolean })
+    .unsafe_allow_native_plugins ?? false;
+  const pluginRegistry = new PluginRegistry({
+    sandboxNative: !pluginUnsafeFlag,
+    unsafeAllowInProcessNative: pluginUnsafeFlag,
+    capabilityCheck: ({ caller, capability }) => {
+      // The plugin capability gate is a SECOND-ORDER check that fires
+      // ONLY for hard denies (revocation, negative_capabilities,
+      // forbidden, deny_actors). Approval-required / escalate paths are
+      // already handled by the RpcServer's primary enforcer; if we
+      // re-blocked here, every plugin call would bypass the approval
+      // flow and fail closed. Returning true on any non-deny verdict
+      // hands authority back to the primary enforcer.
+      const decision = guard.checkRaw({ actor: caller, action: capability });
+      return decision.kind !== "deny";
+    },
+  });
   for (const manifestPath of opts.plugins ?? []) {
     await pluginRegistry.load(manifestPath, pluginHostEarly);
   }

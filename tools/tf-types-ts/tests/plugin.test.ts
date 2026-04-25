@@ -86,7 +86,7 @@ describe("PluginRegistry", () => {
         log: (m: string) => logs.push(m),
       };
 
-      const registry = new PluginRegistry();
+      const registry = new PluginRegistry({ sandboxNative: false, unsafeAllowInProcessNative: true });
       const loaded = await registry.load(manifestPath, host);
       expect(loaded.manifest.plugin_id).toBe("com.example.hello");
       expect(loaded.handlers).toBeDefined();
@@ -138,7 +138,7 @@ describe("PluginRegistry", () => {
       const manifestPath = join(dir, "plugin.yaml");
       writeFileSync(manifestPath, yamlStringify(tampered));
 
-      const registry = new PluginRegistry();
+      const registry = new PluginRegistry({ sandboxNative: false, unsafeAllowInProcessNative: true });
       expect(registry.load(manifestPath, { log: () => {} })).rejects.toThrow(PluginError);
     });
   });
@@ -172,7 +172,7 @@ describe("PluginRegistry", () => {
       const host: PluginHost = {
         log: (value: number) => logged.push(value),
       };
-      const registry = new PluginRegistry();
+      const registry = new PluginRegistry({ sandboxNative: false, unsafeAllowInProcessNative: true });
       const loaded = await registry.load(manifestPath, host);
       expect(loaded.wasmInstance).toBeDefined();
       // Invoke the exported "run" — it imports env.log(i32) and should call log(42).
@@ -207,7 +207,7 @@ describe("PluginRegistry", () => {
       const manifestPath = join(dir, "plugin.yaml");
       writeFileSync(manifestPath, yamlStringify(signed));
 
-      const registry = new PluginRegistry();
+      const registry = new PluginRegistry({ sandboxNative: false, unsafeAllowInProcessNative: true });
       await expect(
         registry.load(manifestPath, { log: () => {} }),
       ).rejects.toThrow();
