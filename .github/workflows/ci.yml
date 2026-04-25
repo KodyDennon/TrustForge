@@ -31,7 +31,8 @@ jobs:
           bun run tools/tf-schema/src/cli.ts codegen --target rpc-ts \
             --spec examples/proofrpc/code-helper.tfrpc.yaml
           bun run tools/tf-schema/src/cli.ts codegen --target rpc-rust \
-            --spec examples/proofrpc/code-helper.tfrpc.yaml
+            --spec examples/proofrpc/code-helper.tfrpc.yaml \
+            --out crates/tf-code-helper-example/src/generated
           bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-ts \
             --spec examples/agent-contracts/full.yaml
           bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-rust \

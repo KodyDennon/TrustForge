@@ -130,7 +130,8 @@ pub fn register_code_helper<T: RpcTransport + 'static>(
                         Err(e) => { let _ = tx_value.send(Err(RpcError { code: tf_types::rpc::RpcErrorCode::InvalidArgument, message: e.to_string() })); return; },
                     };
                     let (inner_tx, mut inner_rx) = mpsc::unbounded_channel::<Result<StreamDirectoryResponse, RpcError>>();
-                    tokio::spawn(handler.stream_directory(req, ctx, inner_tx));
+                    let h = handler.clone();
+                    tokio::spawn(async move { h.stream_directory(req, ctx, inner_tx).await; });
                     while let Some(item) = inner_rx.recv().await {
                         let mapped = item.and_then(|v| serde_json::to_value(v).map_err(|e| RpcError { code: tf_types::rpc::RpcErrorCode::Internal, message: e.to_string() }));
                         if tx_value.send(mapped).is_err() { return; }

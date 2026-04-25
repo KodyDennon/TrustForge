@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/tf-types"]
+members = ["crates/tf-types", "crates/tf-code-helper-example"]
 
 [workspace.package]
 edition = "2021"
