@@ -1,0 +1,19 @@
+event_version: "1"
+id: evt-2026-04-24-abc123
+type: action.approved
+actor_id: "tf:actor:agent:example.com/code-helper"
+instance_id: "tf:instance:agent:example.com/code-helper/macbook/session-42"
+session_id: sess-42
+timestamp: "2026-04-24T13:45:12.123Z"
+level: L2
+subject_ref: tok-2026-04-24-001
+payload_hash: "sha256:8b7a6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b"
+parent_hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+context:
+  action: file.write
+  target: "src/main.ts"
+  approver: "tf:actor:human:example.com/kody"
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:agent:example.com/code-helper"
+  signature: "ZXZlbnQtc2lnbmF0dXJlLWJ5dGVz"

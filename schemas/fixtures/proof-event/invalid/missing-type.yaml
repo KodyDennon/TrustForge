@@ -1,0 +1,9 @@
+event_version: "1"
+id: evt-1
+actor_id: "tf:actor:agent:example.com/x"
+timestamp: "2026-04-24T13:45:12Z"
+level: L1
+signature:
+  algorithm: ed25519
+  signer: "tf:actor:agent:example.com/x"
+  signature: "AAAA"

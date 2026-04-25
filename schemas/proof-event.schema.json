@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/proof-event.schema.json",
+  "title": "TrustForge Proof Event",
+  "description": "Signed record of an important event (TF-0005). Hash-chain verification lives in Phase 2.",
+  "type": "object",
+  "required": ["event_version", "id", "type", "actor_id", "timestamp", "level", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "event_version": {
+      "description": "Version of the proof-event schema itself.",
+      "enum": ["1"]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable event identifier."
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "Dotted event-type identifier, e.g. session.established, action.approved."
+    },
+    "actor_id": {
+      "description": "Actor that produced the event.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "instance_id": {
+      "description": "Specific actor instance that produced the event.",
+      "$ref": "_common.schema.json#/$defs/InstanceId"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Session identifier this event belongs to."
+    },
+    "timestamp": {
+      "description": "When the event occurred.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "level": {
+      "description": "Proof level at which this event was emitted.",
+      "$ref": "_common.schema.json#/$defs/ProofLevel"
+    },
+    "subject_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to the object this event is about (capability ID, file hash, etc.)."
+    },
+    "payload_hash": {
+      "description": "Hash of the event's associated payload.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "parent_hash": {
+      "description": "Hash of the immediately preceding event in the hash-chain.",
+      "$ref": "_common.schema.json#/$defs/HashRef"
+    },
+    "context": {
+      "type": "object",
+      "description": "Free-form context object carried with the event.",
+      "additionalProperties": true
+    },
+    "signature": {
+      "description": "Signature envelope over the canonical form of this event (not verified in the foundation phase).",
+      "$ref": "_common.schema.json#/$defs/SignatureEnvelope"
+    }
+  }
+}
