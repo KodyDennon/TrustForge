@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/bridge-descriptor.schema.json",
+  "title": "TrustForge Compatibility Bridge Descriptor",
+  "description": "Declarative descriptor for a TrustForge compatibility bridge. Concrete bridges implement the TS Bridge interface or the Rust Bridge trait and are registered by BridgeRegistry.",
+  "type": "object",
+  "required": ["bridge_version", "bridge_id", "kind", "trust_domain"],
+  "additionalProperties": false,
+  "properties": {
+    "bridge_version": {
+      "description": "Version of the bridge-descriptor schema itself.",
+      "enum": ["1"]
+    },
+    "bridge_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Stable kebab-case bridge identifier."
+    },
+    "kind": {
+      "enum": ["spiffe", "webauthn", "mcp", "oauth", "tls"],
+      "description": "Which foreign standard this bridge wires into TrustForge."
+    },
+    "trust_domain": {
+      "description": "TrustForge trust domain that accepts input from this bridge.",
+      "$ref": "_common.schema.json#/$defs/TrustDomain"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what the bridge accepts and what it emits."
+    },
+    "config": {
+      "type": "object",
+      "description": "Kind-specific configuration. Each bridge validates its own config shape at runtime.",
+      "additionalProperties": true
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/Capability" },
+      "description": "Optional capabilities this bridge may claim or issue on behalf of the foreign protocol."
+    }
+  }
+}

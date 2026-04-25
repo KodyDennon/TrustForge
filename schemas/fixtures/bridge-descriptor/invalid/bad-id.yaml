@@ -1,0 +1,4 @@
+bridge_version: "1"
+bridge_id: NotKebab
+kind: spiffe
+trust_domain: example.com

@@ -59,6 +59,21 @@ vectors:
   - schema: approval-response
     fixture: schemas/fixtures/approval-response/invalid/missing-signature.yaml
     expect: invalid
+  - schema: bridge-descriptor
+    fixture: schemas/fixtures/bridge-descriptor/valid/spiffe.yaml
+    expect: valid
+  - schema: bridge-descriptor
+    fixture: schemas/fixtures/bridge-descriptor/valid/webauthn.yaml
+    expect: valid
+  - schema: bridge-descriptor
+    fixture: schemas/fixtures/bridge-descriptor/invalid/bad-id.yaml
+    expect: invalid
+  - schema: bridge-descriptor
+    fixture: schemas/fixtures/bridge-descriptor/invalid/bad-kind.yaml
+    expect: invalid
+  - schema: bridge-descriptor
+    fixture: schemas/fixtures/bridge-descriptor/invalid/missing-kind.yaml
+    expect: invalid
   - schema: capability-token
     fixture: schemas/fixtures/capability-token/valid/basic.yaml
     expect: valid

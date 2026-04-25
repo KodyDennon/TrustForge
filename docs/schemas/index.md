@@ -11,6 +11,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [agent-contract](./agent-contract.md) | TF-0006 | Declarative contract that makes a TrustForge-enabled codebase legible and safe for AI agents |
 | [approval-request](./approval-request.md) | — | A pending approval request raised by the daemon when a guarded action requires explicit human approval. |
 | [approval-response](./approval-response.md) | — | A signed response to an ApprovalRequest. |
+| [bridge-descriptor](./bridge-descriptor.md) | — | Declarative descriptor for a TrustForge compatibility bridge |
 | [capability-token](./capability-token.md) | TF-0004 | Serialized capability grant carried across actors (TF-0004). |
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
 | [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |

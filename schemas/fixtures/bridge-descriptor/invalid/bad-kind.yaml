@@ -1,0 +1,4 @@
+bridge_version: "1"
+bridge_id: tf-x
+kind: pigeon
+trust_domain: example.com

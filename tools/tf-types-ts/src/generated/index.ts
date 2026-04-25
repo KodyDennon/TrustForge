@@ -6,6 +6,7 @@ export * from "./actor-identity.js";
 export * from "./agent-contract.js";
 export * from "./approval-request.js";
 export * from "./approval-response.js";
+export * from "./bridge-descriptor.js";
 export * from "./capability-token.js";
 export * from "./conformance.js";
 export * from "./daemon-config.js";

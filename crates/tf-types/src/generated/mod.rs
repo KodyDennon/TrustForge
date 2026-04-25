@@ -15,6 +15,8 @@ pub mod approval_request;
 pub use approval_request::*;
 pub mod approval_response;
 pub use approval_response::*;
+pub mod bridge_descriptor;
+pub use bridge_descriptor::*;
 pub mod capability_token;
 pub use capability_token::*;
 pub mod conformance;

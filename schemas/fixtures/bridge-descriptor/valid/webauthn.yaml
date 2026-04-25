@@ -1,0 +1,8 @@
+bridge_version: "1"
+bridge_id: tf-webauthn-bridge
+kind: webauthn
+trust_domain: example.com
+description: "Accepts WebAuthn credentials, produces actor-identity documents."
+config:
+  rp_id: example.com
+  allowed_algorithms: [ed25519, p256]

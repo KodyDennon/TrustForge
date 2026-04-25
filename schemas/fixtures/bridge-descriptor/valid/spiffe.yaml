@@ -1,0 +1,7 @@
+bridge_version: "1"
+bridge_id: tf-spiffe-bridge
+kind: spiffe
+trust_domain: example.org
+description: "Maps SPIFFE IDs into TrustForge service actor URIs."
+config:
+  spiffe_trust_domain: example.org

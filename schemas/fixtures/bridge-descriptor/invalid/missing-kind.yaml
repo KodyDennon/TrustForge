@@ -1,0 +1,3 @@
+bridge_version: "1"
+bridge_id: tf-x
+trust_domain: example.com
