@@ -1,0 +1,11 @@
+conformance_version: "1"
+claimed_profiles:
+  - tf-home
+  - tf-agent-compatible
+extensions:
+  tf-home:
+    - offline-mode
+    - local-authority
+claimant: "tf:actor:organization:example.com"
+as_of: "2026-04-15T09:30:00Z"
+notes: "Home profile with local-authority extension; agent-compatible profile at full conformance."

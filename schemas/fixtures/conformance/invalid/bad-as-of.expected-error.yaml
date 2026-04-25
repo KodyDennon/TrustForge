@@ -1,0 +1,3 @@
+errors:
+  - path: "/as_of"
+    keyword: pattern

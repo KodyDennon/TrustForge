@@ -1,0 +1,3 @@
+errors:
+  - path: "/claimed_profiles"
+    keyword: minItems

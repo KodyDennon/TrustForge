@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/conformance.schema.json",
+  "title": "TrustForge Conformance Claim",
+  "description": "Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010). Distinct from the repo's conformance/ test-harness directory.",
+  "type": "object",
+  "required": ["conformance_version", "claimed_profiles"],
+  "additionalProperties": false,
+  "properties": {
+    "conformance_version": {
+      "description": "Version of the conformance manifest schema itself.",
+      "enum": ["1"]
+    },
+    "claimed_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Profile identifiers this deployment claims to conform to.",
+      "items": {
+        "type": "string",
+        "pattern": "^tf-[a-z0-9-]+$"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional profile-specific extensions this deployment supports.",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claimant": {
+      "description": "Actor publishing this conformance claim.",
+      "$ref": "_common.schema.json#/$defs/ActorId"
+    },
+    "as_of": {
+      "description": "When this claim is made.",
+      "$ref": "_common.schema.json#/$defs/Timestamp"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes qualifying the claim."
+    }
+  }
+}
