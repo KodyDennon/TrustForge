@@ -31,7 +31,7 @@ tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 serde_yaml = { workspace = true }
 jsonwebtoken = "9"
 ciborium = "0.2"
-x509-parser = "0.16"
+x509-parser = { version = "0.16", features = ["verify"] }
 p256 = { version = "0.13", features = ["ecdsa", "pem"] }
 
 [dev-dependencies]
@@ -41,3 +41,5 @@ jsonschema = { version = "0.18", default-features = false }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync", "macros", "time"] }
 tempfile = "3"
 which = "6"
+rcgen = "0.13"
+time = "0.3"
