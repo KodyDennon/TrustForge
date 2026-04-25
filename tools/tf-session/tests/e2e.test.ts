@@ -116,7 +116,7 @@ describe("tf-session in-memory pipe", () => {
     const server = Bun.serve({
       port: 0,
       fetch(req, server) {
-        if (server.upgrade(req, { data: {} })) return;
+        if (server.upgrade(req, { data: {} as never })) return;
         return new Response("expected websocket", { status: 400 });
       },
       websocket: {

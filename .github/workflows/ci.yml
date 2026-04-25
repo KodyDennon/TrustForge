@@ -27,6 +27,9 @@ jobs:
           git diff --exit-code
       - run: bun run tools/tf-schema/src/cli.ts fuzz --iterations 200
       - run: bun run tools/tf-schema/src/cli.ts parity
+      - name: tf-session smoke test (in-memory + Bun WebSocket carrier)
+        run: |
+          bun test tools/tf-session/tests/e2e.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci
