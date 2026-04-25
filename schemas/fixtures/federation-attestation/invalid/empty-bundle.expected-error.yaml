@@ -1,0 +1,3 @@
+errors:
+  - path: "/trust_bundle"
+    keyword: minItems

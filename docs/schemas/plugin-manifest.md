@@ -18,4 +18,5 @@ Declarative manifest describing a TrustForge plugin. See TF-0008.
 | `capabilities` | array of [`Capability`](./_common.md#capability) (minItems: 1) | ✓ | Capabilities the plugin declares it needs. Enforced by the registry + guard. |
 | `imports` | array of string (minLength: 1) | · | WASM-only: host functions the plugin is allowed to import. The registry enforces that only these imports are supplied. |
 | `proof_profile` | [`ProofLevel`](./_common.md#prooflevel) | · | Optional proof level at which this plugin's actions should be emitted. |
+| `conformance_profile` | array of string (minLength: 1) | · | Conformance profile labels this plugin claims (e.g. tf-plugin-compatible, tf-bridge-compatible). The registry surfaces this so daemons can refuse plugins that don't claim a profile they require. |
 | `description` | string | · | Human-readable description. |

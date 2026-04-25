@@ -13,6 +13,7 @@ export * from "./conformance.js";
 export * from "./daemon-config.js";
 export * from "./dangerous-actions.js";
 export * from "./evidence-bundle.js";
+export * from "./federation-attestation.js";
 export * from "./offline-revocation-list.js";
 export * from "./packet.js";
 export * from "./packet-bundle.js";

@@ -11,7 +11,14 @@ pub enum BridgeKind {
     Webauthn,
     Mcp,
     Oauth,
+    Gnap,
     Tls,
+    Did,
+    Matrix,
+    Webhook,
+    Grpc,
+    ServiceMesh,
+    A2a,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]

@@ -105,7 +105,7 @@ export interface DpopProofVerification {
 const HTTPSIG_FLOWS = new Set(["redirect"]);
 
 export class GnapBridge implements Bridge {
-  readonly kind: BridgeKind = "oauth"; // GNAP rides the OAuth bridge slot
+  readonly kind: BridgeKind = "gnap";
   readonly bridgeId: string;
   readonly trustDomain: string;
   private readonly cfg: GnapBridgeConfig;

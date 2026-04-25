@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/federation-attestation.schema.json",
+  "title": "TrustForge Federation Attestation",
+  "description": "Cross-trust-domain attestation: domain A signs a statement asserting that domain B's identity (or a specific actor in B) is recognized within A's trust fabric, optionally bounded by capability scope and time. Used by SPIFFE federated trust bundles, business-partner trust links, and sovereignty federations (TF-0002 \"federated\" identity mode).",
+  "type": "object",
+  "required": [
+    "attestation_version",
+    "attestation_id",
+    "issuer_domain",
+    "subject_domain",
+    "issued_at",
+    "valid_until",
+    "trust_bundle",
+    "issuer",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "attestation_version": {
+      "enum": ["1"],
+      "description": "Version of the federation-attestation schema."
+    },
+    "attestation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this attestation; used for revocation lookups."
+    },
+    "issuer_domain": {
+      "$ref": "_common.schema.json#/$defs/TrustDomain",
+      "description": "Domain making the assertion."
+    },
+    "subject_domain": {
+      "$ref": "_common.schema.json#/$defs/TrustDomain",
+      "description": "Domain being recognized."
+    },
+    "subject_actor": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Optional specific actor inside subject_domain. When omitted the attestation covers the whole domain."
+    },
+    "scope": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/ActionName" },
+      "description": "Optional list of action names this attestation permits cross-domain. Empty means \"recognize identity only\" (no implicit authority)."
+    },
+    "trust_levels_granted": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/TrustLevel" },
+      "description": "Maximum TrustLevel the issuer is willing to extend to subjects under this attestation."
+    },
+    "trust_bundle": {
+      "type": "array",
+      "minItems": 1,
+      "description": "SPIFFE-style trust bundle: the public keys / certificates of subject_domain that issuer_domain accepts. Each entry is either an X.509 PEM, a SPIFFE JWT-SVID JWK, or an opaque ed25519 public key.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": ["x509-pem", "jwk", "ed25519"],
+            "description": "Format of the bundle entry."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Encoded key material (PEM string, base64 JWK JSON, or base64 raw public key)."
+          },
+          "key_id": {
+            "type": "string",
+            "description": "Optional stable key identifier within the bundle."
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "_common.schema.json#/$defs/Constraint" },
+      "description": "Optional constraints attached to the federation grant (rate limits, target globs, time windows)."
+    },
+    "issued_at": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "valid_until": { "$ref": "_common.schema.json#/$defs/Timestamp" },
+    "issuer": {
+      "$ref": "_common.schema.json#/$defs/ActorId",
+      "description": "Authority within issuer_domain that signed this attestation."
+    },
+    "signature": { "$ref": "_common.schema.json#/$defs/SignatureEnvelope" }
+  }
+}

@@ -17,7 +17,20 @@
       "description": "Stable kebab-case bridge identifier."
     },
     "kind": {
-      "enum": ["spiffe", "webauthn", "mcp", "oauth", "tls"],
+      "enum": [
+        "spiffe",
+        "webauthn",
+        "mcp",
+        "oauth",
+        "gnap",
+        "tls",
+        "did",
+        "matrix",
+        "webhook",
+        "grpc",
+        "service-mesh",
+        "a2a"
+      ],
       "description": "Which foreign standard this bridge wires into TrustForge."
     },
     "trust_domain": {

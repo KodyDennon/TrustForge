@@ -10,7 +10,7 @@ Declarative descriptor for a TrustForge compatibility bridge. Concrete bridges i
 | --- | --- | --- | --- |
 | `bridge_version` | `"1"` | ✓ | Version of the bridge-descriptor schema itself. |
 | `bridge_id` | string (pattern: `^[a-z][a-z0-9-]*$`) | ✓ | Stable kebab-case bridge identifier. |
-| `kind` | `"spiffe"` \| `"webauthn"` \| `"mcp"` \| `"oauth"` \| `"tls"` | ✓ | Which foreign standard this bridge wires into TrustForge. |
+| `kind` | `"spiffe"` \| `"webauthn"` \| `"mcp"` \| `"oauth"` \| `"gnap"` \| `"tls"` \| `"did"` \| `"matrix"` \| `"webhook"` \| `"grpc"` \| `"service-mesh"` \| `"a2a"` | ✓ | Which foreign standard this bridge wires into TrustForge. |
 | `trust_domain` | [`TrustDomain`](./_common.md#trustdomain) | ✓ | TrustForge trust domain that accepts input from this bridge. |
 | `description` | string | · | Human-readable description of what the bridge accepts and what it emits. |
 | `config` | object | · | Kind-specific configuration. Each bridge validates its own config shape at runtime. |

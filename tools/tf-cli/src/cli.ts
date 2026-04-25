@@ -16,6 +16,9 @@ import {
   ed25519Generate,
   ed25519PublicKey,
   policyEngineForManifest,
+  signFederationAttestation,
+  verifyFederationAttestation,
+  type FederationAttestation,
 } from "tf-types";
 import type { Policy } from "../../tf-types-ts/src/generated/policy.js";
 
@@ -100,6 +103,69 @@ async function actorCreate(args: string[]): Promise<number> {
   return 0;
 }
 
+async function trustDomainFederate(args: string[]): Promise<number> {
+  const issuerDomain = arg(args, "--issuer-domain");
+  const subjectDomain = arg(args, "--subject-domain");
+  const validUntil = arg(args, "--valid-until");
+  const issuer = arg(args, "--issuer");
+  const keyPath = arg(args, "--key");
+  const bundlePath = arg(args, "--trust-bundle");
+  if (!issuerDomain || !subjectDomain || !validUntil || !issuer || !keyPath || !bundlePath) {
+    console.error(
+      "usage: tf trust-domain federate --issuer-domain <d> --subject-domain <d> --valid-until <iso> --issuer <actor> --key <priv> --trust-bundle <file> [--scope <action>...] [--out <file>]",
+    );
+    return 2;
+  }
+  const trustBundle = JSON.parse(readFileSync(resolve(bundlePath), "utf8"));
+  if (!Array.isArray(trustBundle) || trustBundle.length === 0) {
+    console.error("trust bundle must be a non-empty JSON array");
+    return 2;
+  }
+  const scope: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--scope" && args[i + 1]) scope.push(args[i + 1]!);
+  }
+  const subjectActor = arg(args, "--subject-actor");
+  const keyJson = JSON.parse(readFileSync(resolve(keyPath), "utf8")) as { key_bytes_b64?: string; key_bytes?: string };
+  const privBytes = new Uint8Array(Buffer.from(keyJson.key_bytes_b64 ?? keyJson.key_bytes ?? "", "base64"));
+  if (privBytes.length !== 32) {
+    console.error("key must contain a base64 32-byte ed25519 private key");
+    return 2;
+  }
+  const attestationId = arg(args, "--id") ?? `fed-${Date.now().toString(16)}`;
+  const attestation = await signFederationAttestation({
+    attestationId,
+    issuerDomain,
+    subjectDomain,
+    subjectActor: subjectActor as Parameters<typeof signFederationAttestation>[0]["subjectActor"],
+    scope: scope as Parameters<typeof signFederationAttestation>[0]["scope"],
+    trustBundle,
+    issuer,
+    validUntil,
+    privateKey: privBytes,
+  });
+  const output = JSON.stringify(attestation, null, 2);
+  const out = arg(args, "--out");
+  if (out) writeFileSync(resolve(out), output);
+  console.log(output);
+  return 0;
+}
+
+async function trustDomainVerifyFederation(args: string[]): Promise<number> {
+  const path = arg(args, "--attestation");
+  const pubPath = arg(args, "--issuer-pubkey");
+  if (!path || !pubPath) {
+    console.error("usage: tf trust-domain verify-federation --attestation <f> --issuer-pubkey <f>");
+    return 2;
+  }
+  const attestation = JSON.parse(readFileSync(resolve(path), "utf8")) as FederationAttestation;
+  const keyJson = JSON.parse(readFileSync(resolve(pubPath), "utf8")) as { public_key?: string; key_bytes_b64?: string };
+  const pubBytes = new Uint8Array(Buffer.from(keyJson.public_key ?? keyJson.key_bytes_b64 ?? "", "base64"));
+  const v = await verifyFederationAttestation({ attestation, issuerPublicKey: pubBytes });
+  console.log(JSON.stringify(v, null, 2));
+  return v.ok ? 0 : 1;
+}
+
 async function actorInspect(args: string[]): Promise<number> {
   const file = args[0];
   if (!file) {
@@ -136,6 +202,8 @@ function usage(): number {
     "  policy simulate <contract> <action> [--target t]",
     "  actor create --name slug [--type t] [--domain d] [--out file]",
     "  actor inspect <file>",
+    "  trust-domain federate --issuer-domain d --subject-domain d --valid-until iso --issuer actor --key priv --trust-bundle file [--scope action ...]",
+    "  trust-domain verify-federation --attestation file --issuer-pubkey file",
     "",
   ].join("\n"));
   return 2;
@@ -148,6 +216,8 @@ async function main(): Promise<number> {
   if (cmd === "policy" && sub === "simulate") return policySimulate(rest);
   if (cmd === "actor" && sub === "create") return actorCreate(rest);
   if (cmd === "actor" && sub === "inspect") return actorInspect(rest);
+  if (cmd === "trust-domain" && sub === "federate") return trustDomainFederate(rest);
+  if (cmd === "trust-domain" && sub === "verify-federation") return trustDomainVerifyFederation(rest);
 
   // Forward commands — we don't shell out; users invoke those CLIs directly.
   if (cmd === "schema" || cmd === "proof" || cmd === "daemon") {

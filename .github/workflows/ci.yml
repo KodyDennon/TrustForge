@@ -87,6 +87,13 @@ jobs:
         run: |
           bun test tools/tf-types-ts/tests/packet.test.ts
           bun test tools/tf-types-ts/tests/evidence.test.ts
+      - name: sprint-5 sweep (bridges + sandbox + sim + federation)
+        run: |
+          bun test tools/tf-types-ts/tests/bridge-did.test.ts
+          bun test tools/tf-types-ts/tests/bridges-sprint5.test.ts
+          bun test tools/tf-types-ts/tests/plugin-sandbox.test.ts
+          bun test tools/tf-types-ts/tests/simulation.test.ts
+          bun test tools/tf-types-ts/tests/federation.test.ts
       - name: tf-proof smoke test
         run: |
           mkdir -p /tmp/tf-proof-ci

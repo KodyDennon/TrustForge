@@ -45,6 +45,20 @@ pub enum BridgeDescriptor_Kind {
     Mcp,
     #[serde(rename = "oauth")]
     Oauth,
+    #[serde(rename = "gnap")]
+    Gnap,
     #[serde(rename = "tls")]
     Tls,
+    #[serde(rename = "did")]
+    Did,
+    #[serde(rename = "matrix")]
+    Matrix,
+    #[serde(rename = "webhook")]
+    Webhook,
+    #[serde(rename = "grpc")]
+    Grpc,
+    #[serde(rename = "service-mesh")]
+    ServiceMesh,
+    #[serde(rename = "a2a")]
+    A2a,
 }

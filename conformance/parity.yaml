@@ -143,6 +143,12 @@ vectors:
   - schema: evidence-bundle
     fixture: schemas/fixtures/evidence-bundle/invalid/no-events.yaml
     expect: invalid
+  - schema: federation-attestation
+    fixture: schemas/fixtures/federation-attestation/valid/scope-and-bundle.yaml
+    expect: valid
+  - schema: federation-attestation
+    fixture: schemas/fixtures/federation-attestation/invalid/empty-bundle.yaml
+    expect: invalid
   - schema: offline-revocation-list
     fixture: schemas/fixtures/offline-revocation-list/valid/sample.yaml
     expect: valid

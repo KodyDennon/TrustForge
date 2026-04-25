@@ -18,6 +18,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
 | [evidence-bundle](./evidence-bundle.md) | — | Compliance / legal evidence bundle (TF-0012) |
+| [federation-attestation](./federation-attestation.md) | — | Cross-trust-domain attestation: domain A signs a statement asserting that domain B's identity (or a specific actor in B) is recognized within A's trust fabric, optionally bounded by capability scope and time |
 | [offline-revocation-list](./offline-revocation-list.md) | — | Bounded-validity revocation list distributed for offline / constrained deployments (TF-0011 "offline revocation limits") |
 | [packet](./packet.md) | — | Standalone signed/encrypted object that may be delivered offline, relayed, stored, or transferred and verified later |
 | [packet-bundle](./packet-bundle.md) | — | A group of related packets (e.g |

@@ -53,6 +53,14 @@
       "description": "Optional proof level at which this plugin's actions should be emitted.",
       "$ref": "_common.schema.json#/$defs/ProofLevel"
     },
+    "conformance_profile": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Conformance profile labels this plugin claims (e.g. tf-plugin-compatible, tf-bridge-compatible). The registry surfaces this so daemons can refuse plugins that don't claim a profile they require."
+    },
     "description": {
       "type": "string",
       "description": "Human-readable description."

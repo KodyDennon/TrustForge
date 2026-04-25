@@ -4,7 +4,19 @@
  * by kind at runtime.
  */
 
-export type BridgeKind = "spiffe" | "webauthn" | "mcp" | "oauth" | "tls";
+export type BridgeKind =
+  | "spiffe"
+  | "webauthn"
+  | "mcp"
+  | "oauth"
+  | "gnap"
+  | "tls"
+  | "did"
+  | "matrix"
+  | "webhook"
+  | "grpc"
+  | "service-mesh"
+  | "a2a";
 
 export interface BridgeError {
   code: "unsupported" | "invalid-input" | "rejected" | "internal";

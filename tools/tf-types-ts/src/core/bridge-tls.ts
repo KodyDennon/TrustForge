@@ -9,10 +9,32 @@
  */
 
 import { X509Certificate, createPublicKey } from "node:crypto";
+import { hmac } from "@noble/hashes/hmac";
+import { sha256 } from "@noble/hashes/sha256";
+import { hkdf } from "@noble/hashes/hkdf";
 
 import type { ActorIdentity } from "../generated/actor-identity.js";
 import type { Capability } from "../generated/_common.js";
 import { BridgeFailure, type Bridge, type BridgeKind } from "./bridges.js";
+
+function hmacSha256(key: Uint8Array, msg: Uint8Array): Uint8Array {
+  return hmac(sha256, key, msg);
+}
+
+function hkdfExpandSha256(prk: Uint8Array, info: Uint8Array, length: number): Uint8Array {
+  return hkdf(sha256, prk, undefined, info, length);
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const p of parts) {
+    out.set(p, off);
+    off += p.length;
+  }
+  return out;
+}
 
 export interface TlsBridgeConfig {
   bridgeId: string;
@@ -177,6 +199,125 @@ export class TlsBridge implements Bridge {
       code: "rejected",
       message: `chain exceeds max depth ${max} without reaching a trust anchor`,
     });
+  }
+
+  /** RFC 8446 §4.6.2 post-handshake authentication. Receives the new
+   *  certificate chain offered by the peer mid-session, walks it
+   *  through `verifyChain`, and (optionally) requires the new leaf's
+   *  SubjectPublicKeyInfo to match a callback predicate so a peer
+   *  can't swap to a different identity without explicit consent. */
+  postHandshakeReauth(
+    chainPem: string[] | string,
+    options: {
+      requireSamePublicKey?: X509Certificate;
+      assertSpkiPredicate?: (spkiDer: Uint8Array) => boolean;
+    } = {},
+  ): TlsVerificationResult {
+    const result = this.verifyChain(chainPem);
+    if (options.requireSamePublicKey) {
+      const before = options.requireSamePublicKey.publicKey
+        .export({ format: "der", type: "spki" })
+        .toString("base64");
+      const after = result.leaf.publicKey
+        .export({ format: "der", type: "spki" })
+        .toString("base64");
+      if (before !== after) {
+        throw new BridgeFailure({
+          code: "rejected",
+          message: "post-handshake leaf public key differs from prior connection",
+        });
+      }
+    }
+    if (options.assertSpkiPredicate) {
+      const spki = new Uint8Array(
+        result.leaf.publicKey.export({ format: "der", type: "spki" }),
+      );
+      if (!options.assertSpkiPredicate(spki)) {
+        throw new BridgeFailure({
+          code: "rejected",
+          message: "post-handshake SPKI predicate rejected the new leaf",
+        });
+      }
+    }
+    return result;
+  }
+
+  /** RFC 6960 OCSP / RFC 5280 CRL freshness check. The bridge does not
+   *  speak OCSP itself — the caller passes a `OcspStatusResolver`
+   *  callback which fetches the OCSP responder result (or returns a
+   *  pre-stapled status). The bridge enforces the verdict.
+   *
+   *  When `crl` is supplied, the leaf's serial number is checked
+   *  against the CRL entry list and rejected if listed. */
+  async checkRevocation(
+    leaf: X509Certificate,
+    opts: {
+      ocspStatus?: "good" | "revoked" | "unknown";
+      ocspNotAfter?: string;
+      crlSerials?: Iterable<string>;
+      now?: () => Date;
+    },
+  ): Promise<void> {
+    const now = (opts.now ?? (() => new Date()))();
+    if (opts.ocspStatus === "revoked") {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `OCSP says ${leaf.subject} is revoked`,
+      });
+    }
+    if (opts.ocspStatus === "unknown") {
+      throw new BridgeFailure({
+        code: "rejected",
+        message: `OCSP returned 'unknown' for ${leaf.subject}; refusing fail-open`,
+      });
+    }
+    if (opts.ocspNotAfter) {
+      const stale = now > new Date(opts.ocspNotAfter);
+      if (stale) {
+        throw new BridgeFailure({
+          code: "rejected",
+          message: `OCSP staple expired at ${opts.ocspNotAfter}`,
+        });
+      }
+    }
+    if (opts.crlSerials) {
+      const serial = leaf.serialNumber.replace(/^0x/i, "").toLowerCase();
+      for (const s of opts.crlSerials) {
+        if (s.replace(/^0x/i, "").toLowerCase() === serial) {
+          throw new BridgeFailure({
+            code: "rejected",
+            message: `leaf serial ${serial} is on the CRL`,
+          });
+        }
+      }
+    }
+  }
+
+  /** RFC 5705 / RFC 8446 exporter keying material. Derives a 32-byte
+   *  symmetric key from the negotiated TLS / QUIC session that the
+   *  caller can use as the TrustForge session PSK so a transport-bound
+   *  identity carries forward across rekey. */
+  static deriveExporterKey(
+    /** The exporter material the underlying transport produced. Bun /
+     *  node:tls expose this via `socket.exportKeyingMaterial(...)`. */
+    transportExporter: Uint8Array,
+    /** Application label per RFC 5705. */
+    label: string,
+    /** Context. May be empty per RFC 5705 §4. */
+    context: Uint8Array = new Uint8Array(),
+    /** Output length in bytes. Default 32. */
+    length = 32,
+  ): Uint8Array {
+    if (transportExporter.length === 0) {
+      throw new BridgeFailure({
+        code: "invalid-input",
+        message: "transport exporter material is empty",
+      });
+    }
+    const salt = new TextEncoder().encode(`tf-tls-exporter:${label}`);
+    const ikm = concatBytes(transportExporter, context);
+    const prk = hmacSha256(salt, ikm);
+    return hkdfExpandSha256(prk, salt, length);
   }
 
   private project(leaf: X509Certificate, chain: X509Certificate[]): TlsVerificationResult {

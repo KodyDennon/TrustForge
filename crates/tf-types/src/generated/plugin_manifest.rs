@@ -30,6 +30,9 @@ pub struct PluginManifest {
     /// Optional proof level at which this plugin's actions should be emitted.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub proof_profile: Option<ProofLevel>,
+    /// Conformance profile labels this plugin claims (e.g. tf-plugin-compatible, tf-bridge-compatible). The registry surfaces this so daemons can refuse plugins that don't claim a profile they require.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub conformance_profile: Option<Vec<String>>,
     /// Human-readable description.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub description: Option<String>,

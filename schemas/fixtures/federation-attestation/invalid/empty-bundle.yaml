@@ -1,0 +1,12 @@
+attestation_version: "1"
+attestation_id: fed-x
+issuer_domain: example.com
+subject_domain: partner.example.org
+trust_bundle: []
+issued_at: "2026-04-24T12:00:00Z"
+valid_until: "2026-12-31T23:59:59Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

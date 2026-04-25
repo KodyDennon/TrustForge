@@ -455,7 +455,7 @@ impl Bridge for GnapBridge {
         &self.cfg.bridge_id
     }
     fn kind(&self) -> BridgeKind {
-        BridgeKind::Oauth
+        BridgeKind::Gnap
     }
     fn trust_domain(&self) -> &str {
         &self.cfg.trust_domain

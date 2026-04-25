@@ -30,4 +30,11 @@ export type BridgeDescriptor_Kind =
   | "webauthn"
   | "mcp"
   | "oauth"
-  | "tls";
+  | "gnap"
+  | "tls"
+  | "did"
+  | "matrix"
+  | "webhook"
+  | "grpc"
+  | "service-mesh"
+  | "a2a";

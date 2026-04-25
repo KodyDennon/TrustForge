@@ -28,6 +28,7 @@ import {
 } from "./crypto.js";
 import type { PluginManifest } from "../generated/plugin-manifest.js";
 import type { RpcServer } from "./rpc.js";
+import type { RevocationIndex } from "./revocation.js";
 
 export class PluginError extends Error {}
 
@@ -53,8 +54,23 @@ export interface LoadedPlugin {
   wasmInstance?: WebAssembly.Instance;
 }
 
+export interface PluginRegistryOptions {
+  /** RevocationIndex consulted before loading. Plugins whose actor is
+   *  in the index are refused. */
+  revocations?: RevocationIndex;
+  /** When true, native plugins are loaded inside a Worker thread; the
+   *  registry exposes their handlers as request/response RPCs over
+   *  `postMessage`. */
+  sandboxNative?: boolean;
+}
+
 export class PluginRegistry {
   private plugins: LoadedPlugin[] = [];
+  private opts: PluginRegistryOptions;
+
+  constructor(opts: PluginRegistryOptions = {}) {
+    this.opts = opts;
+  }
 
   async load(manifestPath: string, host: PluginHost): Promise<LoadedPlugin> {
     const manifestDir = dirname(resolve(manifestPath));
@@ -73,8 +89,21 @@ export class PluginRegistry {
     const ok = await ed25519Verify(identityPub, payload, sigBytes);
     if (!ok) throw new PluginError(`plugin manifest signature invalid: ${parsed.plugin_id}`);
 
+    if (this.opts.revocations) {
+      const at = new Date().toISOString();
+      if (this.opts.revocations.isRevoked({ id: parsed.actor_id, kind: "actor" }, at)) {
+        throw new PluginError(`plugin ${parsed.plugin_id} actor is revoked`);
+      }
+    }
+
     const entryPath = resolve(manifestDir, parsed.entry);
     if (parsed.kind === "native") {
+      if (this.opts.sandboxNative) {
+        const handlers = await loadNativeInWorker(entryPath, parsed, host);
+        const plugin: LoadedPlugin = { manifest: parsed, handlers };
+        this.plugins.push(plugin);
+        return plugin;
+      }
       const mod = (await import(entryPath)) as { default?: NativePluginEntry; tfPluginEntry?: NativePluginEntry };
       const entryFn = mod.default ?? mod.tfPluginEntry;
       if (typeof entryFn !== "function") {
@@ -140,6 +169,96 @@ function buildRestrictedImports(
     result[ns] = entry;
   }
   return result;
+}
+
+/** Load a native plugin inside a Worker thread. Calls cross the Worker
+ *  boundary as `{ id, method, args }` request messages and resolve when
+ *  the worker posts back `{ id, result }` (or `{ id, error }`). The
+ *  worker has no shared memory with the host beyond the messages it
+ *  receives, so the plugin can't reach into the daemon's process. */
+async function loadNativeInWorker(
+  entryPath: string,
+  manifest: PluginManifest,
+  host: PluginHost,
+): Promise<NativePluginHandlers> {
+  const workerSource = `
+    let entry;
+    let handlers;
+    self.onmessage = async (e) => {
+      const msg = e.data;
+      try {
+        if (msg.kind === "init") {
+          const mod = await import(msg.entryPath);
+          entry = mod.default ?? mod.tfPluginEntry;
+          if (typeof entry !== "function") {
+            throw new Error("plugin has no default / tfPluginEntry export");
+          }
+          // Stub host: only the message-passing log; no shared refs.
+          handlers = await entry({
+            log: (m) => self.postMessage({ kind: "log", message: m }),
+          });
+          self.postMessage({ kind: "ready", methods: Object.keys(handlers) });
+          return;
+        }
+        if (msg.kind === "call") {
+          const fn = handlers[msg.method];
+          if (typeof fn !== "function") {
+            throw new Error("unknown method: " + msg.method);
+          }
+          const result = await fn(msg.args, msg.ctx);
+          self.postMessage({ kind: "result", id: msg.id, result });
+          return;
+        }
+      } catch (err) {
+        self.postMessage({ kind: "error", id: msg?.id, error: String((err && err.message) || err) });
+      }
+    };
+  `;
+  const blobUrl = "data:text/javascript," + encodeURIComponent(workerSource);
+  const worker = new Worker(blobUrl, { type: "module" });
+  const ready = new Promise<string[]>((resolve, reject) => {
+    const onMsg = (e: MessageEvent) => {
+      const data = e.data as { kind: string; methods?: string[]; error?: string; message?: unknown };
+      if (data.kind === "ready") {
+        worker.removeEventListener("message", onMsg);
+        resolve(data.methods ?? []);
+      } else if (data.kind === "error") {
+        worker.removeEventListener("message", onMsg);
+        reject(new PluginError(data.error ?? "worker error"));
+      } else if (data.kind === "log") {
+        host.log(data.message);
+      }
+    };
+    worker.addEventListener("message", onMsg);
+  });
+  worker.postMessage({ kind: "init", entryPath });
+  const methods = await ready;
+  void manifest;
+
+  const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  worker.addEventListener("message", (e) => {
+    const data = e.data as { kind: string; id?: string; result?: unknown; error?: string; message?: unknown };
+    if (data.kind === "log") {
+      host.log(data.message);
+      return;
+    }
+    if (!data.id) return;
+    const p = pending.get(data.id);
+    if (!p) return;
+    pending.delete(data.id);
+    if (data.kind === "result") p.resolve(data.result);
+    else if (data.kind === "error") p.reject(new PluginError(data.error ?? "plugin error"));
+  });
+  const handlers: NativePluginHandlers = {};
+  for (const method of methods) {
+    handlers[method] = (args, ctx) =>
+      new Promise((resolve, reject) => {
+        const id = `call-${Math.random().toString(36).slice(2, 10)}`;
+        pending.set(id, { resolve, reject });
+        worker.postMessage({ kind: "call", id, method, args, ctx });
+      });
+  }
+  return handlers;
 }
 
 export function verifyPluginSignature(

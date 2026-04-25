@@ -1,0 +1,23 @@
+attestation_version: "1"
+attestation_id: fed-1
+issuer_domain: example.com
+subject_domain: partner.example.org
+subject_actor: tf:actor:agent:partner.example.org/code-helper
+scope:
+  - file.read
+  - file.write
+trust_levels_granted: [T3]
+trust_bundle:
+  - kind: ed25519
+    key_id: partner-root-1
+    value: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+constraints:
+  - kind: time_window
+    until: "2026-12-31T23:59:59Z"
+issued_at: "2026-04-24T12:00:00Z"
+valid_until: "2026-12-31T23:59:59Z"
+issuer: tf:actor:service:example.com/tf-daemon
+signature:
+  algorithm: ed25519
+  signer: tf:actor:service:example.com/tf-daemon
+  signature: "AAAA"

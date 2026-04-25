@@ -29,6 +29,8 @@ pub mod dangerous_actions;
 pub use dangerous_actions::*;
 pub mod evidence_bundle;
 pub use evidence_bundle::*;
+pub mod federation_attestation;
+pub use federation_attestation::*;
 pub mod offline_revocation_list;
 pub use offline_revocation_list::*;
 pub mod packet;
