@@ -23,6 +23,8 @@ pub mod capability_token;
 pub use capability_token::*;
 pub mod conformance;
 pub use conformance::*;
+pub mod conformance_vector;
+pub use conformance_vector::*;
 pub mod daemon_config;
 pub use daemon_config::*;
 pub mod dangerous_actions;

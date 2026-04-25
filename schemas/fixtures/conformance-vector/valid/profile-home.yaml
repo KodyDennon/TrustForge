@@ -1,0 +1,16 @@
+vector_version: "1"
+category: profile
+id: profile.tf-home-compatible.minimum
+spec_ref: TF-0010
+description: A FeatureGate with the four MUST features satisfies the home profile.
+input:
+  profile_id: tf-home-compatible
+  features:
+    - agent-contract
+    - proof-log
+    - ed25519
+    - vault
+  enforcement_level: E3
+  proof_level_floor: L1
+expected:
+  ok: true

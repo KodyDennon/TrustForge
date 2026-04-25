@@ -6,127 +6,138 @@
 
 TrustForge's core thesis: the next era of security is not login; it is **verifiable action by cryptographic actors over authenticated channels**.
 
-The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are alive, tested, and cross-checked against each other. Nothing here is production-ready yet — everything is drafts, prototypes, and working POCs.
+The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are alive, tested, and cross-checked against each other.
+
+This is the **0.1.0** release. Every documented profile, bridge, and protocol surface has a working reference implementation in both languages, gated behind a conformance suite. Nothing is production-ready — this is a 0.1.0 cut intended for spec review, interop experiments, and contributors.
 
 ---
 
-## What ships today
+## What ships in 0.1.0
 
-Phases 0 through 7 of [`ROADMAP.md`](ROADMAP.md) are implemented end-to-end:
-
-### Phase 0 — Repository seed + foundation
-
-20 JSON Schemas covering every machine-readable artifact (manifests + runtime objects), a validator / linter / bundler / fuzzer / codegen in [`tools/tf-schema`](tools/tf-schema/), and matched TypeScript + Rust type bindings with hand-written semantic cores in [`tools/tf-types-ts`](tools/tf-types-ts/) and [`crates/tf-types`](crates/tf-types/).
-
-### Phase 2 — Proof format
-
-Ed25519 signing and verification, SHA-256 / BLAKE3 hashing, hash-chained proof events, Merkle roots, chain hashes, and the `.tflog` + `.tfproof` binary framing. Driven by the [`tf-proof`](tools/tf-proof/) CLI: `keygen`, `sign`, `verify`, `inspect`, `derive-pubkey`. All primitives match RFC 7748 / RFC 5869 / RFC 8439 / RFC 8032 test vectors byte-for-byte in both languages.
-
-### Phase 3 — Session protocol
-
-X25519 + HKDF-SHA256 + ChaCha20-Poly1305 + ed25519 in a 3-message mutually-authenticated handshake. AEAD frames with sequence numbers, in-band rekey, WebSocket carrier in [`tools/tf-session`](tools/tf-session/). Live loopback test: real Bun WebSocket server + client completing the handshake and exchanging encrypted frames.
-
-### Phase 4 — ProofRPC
-
-A typed RPC layer with unary + server-streaming methods, capability-bound dispatch, and [`rpc-ts`](tools/tf-schema/src/codegen/rpc-ts.ts) + [`rpc-rust`](tools/tf-schema/src/codegen/rpc-rust.ts) codegen from `.tfrpc.yaml` descriptors. Live end-to-end: TS RPC client over a real WebSocket calls a TS server through the generated CodeHelper stubs; the generated Rust bindings compile and round-trip via [`crates/tf-code-helper-example`](crates/tf-code-helper-example/).
-
-### Phase 5 — Agent Contract
-
-Extended `.tf/agent-contract.yaml` with `danger_tags`, `parameters`, `reversible`, and `pre_conditions`. A standalone [dangerous-actions catalog](schemas/dangerous-actions.schema.json) + deep validator (`tf-schema agent-contract-check`) that enforces conflict, target-set, reversibility, and catalog-mandatory-tag rules. [`AgentGuard`](tools/tf-types-ts/src/core/guard.ts) + [Rust mirror](crates/tf-types/src/guard.rs) — the runtime interpreter for the contract, with cross-language parity on 9 vectors. Codegen emits typed guard builders. The [AI integration guide](docs/ai-integration.md) is the concrete 5-step workflow an AI agent must follow before touching a TrustForge repo.
-
-### Phase 6 — Daemon + CLI
-
-An Argon2id + ChaCha20-Poly1305 file-backed key [Vault](tools/tf-types-ts/src/core/vault.ts) (TS + Rust, cross-language parity tested), a promise-based [ApprovalQueue](tools/tf-types-ts/src/core/approval.ts) (TS + Rust), and a runnable daemon in [`tools/tf-daemon`](tools/tf-daemon/) that:
-
-- loads a YAML config,
-- opens the passphrase-encrypted vault,
-- binds a WebSocket listener,
-- runs the Phase 3 handshake per connection,
-- exposes the AgentGuard as the RpcServer's CapabilityEnforcer,
-- queues escalate / approval-required decisions for human UIs,
-- writes every call + guard event to a `.tflog`.
-
-Plus a unified [`tf`](tools/tf-cli/) CLI with `policy simulate`, `actor create`, and `actor inspect`.
-
-### Phase 7 — Plugins
-
-A [plugin-manifest schema](schemas/plugin-manifest.schema.json) with ed25519-signed manifests, a [`PluginRegistry`](tools/tf-types-ts/src/core/plugin.ts) (TS) that loads and verifies native and WASM plugins, and a matched [Rust native registry](crates/tf-types/src/plugin.rs). The WASM prototype demonstrates permission-gated imports: a plugin whose manifest omits an import it needs fails at instantiation.
-
----
+| Sprint | Surface |
+|---|---|
+| Phase 0 — Schemas + types | 24 JSON Schemas with valid/invalid fixtures, TS + Rust codegen, schema linter, fuzz harness, cross-language parity |
+| Phase 2 — Proof format | ed25519 (RFC 8032), SHA-256 / BLAKE3, hash-chained events, Merkle roots, `.tflog` + `.tfproof` framing |
+| Phase 3 — Session protocol | X25519 + HKDF-SHA256 + ChaCha20-Poly1305 + ed25519, AEAD frames, in-band rekey, WebSocket carrier |
+| Phase 4 — ProofRPC | Unary + server-streaming + client-streaming + bidi RPC, `.tfrpc.yaml` codegen for TS + Rust |
+| Phase 5 — Agent Contract | `.tf/agent-contract.yaml`, dangerous-actions catalog, AgentGuard (TS + Rust), AI integration workflow |
+| Phase 6 — Daemon + CLI | Argon2id + ChaCha20-Poly1305 vault, ApprovalQueue, runnable daemon, unified `tf` command, signed plugin manifests, sandboxed plugin host |
+| Phase 7 — Plugins | Native (Worker-isolated) + WASM plugin runtime, capability-bound dispatch, revocation index |
+| Sprint 4 (this release) — Constrained + offline | Packet-mode signing, fragmentation, reassembly, LoRa simulator, offline revocation list, emergency authority |
+| Sprint 4 (this release) — Compliance evidence | L4 encrypted bundle (multi-recipient ChaCha20-Poly1305 + X25519 wrap), L5 RFC 3161 anchoring, redaction, replay timeline |
+| Sprint 5 (this release) — Bridges | WebAuthn, SPIFFE, OAuth/GNAP + DPoP, MCP, TLS, DID, Matrix, Webhook (HMAC + ed25519), gRPC + service mesh (Envoy XFCC, Istio, Linkerd) |
+| Sprint 6 (this release) — Profile gating + admin | profile-spec + four built-in profiles, admin HTTP endpoint, full `tf` CLI, viewer-only dashboard |
+| Sprint 7 (this release) — Conformance gate | Vector format spec, [`tf-conformance`](tools/tf-conformance/) runner, profile + interop + fuzz + security + AI-implementation suites, compatibility-label runner |
 
 ## Repository layout
 
 ```
 docs/
   specs/                    TF-0000 through TF-0012 RFC-style specs
+  bridges/                  WebAuthn / SPIFFE / OAuth-GNAP / MCP / TLS / DID / Matrix bridge specs
+  profiles/                 home / enterprise / constrained / compliance-evidence
   ai-integration.md         How an AI agent should consume the contract
   schemas/                  Generated per-schema Markdown reference
-  superpowers/              Design specs + implementation plans
 
-schemas/                    20 JSON Schemas + fixtures
+schemas/
+  *.schema.json             24 JSON Schemas
   fixtures/<name>/{valid,invalid,composite}/
-  *.schema.json
+
+conformance/
+  parity.yaml               schema verdict cross-language parity
+  canonical-vectors.yaml    canonical-JSON parity
+  signature-vectors.yaml    ed25519 / hash parity
+  chain-vectors.yaml        event-hash / merkle / chain-hash parity
+  framing-vectors.yaml      .tflog / .tfproof byte parity
+  session-vectors.yaml      X25519 / HKDF / ChaCha20-Poly1305 parity
+  guard-vectors.yaml        AgentGuard decision parity
+  bridge-vectors.yaml       SPIFFE / MCP / OAuth bridge parity
+  trust-overlay-vectors.yaml posture composition parity
+  relay-forwarding-vectors.yaml relay authority parity
+  negative-capability-vectors.yaml deny-overrides parity
 
 examples/
   agent-contracts/          full.yaml, minimal.yaml
   dangerous-actions/        tf-dangerous-std.yaml
   proofrpc/                 code-helper.tfrpc.yaml
 
-conformance/
-  parity.yaml               cross-language schema verdicts
-  canonical-vectors.yaml    canonical-JSON parity
-  signature-vectors.yaml    ed25519 / sha256 / blake3 parity
-  chain-vectors.yaml        event-hash / merkle / chain-hash parity
-  framing-vectors.yaml      .tflog / .tfproof byte parity
-  session-vectors.yaml      X25519 / HKDF / ChaCha20-Poly1305 parity
-  guard-vectors.yaml        AgentGuard decision parity
-
 tools/
-  tf-schema/                CLI: validate / lint / bundle / codegen / fuzz
-                            / parity / agent-contract-check
+  tf-schema/                validate / lint / bundle / codegen / fuzz / parity / agent-contract-check
   tf-types-ts/              TypeScript type bindings + hand-written core
   tf-proof/                 keygen / sign / verify / inspect / derive-pubkey
   tf-session/               WebSocket carrier for the session protocol
-  tf-daemon/                Runnable daemon
-  tf-cli/                   Unified tf command
+  tf-daemon/                Runnable daemon (with admin HTTP endpoint)
+  tf-packet/                Packet sign/verify/fragment/reassemble + LoRa simulator
+  tf-evidence/              Evidence assemble/verify/seal/open/anchor/replay/redact
+  tf-cli/                   Unified `tf` command
+  tf-dashboard/             Viewer-only dashboard for an active daemon
+  tf-conformance/           Runs every conformance category in one shot
 
 crates/
   tf-types/                 Rust type bindings + hand-written core
   tf-code-helper-example/   Downstream crate that compiles rpc-rust output
 ```
 
-## Running the test suite
+## Quick start
 
 ```bash
 bun install
 bun run --filter '*' typecheck
 bun test
-bun run tools/tf-schema/src/cli.ts validate-all
-bun run tools/tf-schema/src/cli.ts lint
-bun run tools/tf-schema/src/cli.ts parity
+bun run tools/tf-conformance/src/cli.ts run
 
-cargo check --workspace
 cargo test --workspace
 ```
 
-Today these pass with:
+Today this passes with:
 
-- **200 TS tests** (409 `expect()` calls)
-- **92 Rust tests** across `tf-types` + `tf-code-helper-example`
-- **20 schemas** × 20+ valid / 50+ invalid fixtures, **0 lint issues**, **73+ parity vectors**
-- A real Bun.serve WebSocket daemon that completes a mutually-authenticated handshake, runs an agent-contract-guarded RPC, and appends to a `.tflog`.
+- **510 TS tests** across 66 files
+- **232 Rust tests** across `tf-types` + `tf-code-helper-example`
+- **24 schemas** with valid + invalid fixtures, **0 lint issues**, **120+ parity vectors**
+- **`tf-conformance run`** green across schema / signature / guard / trust-overlay / bridge / interop / fuzz / profile / security / AI-implementation / label
 
-## What's next
+### Run the daemon
 
-The roadmap has three more phases:
+```bash
+# 1. Mint a daemon identity into a vault.
+TF_VAULT_PASS=dev-pw bun run tools/tf-cli/src/cli.ts actor create \
+  --type service --name tf-daemon --domain example.com
 
-- **Phase 8** — Compatibility bridges (WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS/mTLS).
-- **Phase 9** — Constrained + offline profile (packet mode, fragmentation, LoRa-style simulation, emergency packets).
-- **Phase 10** — Conformance suite (cross-implementation test vectors, protocol traces, fuzzing, interoperability tests).
+# 2. Boot the daemon with admin HTTP enabled.
+TF_VAULT_PASS=dev-pw TF_ADMIN_TOKEN=$(openssl rand -hex 16) \
+  bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml
+
+# 3. Browse the dashboard (read-only).
+TF_ADMIN_TOKEN=$TF_ADMIN_TOKEN \
+  bun run tools/tf-dashboard/src/cli.ts --daemon http://127.0.0.1:8787
+
+# 4. Inspect, approve, revoke from the CLI.
+tf session inspect
+tf approval list
+tf approve <id>
+tf revoke actor tf:actor:agent:example.com/bad
+```
+
+## Profiles
+
+TrustForge ships four conformance labels:
+
+| Profile | Floor | When to use |
+|---|---|---|
+| `tf-home-compatible` | E3 / L1 | Single-operator deployments — home automation, personal mesh |
+| `tf-enterprise-compatible` | E4 / L2 + RFC 6962 | Multi-tenant, federation, transparency anchoring, quorum |
+| `tf-constrained-compatible` | E3 / L1 | LoRa, BLE, serial, sneakernet, store-and-forward |
+| `tf-compliance-evidence-compatible` | E4 / L3 + RFC 3161 + RFC 6962 | Legal / compliance evidence with offline reproducibility |
+
+The daemon refuses to boot if its claimed profile's MUST features aren't satisfied; see [`docs/profiles/`](docs/profiles/) for the normative definitions.
 
 ## Spec status
 
-All specs in `docs/specs/` are **Draft**. No TrustForge component is production-ready. Everything is being built on purpose, in the open, with spec and implementation moving together.
+Every spec in `docs/specs/` is **Draft**. The reference implementation tracks the spec one-for-one — when a spec changes, the implementation moves with it. See [`GOVERNANCE.md`](GOVERNANCE.md) for the spec process.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup, conformance expectations, and the rules around new crypto primitives, new protocol surfaces, and AI-implementability.
 
 ## License
 

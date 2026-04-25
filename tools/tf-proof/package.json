@@ -1,6 +1,6 @@
 {
   "name": "tf-proof",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "TrustForge proof CLI: keygen, sign, verify, inspect.",

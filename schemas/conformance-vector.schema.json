@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/conformance-vector.schema.json",
+  "title": "TrustForge Conformance Vector",
+  "description": "A single conformance vector consumed by tf-conformance runners. Vectors describe a category, the inputs the runner needs, and the canonical output (or expected error) every conformant implementation must produce. The format is the wire-level record that backs every category file under conformance/ — schema, signature, chain, framing, session, bridge, relay, trust-overlay, guard, packet, evidence, federation.",
+  "type": "object",
+  "required": ["vector_version", "category", "id"],
+  "additionalProperties": false,
+  "properties": {
+    "vector_version": {
+      "description": "Version of the conformance-vector schema itself.",
+      "enum": ["1"]
+    },
+    "category": {
+      "description": "Vector category. The runner this vector is dispatched to.",
+      "enum": [
+        "schema",
+        "signature",
+        "chain",
+        "framing",
+        "session",
+        "bridge",
+        "relay",
+        "trust-overlay",
+        "guard",
+        "packet",
+        "evidence",
+        "federation",
+        "profile",
+        "negative-capability",
+        "ai-implementation",
+        "security-regression"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable, human-readable identifier for this vector. Implementations cite this id in their conformance reports."
+    },
+    "spec_ref": {
+      "type": "string",
+      "description": "TF-XXXX or DECISIONS.md reference establishing the normative behavior under test."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable summary of what this vector exercises."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Free-form tags. Common: 'must', 'should', 'security', 'ai-safety', 'pq', 'offline'."
+    },
+    "input": {
+      "description": "Inputs supplied to the runner. Shape varies per category; runners validate the shape they receive.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "expected": {
+      "description": "Canonical expected output. Implementations are conformant when their output matches under the canonicalization rule for the category. Implementations may emit any JSON value here."
+    },
+    "expect": {
+      "description": "Outcome label when the runner produces a single boolean. Use `expected` for full output equality.",
+      "enum": ["valid", "invalid", "allow", "deny", "log-only", "approval-required", "escalate"]
+    },
+    "expected_error": {
+      "type": "object",
+      "description": "Expected validation/runtime error when `expect` is `invalid`. Empty object means 'any error'.",
+      "additionalProperties": true
+    },
+    "fixture": {
+      "type": "string",
+      "description": "Path (relative to repo root) of a YAML/JSON fixture supplying the input."
+    },
+    "applies_to_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^tf-[a-z0-9-]+-compatible$"
+      },
+      "description": "Profile labels this vector belongs to. Empty / omitted means 'every profile'."
+    }
+  }
+}

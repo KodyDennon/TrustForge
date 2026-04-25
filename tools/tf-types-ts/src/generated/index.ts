@@ -10,6 +10,7 @@ export * from "./approval-response.js";
 export * from "./bridge-descriptor.js";
 export * from "./capability-token.js";
 export * from "./conformance.js";
+export * from "./conformance-vector.js";
 export * from "./daemon-config.js";
 export * from "./dangerous-actions.js";
 export * from "./evidence-bundle.js";

@@ -1,6 +1,6 @@
 {
   "name": "tf-cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Unified tf command — wraps schema/proof/daemon/session/policy/actor/approval operations.",
@@ -9,6 +9,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "tf-conformance": "workspace:*",
     "tf-session": "workspace:*",
     "tf-types": "workspace:*",
     "yaml": "^2.6.0"

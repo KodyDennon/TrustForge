@@ -1,18 +1,19 @@
 {
-  "name": "tf-schema",
+  "name": "tf-conformance",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "TrustForge JSON Schema validator and future doc-generator.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "TrustForge conformance harness — runs vector files, profile gates, interop suite, fuzz corpus, and security regression suite (TF-0010).",
   "scripts": {
-    "validate": "bun run src/cli.ts validate",
-    "validate:all": "bun run src/cli.ts validate-all",
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"
   },
   "dependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
+    "tf-types": "workspace:*",
     "yaml": "^2.6.0"
   },
   "devDependencies": {

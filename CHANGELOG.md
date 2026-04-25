@@ -1,0 +1,104 @@
+# Changelog
+
+All notable changes to TrustForge are recorded here. Versions follow
+[Semantic Versioning](https://semver.org/) once we hit 1.0; before then
+the API is explicitly experimental.
+
+## 0.1.0 — 2026-04-25
+
+First public cut of TrustForge. Every spec, profile, bridge, and
+DECISIONS.md cross-cutting requirement has a working reference
+implementation in both TypeScript (Bun) and Rust, gated behind a
+conformance suite.
+
+### Added
+
+#### Specifications and decisions
+* `TF-0000` through `TF-0012` published as Draft.
+* `DECISIONS.md` records the long-form rationale for early architecture
+  choices.
+* `GOVERNANCE.md` records the spec process.
+* Profiles `tf-home-compatible`, `tf-enterprise-compatible`,
+  `tf-constrained-compatible`, `tf-compliance-evidence-compatible`
+  flagged out as full normative MUST/SHOULD/MUST_NOT documents.
+
+#### Schemas + types
+* 24 JSON Schemas under `schemas/` covering every machine-readable
+  artifact (manifests + runtime objects).
+* Valid and invalid fixtures for every schema, with `expected-error`
+  files describing the failure surface.
+* `profile-spec.schema.json` + `conformance-vector.schema.json` formalise
+  the conformance gate.
+* TypeScript bindings (`tools/tf-types-ts/src/generated/`) and Rust
+  bindings (`crates/tf-types/src/generated/`) generated from the same
+  source.
+* Cross-language parity manifest (`conformance/parity.yaml`) and
+  canonical-JSON parity (`conformance/canonical-vectors.yaml`).
+
+#### Cryptography
+* ed25519 (RFC 8032) signing/verification with byte-parity vectors.
+* X25519 + HKDF-SHA256 + ChaCha20-Poly1305 + ed25519 session protocol.
+* SHA-256 / BLAKE3 hashing, hash-chained events, Merkle roots,
+  `.tflog` / `.tfproof` framing.
+* Argon2id-protected file vault.
+* Hybrid post-quantum mode using ml-dsa-44 / -65 / -87 (FIPS 204) for
+  signatures.
+* RFC 3161 anchoring + RFC 6962 (Certificate Transparency) anchoring
+  for evidence bundles.
+* RFC 5705 / RFC 8446 exporter keying for transport-binding.
+
+#### Runtime + tooling
+* `tools/tf-schema` — validate / lint / bundle / codegen / fuzz / parity
+  / agent-contract-check.
+* `tools/tf-proof` — keygen / sign / verify / inspect / derive-pubkey.
+* `tools/tf-session` — WebSocket session carrier with full handshake +
+  in-band rekey.
+* `tools/tf-daemon` — Bun.serve daemon with WebSocket session listener,
+  admin HTTP endpoint (sessions / approvals / plugins / proofs /
+  revocations), AgentGuard enforcement, ApprovalQueue, signed plugin
+  manifests, and Worker-isolated native plugin sandbox.
+* `tools/tf-packet` — sign / verify / inspect / fragment / reassemble /
+  simulate-lora.
+* `tools/tf-evidence` — assemble / verify / seal / open / anchor /
+  replay / redact.
+* `tools/tf-cli` — unified `tf` command: `policy simulate`,
+  `actor {create,inspect}`, `trust-domain {init,federate,verify-federation}`,
+  `bridge spiffe import`, `packet inspect`, `session inspect`,
+  `approval list`, `approve`, `deny`, `revoke`, `plugin list`,
+  `rpc call`, `evidence assemble`, `conformance run`,
+  `generate <policy|mcp-tool-wrapper|audit-viewer|bridge|proofrpc-service>`.
+* `tools/tf-dashboard` — viewer-only HTML dashboard reading the daemon
+  admin endpoint.
+* `tools/tf-conformance` — runs every conformance category (schema,
+  signature, guard, trust-overlay, bridge, interop, fuzz, profile,
+  security regression, AI-implementation, compatibility-label) in one
+  shot.
+
+#### Compatibility bridges
+* WebAuthn (FIDO2 attestation, packed/none/anonca formats, FIDO MDS).
+* SPIFFE workload identity (SPIFFE ID ↔ TrustForge actor URI, federated
+  bundles, Envoy XFCC, Istio AuthN, Linkerd l5d-client-id).
+* OAuth (RFC 6749/6750) and GNAP (RFC 9635) + DPoP (RFC 9449).
+* MCP / A2A tool-name normalisation and capability mapping.
+* TLS / mTLS with RFC 5705 / RFC 8446 exporter keying.
+* DID (W3C DID Core 1.0) with multibase base58btc.
+* Matrix events ↔ ProofEvent.
+* Webhook bridge with HMAC-SHA256, HMAC-SHA1, ed25519 signature
+  schemes.
+* gRPC bridge through the service-mesh adapters.
+
+#### Tests
+* 510 TypeScript tests across 66 files (Bun test).
+* 232 Rust tests across `tf-types` + `tf-code-helper-example`.
+* 120+ parity vectors covering canonical JSON, signature, hashing,
+  chain, framing, session, bridge, relay, trust-overlay, guard,
+  negative-capability.
+
+### Known limitations
+* Drafts are explicitly experimental. Spec line items may change while
+  the implementation tracks them.
+* No production posture: the threat model in `SECURITY.md` is honest
+  about what 0.1.0 does and does not promise.
+* No public infrastructure dependency. The daemon's RFC 6962 anchor and
+  RFC 3161 anchor stubs run against in-memory test logs unless
+  configured against external services.

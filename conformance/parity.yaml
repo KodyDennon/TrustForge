@@ -113,6 +113,15 @@ vectors:
   - schema: conformance
     fixture: schemas/fixtures/conformance/invalid/empty-profiles.yaml
     expect: invalid
+  - schema: conformance-vector
+    fixture: schemas/fixtures/conformance-vector/valid/profile-home.yaml
+    expect: valid
+  - schema: conformance-vector
+    fixture: schemas/fixtures/conformance-vector/valid/schema-actor-identity.yaml
+    expect: valid
+  - schema: conformance-vector
+    fixture: schemas/fixtures/conformance-vector/invalid/missing-category.yaml
+    expect: invalid
   - schema: daemon-config
     fixture: schemas/fixtures/daemon-config/valid/basic.yaml
     expect: valid

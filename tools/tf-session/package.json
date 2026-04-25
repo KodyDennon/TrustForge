@@ -1,6 +1,6 @@
 {
   "name": "tf-session",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "TrustForge session protocol over WebSocket.",

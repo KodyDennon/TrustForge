@@ -15,6 +15,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [bridge-descriptor](./bridge-descriptor.md) | — | Declarative descriptor for a TrustForge compatibility bridge |
 | [capability-token](./capability-token.md) | TF-0004 | Serialized capability grant carried across actors (TF-0004). |
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
+| [conformance-vector](./conformance-vector.md) | — | A single conformance vector consumed by tf-conformance runners |
 | [daemon-config](./daemon-config.md) | — | Configuration file for a running tf-daemon instance (.tf/daemon.yaml). |
 | [dangerous-actions](./dangerous-actions.md) | — | Canonical catalog of action names with their danger tags and default enforcement |
 | [evidence-bundle](./evidence-bundle.md) | — | Compliance / legal evidence bundle (TF-0012) |

@@ -461,80 +461,19 @@ async function rpcCall(args: string[]): Promise<number> {
   return 0;
 }
 
-interface ConformanceCase {
-  name: string;
-  pass: boolean;
-  detail?: string;
-}
-
 async function conformanceRun(args: string[]): Promise<number> {
-  const profileId = arg(args, "--profile") ?? "tf-home-compatible";
+  const conf = await import("tf-conformance");
+  const profileId = arg(args, "--profile");
+  const daemonUrl = arg(args, "--daemon");
   const root = resolve(arg(args, "--root") ?? ".");
-  const tf = await import("tf-types");
-  const spec = tf.BUILTIN_PROFILES[profileId];
-  if (!spec) {
-    console.error(`unknown profile: ${profileId}`);
-    return 2;
-  }
-  const cases: ConformanceCase[] = [];
-
-  // Case 1: every conformance vector under `conformance/` is parseable YAML.
-  const conformanceDir = resolve(root, "conformance");
-  if (existsSync(conformanceDir)) {
-    for (const entry of readdirSync(conformanceDir)) {
-      if (!entry.endsWith(".yaml")) continue;
-      try {
-        const text = readFileSync(resolve(conformanceDir, entry), "utf8");
-        parseYAML(text);
-        cases.push({ name: `vector.${entry}`, pass: true });
-      } catch (err) {
-        cases.push({ name: `vector.${entry}`, pass: false, detail: (err as Error).message });
-      }
-    }
-  } else {
-    cases.push({ name: "conformance/", pass: false, detail: "directory missing" });
-  }
-
-  // Case 2: every JSON Schema in schemas/ has an `$id` and `title`.
-  const schemasDir = resolve(root, "schemas");
-  if (existsSync(schemasDir)) {
-    for (const entry of readdirSync(schemasDir)) {
-      if (!entry.endsWith(".schema.json")) continue;
-      try {
-        const j = JSON.parse(readFileSync(resolve(schemasDir, entry), "utf8")) as Record<string, unknown>;
-        const ok = typeof j.$id === "string" && typeof j.title === "string";
-        cases.push({ name: `schema.${entry}`, pass: ok, detail: ok ? undefined : "missing $id or title" });
-      } catch (err) {
-        cases.push({ name: `schema.${entry}`, pass: false, detail: (err as Error).message });
-      }
-    }
-  } else {
-    cases.push({ name: "schemas/", pass: false, detail: "directory missing" });
-  }
-
-  // Case 3: profile MUSTs are satisfied by the local FeatureGate (if a
-  // running daemon is reachable, query its /admin/profile; else evaluate
-  // the BUILTIN feature inventory).
-  const inv = ["agent-contract", "proof-log", "ed25519", "vault", "policy-engine", "continuous-reauth", "shadow-mode"];
-  const verdict = tf.selectProfile(spec, tf.buildProfileFeatureGate({
-    features: inv,
-    enforcementLevel: "E4",
-    proofLevelFloor: "L2",
-    bridges: ["spiffe", "webauthn", "oauth", "mcp"],
-    anchors: ["memory", "rfc6962"],
-  }));
-  cases.push({ name: `profile.${profileId}`, pass: verdict.ok, detail: verdict.ok ? undefined : verdict.failures.join("; ") });
-
-  const passed = cases.filter((c) => c.pass).length;
-  const failed = cases.length - passed;
-  const summary = {
-    profile: profileId,
-    cases,
-    passed,
-    failed,
-  };
-  console.log(canonicalize(summary));
-  return failed === 0 ? 0 : 1;
+  const result = await conf.runAll({
+    root,
+    profileId,
+    daemonUrl,
+    adminToken: process.env.TF_ADMIN_TOKEN,
+  });
+  console.log(canonicalize(result));
+  return result.failed === 0 ? 0 : 1;
 }
 
 const GENERATOR_TARGETS = ["policy", "mcp-tool-wrapper", "audit-viewer", "bridge", "proofrpc-service"] as const;

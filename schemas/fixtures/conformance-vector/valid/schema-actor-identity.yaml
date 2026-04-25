@@ -1,0 +1,10 @@
+vector_version: "1"
+category: schema
+id: schema.actor-identity.basic
+spec_ref: TF-0002
+description: Validates a minimal valid actor-identity document.
+fixture: schemas/fixtures/actor-identity/valid/basic.yaml
+expect: valid
+applies_to_profiles:
+  - tf-home-compatible
+  - tf-enterprise-compatible
