@@ -27,6 +27,34 @@ jobs:
           git diff --exit-code
       - run: bun run tools/tf-schema/src/cli.ts fuzz --iterations 200
       - run: bun run tools/tf-schema/src/cli.ts parity
+      - name: tf-proof smoke test
+        run: |
+          mkdir -p /tmp/tf-proof-ci
+          bun run tools/tf-proof/src/cli.ts keygen --out /tmp/tf-proof-ci
+          cat > /tmp/tf-proof-ci/events.json <<'JSON'
+          [
+            {
+              "event_version": "1",
+              "id": "ci-evt-1",
+              "type": "ci.sample",
+              "actor_id": "tf:actor:agent:example.com/ci",
+              "timestamp": "2026-04-24T12:00:00Z",
+              "level": "L1",
+              "signature": {
+                "algorithm": "ed25519",
+                "signer": "tf:actor:agent:example.com/ci",
+                "signature": "AAAA"
+              }
+            }
+          ]
+          JSON
+          bun run tools/tf-proof/src/cli.ts sign \
+            --events /tmp/tf-proof-ci/events.json \
+            --key /tmp/tf-proof-ci/tf.ed25519.key.json \
+            --signer tf:actor:organization:example.com \
+            --out /tmp/tf-proof-ci/bundle.tfproof
+          bun run tools/tf-proof/src/cli.ts verify /tmp/tf-proof-ci/bundle.tfproof --key /tmp/tf-proof-ci/tf.ed25519.pub.json
+          bun run tools/tf-proof/src/cli.ts inspect /tmp/tf-proof-ci/bundle.tfproof
 
   rust:
     runs-on: ubuntu-latest
