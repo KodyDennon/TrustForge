@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trustforge.io/schemas/v0/threat-model.schema.json",
+  "title": "TrustForge Threat Model",
+  "description": "Declarative threat-model manifest referenced by TF-0006 and by agent-contract.references.threat_model.",
+  "type": "object",
+  "required": ["threat_model_version", "project", "assets", "adversaries", "attack_classes", "mitigations"],
+  "additionalProperties": false,
+  "properties": {
+    "threat_model_version": {
+      "description": "Version of the threat-model manifest schema itself.",
+      "enum": ["1"]
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project identifier this threat model applies to."
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Assets whose protection this threat model addresses.",
+      "items": { "$ref": "#/$defs/Asset" }
+    },
+    "adversaries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Adversary profiles this threat model considers.",
+      "items": { "$ref": "#/$defs/Adversary" }
+    },
+    "attack_classes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Attack-class identifiers relevant to this project (open-ended taxonomy).",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "mitigations": {
+      "type": "array",
+      "description": "Mitigations implemented, planned, or deliberately not applicable.",
+      "items": { "$ref": "#/$defs/Mitigation" }
+    },
+    "residual_risks": {
+      "type": "array",
+      "description": "Risks explicitly accepted after mitigations.",
+      "items": { "$ref": "#/$defs/ResidualRisk" }
+    }
+  },
+  "$defs": {
+    "Asset": {
+      "type": "object",
+      "description": "Asset under threat analysis.",
+      "required": ["id", "description", "criticality"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]*$",
+          "description": "Stable asset identifier."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What this asset is and why it matters."
+        },
+        "criticality": {
+          "description": "Risk class describing asset-loss impact.",
+          "$ref": "_common.schema.json#/$defs/RiskClass"
+        }
+      }
+    },
+    "Adversary": {
+      "type": "object",
+      "description": "Adversary profile.",
+      "required": ["id", "description", "capability_levels"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]*$",
+          "description": "Stable adversary identifier."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who this adversary is and what they want."
+        },
+        "capability_levels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": ["opportunistic", "targeted", "insider", "nation-state", "ai-assisted"]
+          },
+          "description": "Capabilities attributed to this adversary."
+        }
+      }
+    },
+    "Mitigation": {
+      "type": "object",
+      "description": "Mitigation applied to one or more assets or attack classes.",
+      "required": ["id", "applies_to", "description", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]*$",
+          "description": "Stable mitigation identifier."
+        },
+        "applies_to": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Asset or attack-class identifiers this mitigation covers."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the mitigation does."
+        },
+        "status": {
+          "enum": ["planned", "implemented", "not-applicable"],
+          "description": "Implementation status."
+        }
+      }
+    },
+    "ResidualRisk": {
+      "type": "object",
+      "description": "Risk accepted after mitigations.",
+      "required": ["description", "accepted_by", "accepted_at"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nature of the residual risk."
+        },
+        "accepted_by": {
+          "description": "Actor who accepted this risk.",
+          "$ref": "_common.schema.json#/$defs/ActorId"
+        },
+        "accepted_at": {
+          "description": "When the acceptance was recorded.",
+          "$ref": "_common.schema.json#/$defs/Timestamp"
+        }
+      }
+    }
+  }
+}

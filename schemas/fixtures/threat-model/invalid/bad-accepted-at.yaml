@@ -1,0 +1,16 @@
+threat_model_version: "1"
+project: example
+assets:
+  - id: a
+    description: "x"
+    criticality: R1
+adversaries:
+  - id: b
+    description: "y"
+    capability_levels: [targeted]
+attack_classes: ["x"]
+mitigations: []
+residual_risks:
+  - description: "x"
+    accepted_by: "tf:actor:human:example.com/kody"
+    accepted_at: "2026-04-01 12:00"

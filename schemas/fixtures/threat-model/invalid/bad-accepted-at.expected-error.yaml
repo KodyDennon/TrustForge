@@ -1,0 +1,3 @@
+errors:
+  - path: "/residual_risks/0/accepted_at"
+    keyword: pattern

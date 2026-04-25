@@ -1,0 +1,8 @@
+threat_model_version: "1"
+project: example
+adversaries:
+  - id: a
+    description: "x"
+    capability_levels: [opportunistic]
+attack_classes: ["x"]
+mitigations: []

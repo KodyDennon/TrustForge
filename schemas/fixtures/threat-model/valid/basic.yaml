@@ -1,0 +1,34 @@
+threat_model_version: "1"
+project: example-app
+assets:
+  - id: user.secrets
+    description: "Per-user API keys and OAuth tokens stored in the database."
+    criticality: R4
+  - id: source.tree
+    description: "Project source code."
+    criticality: R2
+adversaries:
+  - id: external.attacker
+    description: "Unauthenticated network attacker."
+    capability_levels: [opportunistic, targeted]
+  - id: rogue.agent
+    description: "Compromised AI agent with delegated capabilities."
+    capability_levels: [ai-assisted, insider]
+attack_classes:
+  - credential-theft
+  - privilege-escalation
+  - prompt-injection
+  - supply-chain
+mitigations:
+  - id: rotate-api-keys
+    applies_to: [user.secrets]
+    description: "Rotate API keys every 90 days."
+    status: implemented
+  - id: sandbox-agent-shell
+    applies_to: [source.tree, rogue.agent]
+    description: "Run agent shell commands in a sandbox with allowlisted targets."
+    status: planned
+residual_risks:
+  - description: "Agent with delegated file.write could still modify tests."
+    accepted_by: "tf:actor:human:example.com/lead-engineer"
+    accepted_at: "2026-04-01T12:00:00Z"

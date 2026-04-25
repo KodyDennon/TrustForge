@@ -1,0 +1,12 @@
+threat_model_version: "1"
+project: example
+assets:
+  - id: a
+    description: "x"
+    criticality: R9
+adversaries:
+  - id: b
+    description: "y"
+    capability_levels: [targeted]
+attack_classes: ["x"]
+mitigations: []

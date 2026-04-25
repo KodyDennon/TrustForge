@@ -1,0 +1,3 @@
+errors:
+  - path: "/assets/0/criticality"
+    keyword: enum
