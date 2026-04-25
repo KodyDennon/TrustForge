@@ -1,0 +1,3 @@
+errors:
+  - path: "/actions/0/risk"
+    keyword: enum

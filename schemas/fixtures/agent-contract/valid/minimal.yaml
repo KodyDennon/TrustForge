@@ -1,0 +1,52 @@
+contract_version: "1"
+spec_version: TF-0006-draft
+project: example-app
+trust_domain: example.com
+
+references:
+  threat_model: .tf/threat-model.yaml
+  policy_engine:
+    kind: cedar
+    path: .tf/policy.cedar
+  actions_library: tf-actions-std@1
+
+target_sets:
+  source: ["src/**"]
+  tests: ["tests/**"]
+  secrets: [".env", "secrets/**"]
+
+actions:
+  - name: file.read
+    risk: R0
+    proof: L0
+    approval: none
+    description: "Read a file from the working tree."
+    allow_targets: ["src/**", "tests/**"]
+    deny_targets: [".env", "secrets/**"]
+
+  - name: file.write
+    risk: R2
+    proof: L2
+    approval: conditional
+    description: "Modify a file in the working tree."
+    allow_targets: ["src/**"]
+    deny_targets: ["src/auth/**", ".env", "secrets/**"]
+
+  - name: shell.exec
+    risk: R4
+    proof: L3
+    approval: required
+    description: "Run an arbitrary shell command."
+
+forbidden:
+  - action: file.delete
+    reason: "No agent may delete files from this repository."
+
+integrations:
+  test_commands:
+    - "bun test"
+    - "bun run typecheck"
+
+conformance:
+  profiles:
+    - tf-agent-compatible

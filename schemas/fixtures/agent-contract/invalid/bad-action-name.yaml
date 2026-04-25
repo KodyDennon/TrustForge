@@ -1,0 +1,7 @@
+contract_version: "1"
+spec_version: TF-0006-draft
+project: example
+trust_domain: example.com
+actions:
+  - name: FileWrite
+    risk: R2
