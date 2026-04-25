@@ -12,6 +12,7 @@ import {
   type Auth,
   type HelloI,
   type HelloR,
+  type RpcTransport,
   type SessionFrame,
   type SessionState,
   utf8encode,
@@ -41,6 +42,17 @@ interface WireSink {
 interface WireSource {
   onMessage(listener: (bytes: Uint8Array) => void): void;
   onClose(listener: () => void): void;
+}
+
+/**
+ * Adapt a SessionEndpoint into an RpcTransport so tf-types' RpcClient /
+ * RpcServer can run on top of a live session.
+ */
+export function rpcTransportFromEndpoint(endpoint: SessionEndpoint): RpcTransport {
+  return {
+    send: (frame) => endpoint.send(frame),
+    onFrame: (listener) => endpoint.onFrame(listener),
+  };
 }
 
 function jsonBytes<T>(value: T): Uint8Array {
