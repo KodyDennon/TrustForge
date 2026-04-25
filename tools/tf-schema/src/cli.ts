@@ -101,8 +101,32 @@ async function cmdCodegen(args: string[]): Promise<number> {
     console.log(`wrote ${names.length} files to ${dest}`);
     return 0;
   }
+  if (target === "agent-contract-ts") {
+    const spec = argValue(args, "--spec");
+    if (!spec) {
+      console.error("usage: tf-schema codegen --target agent-contract-ts --spec <contract.yaml> [--out <dir>]");
+      return 2;
+    }
+    const dest = out ?? "tools/tf-types-ts/src/generated/agent-contract";
+    const { writeAgentContractTsOutput } = await import("./codegen/agent-contract-ts");
+    const names = writeAgentContractTsOutput(spec, dest);
+    console.log(`wrote ${names.length} files to ${dest}`);
+    return 0;
+  }
+  if (target === "agent-contract-rust") {
+    const spec = argValue(args, "--spec");
+    if (!spec) {
+      console.error("usage: tf-schema codegen --target agent-contract-rust --spec <contract.yaml> [--out <dir>]");
+      return 2;
+    }
+    const dest = out ?? "crates/tf-types/src/generated/agent-contract";
+    const { writeAgentContractRustOutput } = await import("./codegen/agent-contract-rust");
+    const names = writeAgentContractRustOutput(spec, dest);
+    console.log(`wrote ${names.length} files to ${dest}`);
+    return 0;
+  }
   console.error(`codegen: unknown or missing target: ${target ?? "(none)"}`);
-  console.error("usage: tf-schema codegen --target ts|rust|docs|rpc-ts|rpc-rust [--out <dir>]");
+  console.error("usage: tf-schema codegen --target ts|rust|docs|rpc-ts|rpc-rust|agent-contract-ts|agent-contract-rust [--out <dir>]");
   return 2;
 }
 
