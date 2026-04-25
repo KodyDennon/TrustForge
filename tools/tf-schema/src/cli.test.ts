@@ -7,12 +7,15 @@ import { parse as parseYAML } from "yaml";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 const SCHEMA_PATH = join(REPO_ROOT, "schemas", "agent-contract.schema.json");
+const COMMON_PATH = join(REPO_ROOT, "schemas", "_common.schema.json");
 const EXAMPLE_PATH = join(REPO_ROOT, "examples", "agent-contracts", "minimal.yaml");
 
 function makeValidator() {
-  const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
   const ajv = new Ajv2020({ allErrors: true, strict: true });
   addFormats(ajv);
+  const common = JSON.parse(readFileSync(COMMON_PATH, "utf8"));
+  ajv.addSchema(common, "_common.schema.json");
+  const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
   return ajv.compile(schema);
 }
 
@@ -57,5 +60,16 @@ describe("agent-contract schema", () => {
   test("rejects spec_version that doesn't match TF-NNNN pattern", () => {
     const broken = { ...baseline, spec_version: "v1" };
     expect(validate(broken)).toBe(false);
+  });
+
+  test("agent-contract uses v0 $id", () => {
+    const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8")) as { $id: string };
+    expect(schema.$id).toBe("https://trustforge.io/schemas/v0/agent-contract.schema.json");
+  });
+
+  test("agent-contract $refs _common for RiskClass", () => {
+    const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
+    const text = JSON.stringify(schema);
+    expect(text).toContain("_common.schema.json#/$defs/RiskClass");
   });
 });
