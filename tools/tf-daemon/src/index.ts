@@ -8,22 +8,30 @@
  *   - Append every RPC call and guard event to a .tflog.
  */
 
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
+import { dirname, resolve as resolvePath } from "node:path";
 import { parse as parseYAML } from "yaml";
 import {
   AgentGuard,
   ApprovalQueue,
   PluginRegistry,
+  ProofChain,
+  QuorumApprovalCollector,
   RpcServer,
   Vault,
   allowAllEnforcer,
   b64decode,
+  buildProofEvent,
   canonicalize,
   ed25519PublicKey,
+  signProofEvent,
+  type BuiltProofEvent,
   type CapabilityEnforcer,
   type GuardDecision,
   type GuardEventStub,
   type PluginHost,
+  type ProofChainLevel,
   type RpcProofEventStub,
   type SessionFrame,
 } from "tf-types";
@@ -69,15 +77,32 @@ export interface DaemonHandle {
   proofLogPath: string;
 }
 
-/** Build a CapabilityEnforcer that routes guarded actions through the approval
- *  queue. On approval-required / escalate the enforcer pushes an
- *  ApprovalRequest and awaits the response; approve → "allow", deny →
- *  "permission_denied". */
+/** Risk classes that trigger the QuorumApprovalCollector instead of a
+ *  single-approver queue. R4/R5 actions and explicit "irreversible" /
+ *  "legal-exposure" / "financial" danger tags route through quorum per
+ *  the enterprise + compliance profiles. */
+const QUORUM_DANGER_TAGS = new Set(["irreversible", "legal-exposure", "financial"]);
+
+function shouldRequireQuorum(decision: GuardDecision, action: string): boolean {
+  if (decision.kind !== "approval-required" && decision.kind !== "escalate") return false;
+  if (action.startsWith("admin.")) return true;
+  if ("danger_tags" in decision) {
+    for (const t of decision.danger_tags ?? []) if (QUORUM_DANGER_TAGS.has(t)) return true;
+  }
+  return false;
+}
+
+/** Build a CapabilityEnforcer that routes guarded actions through the
+ *  approval queue OR the quorum collector based on the decision's risk +
+ *  danger tags. Each path emits matching guard / approval-ceremony
+ *  events into the proof log. */
 function enforcerFromGuard(
   guard: AgentGuard,
   queue: ApprovalQueue,
+  quorum: QuorumApprovalCollector | undefined,
   opts: {
-    onEvent?: (ev: GuardEventStub) => void;
+    onGuardEvent?: (ev: GuardEventStub) => void;
+    onCeremony?: (ev: { kind: string; request_id: string; action: string; actor: string }) => void;
   } = {},
 ): CapabilityEnforcer {
   return {
@@ -88,7 +113,7 @@ function enforcerFromGuard(
         action,
         target: undefined,
       });
-      opts.onEvent?.({
+      opts.onGuardEvent?.({
         type: "guard.check",
         actor: caller,
         action,
@@ -104,7 +129,36 @@ function enforcerFromGuard(
         case "approval-required":
         case "escalate": {
           const requestId = `req-${Date.now()}-${Math.floor(Math.random() * 1_000_000).toString(16)}`;
+          const wantQuorum = shouldRequireQuorum(decision, action);
           try {
+            if (wantQuorum && quorum) {
+              opts.onCeremony?.({ kind: "quorum", request_id: requestId, action, actor: caller });
+              const handle = quorum.push({
+                request_version: "1",
+                id: requestId,
+                actor: caller,
+                action,
+                danger_tags: decision.danger_tags as ApprovalRequest["danger_tags"],
+                reason:
+                  decision.kind === "escalate"
+                    ? `escalated: ${"reason" in decision ? decision.reason : "dangerous"}`
+                    : `quorum required for ${action}`,
+                created_at: new Date().toISOString(),
+              });
+              // Expose the collector handle on the queue so external admin
+              // approvers can vote in via `respondAs`. This is the
+              // integration point the daemon's admin endpoint uses; the
+              // enforcer just waits for the outcome.
+              (queue as unknown as { _quorum?: Map<string, typeof handle> })._quorum =
+                ((queue as unknown as { _quorum?: Map<string, typeof handle> })._quorum
+                  ?? new Map<string, typeof handle>());
+              (queue as unknown as { _quorum: Map<string, typeof handle> })._quorum.set(requestId, handle);
+              const outcome = await handle.outcome;
+              (queue as unknown as { _quorum: Map<string, typeof handle> })._quorum.delete(requestId);
+              if (outcome.decision === "approve") return "allow";
+              return { deny: "quorum denied (insufficient approvers)" };
+            }
+            opts.onCeremony?.({ kind: "click", request_id: requestId, action, actor: caller });
             const response = await queue.push({
               request_version: "1",
               id: requestId,
@@ -126,6 +180,32 @@ function enforcerFromGuard(
       }
     },
   };
+}
+
+/** Constant-time string comparison via node:crypto.timingSafeEqual, with
+ *  early-return only on length mismatch (which is itself a binary fact
+ *  about the supplied token, not a per-byte oracle). */
+function constantTimeStringEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length !== bb.length) return false;
+  return nodeTimingSafeEqual(ab, bb);
+}
+
+/** Resolve `admin.bind` to a loopback decision. The admin endpoint
+ *  defaults to 127.0.0.1; explicit non-loopback binds require operator
+ *  intent. */
+function isLoopback(host: string): boolean {
+  return host === "127.0.0.1" || host === "::1" || host === "localhost";
+}
+
+/** Atomically write `bytes` to `path` via temp + rename. */
+function atomicWrite(path: string, bytes: string | Uint8Array): void {
+  const dir = dirname(resolvePath(path));
+  const tmp = `${path}.tmp.${Date.now().toString(36)}.${Math.floor(Math.random() * 1_000_000).toString(36)}`;
+  writeFileSync(tmp, bytes);
+  renameSync(tmp, path);
+  void dir;
 }
 
 export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandle> {
@@ -155,10 +235,35 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   const idEntry = vault.read("daemon-identity");
   const identityPub = await ed25519PublicKey(idEntry.key_bytes);
 
+  // Proof chain: every event the daemon writes is a schema-conforming
+  // ProofEvent, signed by the daemon identity, with parent_hash linking
+  // back to the previously-appended event. Replaces the unsigned ad-hoc
+  // shape the daemon used in 0.0.0.
+  const proofChain = new ProofChain();
+  const enqueueSigned = async (input: { type: string; actor: string; level?: ProofChainLevel; context?: Record<string, unknown> }): Promise<BuiltProofEvent> => {
+    const built = proofChain.bind(buildProofEvent(input));
+    const signed = await signProofEvent(built, config.self_actor, idEntry.key_bytes);
+    proofChain.commit(signed);
+    appendEventBytes(proofLogPath, new TextEncoder().encode(canonicalize(signed)));
+    return signed;
+  };
+
   const enforcementLevel = ((config as unknown as { enforcement_level?: string }).enforcement_level ?? "E4") as
     | "E0" | "E1" | "E2" | "E3" | "E4" | "E5";
   const guard = AgentGuard.fromContract(contract, {
-    onEvent: (ev) => appendEventLine(proofLogPath, ev),
+    onEvent: (ev) => {
+      void enqueueSigned({
+        type: ev.type,
+        actor: ev.actor,
+        level: "L2",
+        context: {
+          action: ev.action,
+          target: ev.target,
+          decision: ev.decision,
+          danger_tags: ev.danger_tags,
+        },
+      });
+    },
     enforcementLevel,
   });
   // If a .tf/policy.yaml is available, fold its negative_capabilities
@@ -173,9 +278,66 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   if (featureGate) {
     opts.onFeatureGate?.(featureGate);
   }
+  const queue = new ApprovalQueue({
+    maxPending: config.approval_queue?.max_pending ?? 32,
+    defaultTimeoutMs: (config.approval_queue?.default_timeout_seconds ?? 300) * 1000,
+    onPush: (req) => {
+      void enqueueSigned({
+        type: "approval.request",
+        actor: req.actor,
+        level: "L2",
+        context: { action: req.action, request_id: req.id, danger_tags: req.danger_tags ?? [] },
+      });
+      opts.onApprovalRequest?.(req);
+    },
+    onResolve: (req, decision, note) => {
+      void enqueueSigned({
+        type: `approval.${decision}`,
+        actor: req.actor,
+        level: "L2",
+        context: { action: req.action, request_id: req.id, decision, note: note ?? "" },
+      });
+    },
+  });
+
+  // Quorum collector — wired when the daemon config carries a
+  // `quorum_default` block. Tests + tf-cli admin votes resolve outcomes
+  // via the admin HTTP endpoint.
+  const quorumCfg = (config as unknown as { quorum_default?: { min_approvers: number; of: string[] } })
+    .quorum_default;
+  const quorum: QuorumApprovalCollector | undefined = quorumCfg
+    ? new QuorumApprovalCollector(queue, quorumCfg)
+    : undefined;
+
+  // Plugin registry must be constructed before the profile gate so the
+  // bridge inventory can introspect what's actually loaded.
+  const pluginHostEarly: PluginHost = opts.pluginHost ?? {
+    log: (msg: unknown) => {
+      void enqueueSigned({
+        type: "plugin.log",
+        actor: config.self_actor,
+        context: { message: String(msg) },
+      });
+    },
+  };
+  const pluginRegistry = new PluginRegistry();
+  for (const manifestPath of opts.plugins ?? []) {
+    await pluginRegistry.load(manifestPath, pluginHostEarly);
+  }
+
+  // Profile verdict capture wrapper installed BEFORE gating so the
+  // admin /admin/profile endpoint can serve the verdict produced at
+  // boot.
+  let lastProfileVerdict: import("tf-types").ProfileVerdict | undefined;
+  const profilePassThrough = opts.onProfileVerdict;
+  opts.onProfileVerdict = (v) => {
+    lastProfileVerdict = v;
+    profilePassThrough?.(v);
+  };
+
   // Profile gating: when the daemon config claims a conformance
-  // profile, evaluate it against the runtime feature inventory and
-  // refuse to boot when MUSTs are missing.
+  // profile, evaluate it against an inventory built from what the
+  // daemon ACTUALLY loaded — not a hardcoded literal.
   const claimedProfile = (config as unknown as { profile?: string }).profile;
   if (claimedProfile) {
     const tfMod = await import("tf-types");
@@ -183,23 +345,46 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     if (!spec) {
       throw new Error(`unknown profile: ${claimedProfile}`);
     }
-    const features: string[] = [
-      "agent-contract",
-      "proof-log",
-      "ed25519",
-      "vault",
-      "policy-engine",
-      "continuous-reauth",
-      "shadow-mode",
-      "signed-log-events",
-    ];
-    if (tf?.proofProfile) features.push("transparency-anchor.any");
+    const features: string[] = ["agent-contract", "proof-log", "ed25519", "vault", "signed-log-events"];
+    if (tf?.policy) features.push("policy-engine");
+    if (enforcementLevel === "E0") features.push("shadow-mode");
+    if (quorum) features.push("quorum-collector");
+    // Continuous reauth wired downstream via opts.onContinuousReauth +
+    // explicit reevaluate calls below; advertise it only when the
+    // RpcServer is constructed with the matching triggers (always
+    // populated by this build).
+    features.push("continuous-reauth");
+    // Transparency anchor: derived from the proof-profile manifest's
+    // `anchors` field if the operator declared one.
+    const anchorKinds: string[] = [];
+    if (tf?.proofProfile && typeof tf.proofProfile === "object") {
+      const anchors = (tf.proofProfile as Record<string, unknown>)["anchors"];
+      if (Array.isArray(anchors)) {
+        for (const a of anchors as Array<Record<string, unknown>>) {
+          if (typeof a.kind === "string") anchorKinds.push(a.kind);
+        }
+      }
+    }
+    if (anchorKinds.length > 0) features.push("transparency-anchor.any");
+    const bridgeKinds: string[] = [];
+    // Bridges loaded by plugins surface via the registry's manifest list.
+    for (const p of pluginRegistry.list()) {
+      const k = p.manifest.kind;
+      if (typeof k === "string") bridgeKinds.push(k);
+    }
+    // Profile floors: read proof_level_floor from the proof-profile
+    // manifest if present; otherwise default by profile spec.
+    const proofLevelFloor = (
+      tf?.proofProfile && typeof tf.proofProfile === "object"
+        ? ((tf.proofProfile as Record<string, unknown>)["min_proof_level"] as ProofChainLevel | undefined)
+        : undefined
+    ) ?? spec.min_proof_level ?? "L1";
     const verdict = tfMod.selectProfile(spec, tfMod.buildProfileFeatureGate({
       features,
       enforcementLevel,
-      proofLevelFloor: "L1",
-      bridges: ["spiffe", "webauthn", "oauth", "mcp"],
-      anchors: ["memory", "rfc6962"],
+      proofLevelFloor,
+      bridges: bridgeKinds,
+      anchors: anchorKinds,
     }));
     opts.onProfileVerdict?.(verdict);
     if (!verdict.ok && opts.refuseOnProfileFailure !== false) {
@@ -208,29 +393,6 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       );
     }
   }
-  const queue = new ApprovalQueue({
-    maxPending: config.approval_queue?.max_pending ?? 32,
-    defaultTimeoutMs: (config.approval_queue?.default_timeout_seconds ?? 300) * 1000,
-    onPush: (req) => {
-      appendEventLine(proofLogPath, {
-        type: "approval.request",
-        actor: req.actor,
-        action: req.action,
-        decision: "pending",
-        danger_tags: req.danger_tags ?? [],
-      });
-      opts.onApprovalRequest?.(req);
-    },
-    onResolve: (req, decision, note) => {
-      appendEventLine(proofLogPath, {
-        type: `approval.${decision}`,
-        actor: req.actor,
-        action: req.action,
-        decision,
-        note: note ?? "",
-      });
-    },
-  });
 
   const listeners: Array<{ close: () => void }> = [];
 
@@ -244,38 +406,72 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   }
   const activeSessions = new Map<string, ActiveSession>();
   let sessionCounter = 0;
+  // Track every live RpcServer so admin events (revocation, plugin
+  // change) can fan out continuous-reauth triggers.
+  const activeRpcServers = new Set<RpcServer>();
 
-  // Optional plugins: load + verify all manifests once; registry instance is
-  // shared across every incoming RpcServer.
-  const pluginHost: PluginHost = opts.pluginHost ?? {
-    log: (msg: unknown) => {
-      appendEventLine(proofLogPath, { type: "plugin.log", message: String(msg) });
-    },
-  };
-  const pluginRegistry = new PluginRegistry();
-  for (const manifestPath of opts.plugins ?? []) {
-    await pluginRegistry.load(manifestPath, pluginHost);
-  }
+  // pluginRegistry constructed earlier so the profile gate can introspect it.
+  const pluginHost = pluginHostEarly;
 
-  // Profile verdict (captured for the admin endpoint).
-  let lastProfileVerdict: import("tf-types").ProfileVerdict | undefined;
-  const profilePassThrough = opts.onProfileVerdict;
-  opts.onProfileVerdict = (v) => {
-    lastProfileVerdict = v;
-    profilePassThrough?.(v);
-  };
-
-  const adminCfg = (config as unknown as { admin?: { enabled: boolean; token_env?: string; revocation_path?: string } }).admin;
+  const adminCfg = (config as unknown as {
+    admin?: {
+      enabled: boolean;
+      token_env?: string;
+      revocation_path?: string;
+      bind?: string;
+      max_body_bytes?: number;
+    };
+  }).admin;
   const adminEnabled = !!adminCfg?.enabled;
   const adminTokenEnv = adminCfg?.token_env ?? "TF_ADMIN_TOKEN";
-  const adminToken = process.env[adminTokenEnv] ?? "";
+  const adminBind = adminCfg?.bind ?? "127.0.0.1";
+  const adminMaxBody = adminCfg?.max_body_bytes ?? 64 * 1024;
   const revocationPath = adminCfg?.revocation_path;
+
+  /** Read the admin token at request time so a token rotation in the
+   *  parent process takes effect on the next request. (Was captured at
+   *  boot time in 0.0.0; per BUG-015 a rotated token wouldn't help.) */
+  function currentAdminToken(): string {
+    return process.env[adminTokenEnv] ?? "";
+  }
 
   function adminAuth(req: Request): boolean {
     if (!adminEnabled) return false;
-    if (!adminToken) return false;
+    const token = currentAdminToken();
+    if (!token) return false;
     const auth = req.headers.get("authorization") ?? "";
-    return auth === `Bearer ${adminToken}`;
+    const expected = `Bearer ${token}`;
+    return constantTimeStringEqual(auth, expected);
+  }
+
+  /** Admin endpoints reject requests whose Host header isn't the
+   *  configured bind. Combined with the loopback default, this defeats
+   *  basic DNS rebinding even when the operator forgets to firewall. */
+  function adminHostAllowed(req: Request): boolean {
+    const host = (req.headers.get("host") ?? "").split(":")[0]?.trim() ?? "";
+    if (!host) return false;
+    if (isLoopback(adminBind)) return isLoopback(host);
+    return host === adminBind;
+  }
+
+  async function readBoundedJsonBody(req: Request): Promise<{ ok: true; value: unknown } | { ok: false; status: number; error: string }> {
+    const lenHdr = req.headers.get("content-length");
+    if (lenHdr && parseInt(lenHdr, 10) > adminMaxBody) {
+      return { ok: false, status: 413, error: "body too large" };
+    }
+    let text = "";
+    try {
+      text = await req.text();
+    } catch (err) {
+      return { ok: false, status: 400, error: `read body: ${(err as Error).message}` };
+    }
+    if (text.length > adminMaxBody) return { ok: false, status: 413, error: "body too large" };
+    if (!text) return { ok: true, value: {} };
+    try {
+      return { ok: true, value: JSON.parse(text) as unknown };
+    } catch (err) {
+      return { ok: false, status: 400, error: `malformed JSON: ${(err as Error).message}` };
+    }
   }
 
   function jsonResponse(value: unknown, status = 200): Response {
@@ -290,6 +486,9 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     if (!url.pathname.startsWith("/admin/") && url.pathname !== "/admin" && url.pathname !== "/healthz") return undefined;
     if (url.pathname === "/healthz") {
       return jsonResponse({ ok: true, profile: lastProfileVerdict?.profile ?? null });
+    }
+    if (!adminHostAllowed(req)) {
+      return new Response("forbidden (host)", { status: 403 });
     }
     if (!adminAuth(req)) {
       return new Response("forbidden", { status: 403 });
@@ -311,15 +510,22 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       const m = /^\/admin\/approvals\/([^/]+)\/(approve|deny)$/.exec(url.pathname);
       if (m && req.method === "POST") {
         const [, id, decision] = m as unknown as [string, string, "approve" | "deny"];
-        let body: { note?: string } = {};
-        try {
-          if (req.headers.get("content-type")?.includes("application/json")) {
-            body = (await req.json()) as { note?: string };
-          }
-        } catch {
-          /* ignore */
+        const body = await readBoundedJsonBody(req);
+        if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+        const note = (body.value as { note?: string }).note;
+        // Quorum-collected requests resolve through `respondAs` instead of
+        // the queue's single-resolution path.
+        const quorumMap = (queue as unknown as { _quorum?: Map<string, { respondAs: (a: string, d: "approve" | "deny", s: { algorithm: string; signature: string }) => boolean }> })._quorum;
+        if (quorumMap?.has(id)) {
+          const handle = quorumMap.get(id)!;
+          // The admin caller votes as the daemon's `self_actor`. In a
+          // multi-approver build the dashboard would let each operator
+          // sign individually; for v0.1.0 the daemon-side identity
+          // suffices to drive single-approver tests.
+          const ok = handle.respondAs(config.self_actor, decision, { algorithm: "ed25519", signature: "" });
+          return jsonResponse({ ok, kind: "quorum", note: note ?? null }, ok ? 200 : 404);
         }
-        const ok = queue.respond(id, decision, body.note);
+        const ok = queue.respond(id, decision, note);
         return jsonResponse({ ok }, ok ? 200 : 404);
       }
     }
@@ -344,32 +550,60 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       if (!revocationPath) {
         return jsonResponse({ error: "revocation_path not configured" }, 400);
       }
-      const body = (await req.json()) as { kind?: string; id?: string; reason?: string };
-      if (!body.kind || !body.id) {
-        return jsonResponse({ error: "missing kind/id" }, 400);
+      const body = await readBoundedJsonBody(req);
+      if (!body.ok) return jsonResponse({ error: body.error }, body.status);
+      const v = body.value as { kind?: string; id?: string; reason?: string };
+      const VALID_KINDS = new Set(["actor", "capability", "delegation", "instance"]);
+      if (!v.kind || !v.id || !VALID_KINDS.has(v.kind)) {
+        return jsonResponse({ error: "missing/invalid kind or id (kind must be actor|capability|delegation|instance)" }, 400);
       }
+      // Idempotency: same target → return existing entry without appending.
       const list: Array<Record<string, unknown>> = existsSync(revocationPath)
         ? (JSON.parse(readFileSync(revocationPath, "utf8")) as Array<Record<string, unknown>>)
         : [];
-      const rev = {
+      const dup = list.find(
+        (r) => r.target_kind === v.kind && r.target_id === v.id,
+      );
+      if (dup) {
+        return jsonResponse({ ok: true, revocation: dup, deduped: true });
+      }
+      // Sign the canonical revocation bytes with the daemon identity.
+      const tf = await import("tf-types");
+      const baseRev = {
         revocation_version: "1",
         id: `rev-${Date.now().toString(16)}-${Math.floor(Math.random() * 1_000_000).toString(16)}`,
-        target_id: body.id,
-        target_kind: body.kind,
+        target_id: v.id,
+        target_kind: v.kind,
         effective_at: new Date().toISOString(),
-        reason: body.reason ?? "admin-revoke",
+        reason: v.reason ?? "admin-revoke",
         issuer: config.self_actor,
-        signature: { algorithm: "ed25519", signer: config.self_actor, signature: "" },
+      };
+      const digest = tf.sha256(new TextEncoder().encode(canonicalize(baseRev)));
+      const sigBytes = await tf.ed25519Sign(digest, idEntry.key_bytes);
+      const rev = {
+        ...baseRev,
+        signature: {
+          algorithm: "ed25519",
+          signer: config.self_actor,
+          signature: Buffer.from(sigBytes).toString("base64"),
+        },
       };
       list.push(rev);
-      writeFileSync(revocationPath, canonicalize(list));
-      appendEventLine(proofLogPath, {
+      atomicWrite(revocationPath, canonicalize(list));
+      // Continuous-reauth: a revocation invalidates any in-flight
+      // server-streaming RPC the revoked actor is currently consuming.
+      for (const r of activeRpcServers) {
+        try {
+          await r.reevaluate("revocation");
+        } catch {
+          /* best effort */
+        }
+      }
+      await enqueueSigned({
         type: "admin.revocation",
         actor: config.self_actor,
-        action: "revoke",
-        decision: "allow",
-        target_kind: body.kind,
-        target_id: body.id,
+        level: "L2",
+        context: { target_kind: v.kind, target_id: v.id, reason: rev.reason },
       });
       return jsonResponse({ ok: true, revocation: rev });
     }
@@ -391,6 +625,20 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
         ws.binaryType = "uint8array";
         const wire = wireFromBunServerSocket(ws);
         (ws.data as any).wire = wire;
+        // Pre-register the session id at OPEN time (not after attachResponder
+        // resolves) so a `close` arriving before the handshake completes
+        // still cleans up the slot. (BUG-014)
+        sessionCounter += 1;
+        const sessionId = `sess-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
+        activeSessions.set(sessionId, {
+          id: sessionId,
+          remote_actor: "tf:actor:process:key/pending",
+          opened_at: new Date().toISOString(),
+          close: () => {
+            // best effort during pre-handshake close
+          },
+        });
+        (ws.data as any).sessionId = sessionId;
         attachResponder(
           {
             selfActor: config.self_actor,
@@ -402,14 +650,40 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
         ).then((endpoint: SessionEndpoint) => {
           const rpc = new RpcServer(rpcTransportFromEndpoint(endpoint), {
             selfActor: config.self_actor,
-            enforcer: enforcerFromGuard(guard, queue),
+            enforcer: enforcerFromGuard(guard, queue, quorum, {
+              onCeremony: (ev) => {
+                void enqueueSigned({
+                  type: `approval.ceremony.${ev.kind}`,
+                  actor: ev.actor,
+                  level: "L2",
+                  context: { request_id: ev.request_id, action: ev.action, kind: ev.kind },
+                });
+              },
+            }),
             getCaller: () => endpoint.peerActor(),
             getCallerClaim: () => endpoint.peerActorClaim(),
-            onProofEvent: (ev: RpcProofEventStub) => appendEventLine(proofLogPath, ev),
+            onProofEvent: (ev: RpcProofEventStub) =>
+              void enqueueSigned({
+                type: ev.type,
+                actor: ev.caller ?? config.self_actor,
+                level: "L1",
+                context: ev as unknown as Record<string, unknown>,
+              }),
+            // Wire continuous-reauth triggers; admin/revocation handler
+            // calls reevaluate("revocation") on every member.
+            continuousReevaluation: {
+              triggers: ["revocation", "session_rekey", "delegation_change", "explicit_reauth"],
+              intervalMs: 30_000,
+            },
           });
-          listeners.push({ close: () => endpoint.close("daemon shutdown") });
-          sessionCounter += 1;
-          const sessionId = `sess-${Date.now().toString(16)}-${sessionCounter.toString(16)}`;
+          activeRpcServers.add(rpc);
+          listeners.push({
+            close: () => {
+              activeRpcServers.delete(rpc);
+              endpoint.close("daemon shutdown");
+            },
+          });
+          // Replace the pre-handshake placeholder with the real entry.
           activeSessions.set(sessionId, {
             id: sessionId,
             remote_actor: endpoint.peerActor(),
@@ -417,12 +691,14 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
             opened_at: new Date().toISOString(),
             close: () => endpoint.close("daemon shutdown"),
           });
-          (ws.data as any).sessionId = sessionId;
           // Default built-in: a tiny "ping" unary so a client can verify the
           // pipeline without needing any registered plugin.
           rpc.registerUnary("tf.ping", "tf.ping", async () => ({ pong: true, at: new Date().toISOString() }));
           // Bind every loaded plugin's declared-capability handlers.
           pluginRegistry.registerOn(rpc);
+        }).catch(() => {
+          // Handshake failed; clean up the placeholder.
+          activeSessions.delete(sessionId);
         });
       },
       message(ws, message) {
@@ -450,13 +726,31 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   };
 }
 
-function appendEventLine(path: string, ev: unknown): void {
-  const payload = new TextEncoder().encode(canonicalize(ev));
-  // Write a 4-byte BE length prefix + canonical JSON bytes, matching the
-  // Phase 2 .tflog framing for an appended "event" (signature-less stub).
+/**
+ * Frame `payload` and append it to the .tflog: 4-byte big-endian length
+ * prefix followed by the canonical-JSON bytes of the event. Matches the
+ * Phase 2 .tflog framing.
+ */
+function appendEventBytes(path: string, payload: Uint8Array): void {
   const header = new Uint8Array(4);
   new DataView(header.buffer).setUint32(0, payload.length, false);
-  appendFileSync(path, Buffer.concat([header, payload]));
+  try {
+    appendFileSync(path, Buffer.concat([header, payload]));
+  } catch (err) {
+    // Tolerate fire-and-forget appends that race shutdown / test cleanup.
+    // Anything destructive (vault, evidence, revocation) takes a different
+    // (synchronously awaited) path; this only matters for the proof log.
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+}
+
+/**
+ * Legacy unsigned-event append. Retained for callers that haven't been
+ * migrated to ProofChain-routed signed events; new code MUST go through
+ * `enqueueSigned()` in `runDaemon`.
+ */
+function appendEventLine(path: string, ev: unknown): void {
+  appendEventBytes(path, new TextEncoder().encode(canonicalize(ev)));
 }
 
 /** Read the last `n` events from a .tflog file. Returns an array of
@@ -508,7 +802,7 @@ async function appendSignedEventLine(
   appendEventLine(path, signedEvent);
 }
 
-export { appendEventLine, appendSignedEventLine };
+export { appendEventBytes, appendEventLine, appendSignedEventLine };
 
 function wireFromBunServerSocket(ws: import("bun").ServerWebSocket<unknown>) {
   const messageListeners = new Set<(b: Uint8Array) => void>();
