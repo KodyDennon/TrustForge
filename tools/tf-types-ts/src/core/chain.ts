@@ -56,7 +56,7 @@ export function merkleRoot(events: readonly ProofEvent[]): string {
       const concat = new Uint8Array(level[i]!.length + level[i + 1]!.length);
       concat.set(level[i]!, 0);
       concat.set(level[i + 1]!, level[i]!.length);
-      next.push(sha256(concat));
+      next.push(new Uint8Array(sha256(concat)));
     }
     level = next;
   }
@@ -71,7 +71,7 @@ export function chainHash(events: readonly ProofEvent[]): string {
     const concat = new Uint8Array(state.length + evHash.length);
     concat.set(state, 0);
     concat.set(evHash, state.length);
-    state = sha256(concat);
+    state = new Uint8Array(sha256(concat));
   }
   return "sha256:" + toHex(state);
 }

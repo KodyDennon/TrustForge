@@ -7,3 +7,6 @@ export * from "./core/delegation.js";
 export * from "./core/revocation.js";
 export * from "./core/envelope.js";
 export * from "./core/canonical.js";
+export * from "./core/crypto.js";
+export * from "./core/chain.js";
+export * from "./core/format.js";
