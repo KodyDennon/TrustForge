@@ -17,6 +17,7 @@ pub mod envelope;
 pub mod format;
 pub mod instance_id;
 pub mod revocation;
+pub mod rpc;
 pub mod session;
 pub mod trust_domain;
 

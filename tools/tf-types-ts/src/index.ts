@@ -11,3 +11,4 @@ export * from "./core/crypto.js";
 export * from "./core/chain.js";
 export * from "./core/format.js";
 export * from "./core/session.js";
+export * from "./core/rpc.js";
