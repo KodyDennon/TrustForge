@@ -47,6 +47,27 @@ async function cmdBundle(args: string[]): Promise<number> {
   return 0;
 }
 
+function argValue(args: string[], flag: string): string | undefined {
+  const idx = args.indexOf(flag);
+  if (idx < 0) return undefined;
+  return args[idx + 1];
+}
+
+async function cmdCodegen(args: string[]): Promise<number> {
+  const target = argValue(args, "--target");
+  const out = argValue(args, "--out");
+  if (target === "ts") {
+    const dest = out ?? "tools/tf-types-ts/src/generated";
+    const { writeTsOutput } = await import("./codegen/ts");
+    const names = await writeTsOutput(dest);
+    console.log(`wrote ${names.length} files to ${dest}`);
+    return 0;
+  }
+  console.error(`codegen: unknown or missing target: ${target ?? "(none)"}`);
+  console.error("usage: tf-schema codegen --target ts [--out <dir>]");
+  return 2;
+}
+
 async function cmdLint(): Promise<number> {
   const { lintSchemas } = await import("./lint");
   const result = await lintSchemas();
@@ -66,7 +87,9 @@ if (cmd === "validate") {
   exit = await cmdLint();
 } else if (cmd === "bundle") {
   exit = await cmdBundle(rest);
+} else if (cmd === "codegen") {
+  exit = await cmdCodegen(rest);
 } else {
-  console.error("usage: tf-schema <validate|validate-all|lint|bundle> [args]");
+  console.error("usage: tf-schema <validate|validate-all|lint|bundle|codegen> [args]");
 }
 process.exit(exit);
