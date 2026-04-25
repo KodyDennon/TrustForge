@@ -21,6 +21,7 @@ pub mod revocation;
 pub mod rpc;
 pub mod session;
 pub mod trust_domain;
+pub mod vault;
 
 pub use actor_id::{actor_id_equals, format_actor_id, parse_actor_id, ActorIdParseError, ParsedActorId};
 pub use canonical::{canonicalize, CanonicalJsonError};

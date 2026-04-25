@@ -71,12 +71,12 @@ pub struct GuardEventStub {
 }
 
 #[derive(Clone, Debug)]
-struct IndexedAction {
-    name: String,
-    approval: Option<String>,
-    danger_tags: Vec<String>,
-    allow_targets: Vec<String>,
-    deny_targets: Vec<String>,
+pub struct IndexedAction {
+    pub name: String,
+    pub approval: Option<String>,
+    pub danger_tags: Vec<String>,
+    pub allow_targets: Vec<String>,
+    pub deny_targets: Vec<String>,
 }
 
 const ESCALATE_TAGS: &[&str] = &[
@@ -190,6 +190,25 @@ impl AgentGuard {
         F: Fn(&GuardEventStub) + Send + Sync + 'static,
     {
         self.on_event = Some(Box::new(f));
+    }
+
+    /// Every action declared in the bound contract, keyed by action name.
+    /// Callers use this to present contract contents in UIs or to enumerate
+    /// which actions exist before invoking the guard.
+    pub fn actions(&self) -> impl Iterator<Item = &IndexedAction> {
+        self.action_by_name.values()
+    }
+
+    pub fn action_by_name(&self, name: &str) -> Option<&IndexedAction> {
+        self.action_by_name.get(name)
+    }
+
+    pub fn forbidden_actions(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.forbidden_by_name.iter()
+    }
+
+    pub fn target_sets(&self) -> impl Iterator<Item = (&String, &Vec<String>)> {
+        self.target_sets.iter()
     }
 
     pub fn check(&self, query: &GuardQuery) -> GuardDecision {

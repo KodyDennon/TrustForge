@@ -110,6 +110,16 @@ impl Initiator {
         }
     }
 
+    /// Returns the established session state when the handshake has completed,
+    /// otherwise None. Callers use this to inspect the session without having
+    /// to retain a separate copy.
+    pub fn established_session(&self) -> Option<&SessionState> {
+        match &self.state {
+            InitiatorState::Established(s) => Some(s),
+            _ => None,
+        }
+    }
+
     pub fn start(&mut self) -> Result<HelloI, SessionError> {
         let InitiatorState::Fresh = self.state else {
             return Err(SessionError::Generic("initiator already started".into()));
@@ -212,6 +222,15 @@ enum ResponderState {
 }
 
 impl Responder {
+    /// Returns the established session state when the handshake has completed,
+    /// otherwise None.
+    pub fn established_session(&self) -> Option<&SessionState> {
+        match &self.state {
+            ResponderState::Established(s) => Some(s),
+            _ => None,
+        }
+    }
+
     pub fn new(cfg: SessionConfig) -> Self {
         Responder {
             cfg,

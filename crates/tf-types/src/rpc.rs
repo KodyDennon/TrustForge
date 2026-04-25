@@ -528,4 +528,23 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
     pub fn transport(&self) -> &Arc<T> {
         &self.transport
     }
+
+    pub fn enforcer(&self) -> &Arc<dyn CapabilityEnforcer> {
+        &self.enforcer
+    }
+}
+
+impl<T: RpcTransport + 'static> RpcServer<T> {
+    /// Run the CapabilityEnforcer against a synthetic call without going
+    /// through the transport — useful for CLI tooling and tests that want to
+    /// confirm what the server would decide for a given (caller, method,
+    /// capability) triple.
+    pub fn check_authorization(
+        &self,
+        caller: &str,
+        method: &str,
+        capability: &str,
+    ) -> CapabilityDecision {
+        self.enforcer.check(caller, method, capability)
+    }
 }
