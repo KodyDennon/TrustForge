@@ -1,0 +1,136 @@
+vectors:
+  - schema: actions
+    fixture: schemas/fixtures/actions/valid/basic.yaml
+    expect: valid
+  - schema: actions
+    fixture: schemas/fixtures/actions/invalid/bad-library-id.yaml
+    expect: invalid
+  - schema: actions
+    fixture: schemas/fixtures/actions/invalid/empty-actions.yaml
+    expect: invalid
+  - schema: actions
+    fixture: schemas/fixtures/actions/invalid/missing-default-risk.yaml
+    expect: invalid
+  - schema: actor-identity
+    fixture: schemas/fixtures/actor-identity/valid/basic.yaml
+    expect: valid
+  - schema: actor-identity
+    fixture: schemas/fixtures/actor-identity/invalid/bad-actor-type.yaml
+    expect: invalid
+  - schema: actor-identity
+    fixture: schemas/fixtures/actor-identity/invalid/bad-key-purpose.yaml
+    expect: invalid
+  - schema: actor-identity
+    fixture: schemas/fixtures/actor-identity/invalid/missing-public-keys.yaml
+    expect: invalid
+  - schema: agent-contract
+    fixture: schemas/fixtures/agent-contract/valid/minimal.yaml
+    expect: valid
+  - schema: agent-contract
+    fixture: schemas/fixtures/agent-contract/invalid/bad-action-name.yaml
+    expect: invalid
+  - schema: agent-contract
+    fixture: schemas/fixtures/agent-contract/invalid/bad-risk.yaml
+    expect: invalid
+  - schema: agent-contract
+    fixture: schemas/fixtures/agent-contract/invalid/missing-project.yaml
+    expect: invalid
+  - schema: capability-token
+    fixture: schemas/fixtures/capability-token/valid/basic.yaml
+    expect: valid
+  - schema: capability-token
+    fixture: schemas/fixtures/capability-token/composite/delegation-chain.yaml
+    expect: valid
+  - schema: capability-token
+    fixture: schemas/fixtures/capability-token/invalid/bad-issued-at.yaml
+    expect: invalid
+  - schema: capability-token
+    fixture: schemas/fixtures/capability-token/invalid/bad-subject-actor-type.yaml
+    expect: invalid
+  - schema: capability-token
+    fixture: schemas/fixtures/capability-token/invalid/missing-signature.yaml
+    expect: invalid
+  - schema: conformance
+    fixture: schemas/fixtures/conformance/valid/basic.yaml
+    expect: valid
+  - schema: conformance
+    fixture: schemas/fixtures/conformance/invalid/bad-as-of.yaml
+    expect: invalid
+  - schema: conformance
+    fixture: schemas/fixtures/conformance/invalid/bad-profile-pattern.yaml
+    expect: invalid
+  - schema: conformance
+    fixture: schemas/fixtures/conformance/invalid/empty-profiles.yaml
+    expect: invalid
+  - schema: policy
+    fixture: schemas/fixtures/policy/valid/basic.yaml
+    expect: valid
+  - schema: policy
+    fixture: schemas/fixtures/policy/invalid/bad-effect.yaml
+    expect: invalid
+  - schema: policy
+    fixture: schemas/fixtures/policy/invalid/missing-rules.yaml
+    expect: invalid
+  - schema: policy
+    fixture: schemas/fixtures/policy/invalid/rule-id-pattern.yaml
+    expect: invalid
+  - schema: proof-bundle
+    fixture: schemas/fixtures/proof-bundle/valid/basic.yaml
+    expect: valid
+  - schema: proof-bundle
+    fixture: schemas/fixtures/proof-bundle/invalid/bad-anchor-kind.yaml
+    expect: invalid
+  - schema: proof-bundle
+    fixture: schemas/fixtures/proof-bundle/invalid/empty-events.yaml
+    expect: invalid
+  - schema: proof-bundle
+    fixture: schemas/fixtures/proof-bundle/invalid/missing-signature.yaml
+    expect: invalid
+  - schema: proof-event
+    fixture: schemas/fixtures/proof-event/valid/basic.yaml
+    expect: valid
+  - schema: proof-event
+    fixture: schemas/fixtures/proof-event/invalid/bad-level.yaml
+    expect: invalid
+  - schema: proof-event
+    fixture: schemas/fixtures/proof-event/invalid/bad-type-pattern.yaml
+    expect: invalid
+  - schema: proof-event
+    fixture: schemas/fixtures/proof-event/invalid/missing-type.yaml
+    expect: invalid
+  - schema: proof-profile
+    fixture: schemas/fixtures/proof-profile/valid/basic.yaml
+    expect: valid
+  - schema: proof-profile
+    fixture: schemas/fixtures/proof-profile/invalid/bad-anchor.yaml
+    expect: invalid
+  - schema: proof-profile
+    fixture: schemas/fixtures/proof-profile/invalid/missing-emit.yaml
+    expect: invalid
+  - schema: proof-profile
+    fixture: schemas/fixtures/proof-profile/invalid/negative-retention.yaml
+    expect: invalid
+  - schema: revocation
+    fixture: schemas/fixtures/revocation/valid/basic.yaml
+    expect: valid
+  - schema: revocation
+    fixture: schemas/fixtures/revocation/invalid/bad-effective-at.yaml
+    expect: invalid
+  - schema: revocation
+    fixture: schemas/fixtures/revocation/invalid/bad-target-kind.yaml
+    expect: invalid
+  - schema: revocation
+    fixture: schemas/fixtures/revocation/invalid/missing-target-kind.yaml
+    expect: invalid
+  - schema: threat-model
+    fixture: schemas/fixtures/threat-model/valid/basic.yaml
+    expect: valid
+  - schema: threat-model
+    fixture: schemas/fixtures/threat-model/invalid/bad-accepted-at.yaml
+    expect: invalid
+  - schema: threat-model
+    fixture: schemas/fixtures/threat-model/invalid/bad-criticality.yaml
+    expect: invalid
+  - schema: threat-model
+    fixture: schemas/fixtures/threat-model/invalid/missing-assets.yaml
+    expect: invalid

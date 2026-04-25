@@ -10,7 +10,7 @@ public_keys:
     valid_until: "2027-04-01T00:00:00Z"
   - key_id: agent-kem-2026-04
     algorithm: ml-kem-768
-    public_key: "MIICCjANBgkqhkiG9w0BAQsFAAOCAfcAMIIB8gKCAf..."
+    public_key: "MIICCjANBgkqhkiG9w0BAQsFAAOCAfcAMIIB8gKCAfEAvPQ="
     purpose: kem
 trust_levels: [T3, T4]
 authority_roots:

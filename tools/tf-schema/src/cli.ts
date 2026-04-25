@@ -91,6 +91,37 @@ async function cmdLint(): Promise<number> {
   return result.issues.length === 0 ? 0 : 1;
 }
 
+async function cmdFuzz(args: string[]): Promise<number> {
+  const { fuzzSchema, fuzzAll } = await import("./fuzz");
+  const iterations = Number(argValue(args, "--iterations") ?? 200);
+  const schema = args.find((a) => !a.startsWith("--"));
+  if (schema) {
+    const r = await fuzzSchema(schema, { iterations });
+    console.log(JSON.stringify(r, null, 2));
+    return r.panics.length === 0 ? 0 : 1;
+  }
+  const results = await fuzzAll(iterations);
+  const totalPanics = results.reduce((n, r) => n + r.panics.length, 0);
+  console.log(JSON.stringify(results, null, 2));
+  return totalPanics === 0 ? 0 : 1;
+}
+
+async function cmdParity(args: string[]): Promise<number> {
+  const { generateParity, runParityTs, serializeParity } = await import("./parity");
+  const { writeFileSync } = await import("node:fs");
+  const out = argValue(args, "--out") ?? "conformance/parity.yaml";
+  const parity = await generateParity();
+  writeFileSync(out, serializeParity(parity));
+  const result = await runParityTs(out);
+  if (!result.ok) {
+    console.error(`parity: ${result.mismatches.length} mismatches`);
+    for (const m of result.mismatches) console.error(`  ${m.vector.fixture}: expected ${m.vector.expect}, got ${m.got}`);
+    return 1;
+  }
+  console.log(`parity: ${parity.vectors.length} vectors OK`);
+  return 0;
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 let exit = 2;
 if (cmd === "validate") {
@@ -103,7 +134,11 @@ if (cmd === "validate") {
   exit = await cmdBundle(rest);
 } else if (cmd === "codegen") {
   exit = await cmdCodegen(rest);
+} else if (cmd === "fuzz") {
+  exit = await cmdFuzz(rest);
+} else if (cmd === "parity") {
+  exit = await cmdParity(rest);
 } else {
-  console.error("usage: tf-schema <validate|validate-all|lint|bundle|codegen> [args]");
+  console.error("usage: tf-schema <validate|validate-all|lint|bundle|codegen|fuzz|parity> [args]");
 }
 process.exit(exit);
