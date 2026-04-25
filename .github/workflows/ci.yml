@@ -23,6 +23,10 @@ jobs:
           bun run tools/tf-schema/src/cli.ts codegen --target ts
           bun run tools/tf-schema/src/cli.ts codegen --target rust
           bun run tools/tf-schema/src/cli.ts codegen --target docs
+          bun run tools/tf-schema/src/cli.ts codegen --target rpc-ts \
+            --spec examples/proofrpc/code-helper.tfrpc.yaml
+          bun run tools/tf-schema/src/cli.ts codegen --target rpc-rust \
+            --spec examples/proofrpc/code-helper.tfrpc.yaml
           bun run tools/tf-schema/src/cli.ts parity
           git diff --exit-code
       - run: bun run tools/tf-schema/src/cli.ts fuzz --iterations 200
