@@ -1,0 +1,6 @@
+policy_version: "1"
+trust_domain: example.com
+rules:
+  - id: "Bad ID!"
+    effect: allow
+    action: file.read

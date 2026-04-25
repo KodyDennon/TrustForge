@@ -1,0 +1,3 @@
+errors:
+  - path: "/rules/0/effect"
+    keyword: enum

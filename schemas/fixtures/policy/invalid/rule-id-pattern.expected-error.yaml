@@ -1,0 +1,3 @@
+errors:
+  - path: "/rules/0/id"
+    keyword: pattern
