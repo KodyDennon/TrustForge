@@ -73,13 +73,38 @@ fn read_u32_be(buf: &[u8], off: usize) -> Result<u32, BinaryFormatError> {
     ]))
 }
 
+fn canonicalize_json(v: serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match v {
+        Value::Object(map) => {
+            let mut entries: Vec<(String, Value)> = map
+                .into_iter()
+                .map(|(k, val)| (k, canonicalize_json(val)))
+                .collect();
+            entries.sort_by(|a, b| a.0.as_bytes().cmp(b.0.as_bytes()));
+            let mut out = serde_json::Map::with_capacity(entries.len());
+            for (k, val) in entries {
+                out.insert(k, val);
+            }
+            Value::Object(out)
+        }
+        Value::Array(arr) => Value::Array(arr.into_iter().map(canonicalize_json).collect()),
+        other => other,
+    }
+}
+
 fn cbor_encode<T: Serialize>(v: &T) -> Result<Vec<u8>, BinaryFormatError> {
-    // RFC 8949 §4.2.3 deterministic encoding via the BTreeMap-backed
-    // `serde_json::Value` intermediate (see module docstring).
+    // RFC 8949 §4.2.3 deterministic encoding. We canonicalize through a
+    // `serde_json::Value` intermediate then explicitly sort all object
+    // keys lexicographically — relying on `serde_json::Map`'s default
+    // BTreeMap backing isn't safe because any workspace dep may pull in
+    // `serde_json` with the `preserve_order` feature, which silently
+    // switches the backing map to `IndexMap` and breaks parity.
     let json_value: serde_json::Value =
         serde_json::to_value(v).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
+    let canonical = canonicalize_json(json_value);
     let mut out = Vec::new();
-    ciborium::ser::into_writer(&json_value, &mut out)
+    ciborium::ser::into_writer(&canonical, &mut out)
         .map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
     Ok(out)
 }
@@ -203,8 +228,7 @@ mod tests {
         let mut serialised = Vec::new();
         ciborium::ser::into_writer(&parts.body, &mut serialised).unwrap();
         // Re-decode as a typed Value to assert structure.
-        let decoded: serde_json::Value =
-            ciborium::de::from_reader(serialised.as_slice()).unwrap();
+        let decoded: serde_json::Value = ciborium::de::from_reader(serialised.as_slice()).unwrap();
         assert_eq!(decoded["bundle_version"], "1");
     }
 

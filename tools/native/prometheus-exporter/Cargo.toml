@@ -10,7 +10,7 @@ description = "Prometheus exporter that scrapes a tf-daemon admin endpoint and r
 prometheus = "0.13"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hyper = { version = "1", features = ["server", "http1"] }
@@ -18,6 +18,7 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tf-otel = { path = "../../../crates/tf-otel" }
 
 [lib]
 name = "tf_prom_exporter"

@@ -37,10 +37,10 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+pub mod nonce_cache;
+pub mod orl;
 pub mod packet;
 pub mod relay;
-pub mod orl;
-pub mod nonce_cache;
 
 /// Compact ed25519 public key (32 bytes).
 pub type PublicKeyBytes = [u8; 32];

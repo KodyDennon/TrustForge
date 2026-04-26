@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
+    <key>CFBundleExecutable</key>
+    <string>TrustForge</string>
+
+    <key>CFBundleIdentifier</key>
+    <string>com.trustforge.AuthPlugin</string>
+
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <key>CFBundleName</key>
+    <string>TrustForge</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>TrustForge Authorization Plugin</string>
+
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <key>NSPrincipalClass</key>
+    <string>NSObject</string>
+
+    <key>NSHumanReadableCopyright</key>
+    <string>TrustForge Phase 0 (experimental). No warranty.</string>
+
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+
+    <!-- The SecurityAgent loads the bundle by dlopen()ing CFBundleExecutable
+         and resolving "AuthorizationPluginCreate". No additional principal
+         classes are required. -->
+
+    <key>TrustForgePluginRole</key>
+    <string>gate</string>
+</dict>
+</plist>

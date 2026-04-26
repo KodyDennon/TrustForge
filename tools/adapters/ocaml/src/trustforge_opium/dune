@@ -1,0 +1,5 @@
+(library
+ (name trustforge_opium)
+ (public_name trustforge_opium)
+ (libraries trustforge opium lwt)
+ (preprocess (pps lwt_ppx)))

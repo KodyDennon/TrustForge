@@ -160,10 +160,19 @@ mod tests {
     #[test]
     fn normalise_basic() {
         // dot is non-alphanumeric → collapsed to `_`, then `a2a.` prefix added.
-        assert_eq!(a2a_normalise_capability("filesystem.read", None), "a2a.filesystem_read");
+        assert_eq!(
+            a2a_normalise_capability("filesystem.read", None),
+            "a2a.filesystem_read"
+        );
         assert_eq!(a2a_normalise_capability("ping", None), "a2a.ping");
-        assert_eq!(a2a_normalise_capability("Read File!", None), "a2a.read_file");
-        assert_eq!(a2a_normalise_capability("system-info", Some("tools")), "tools.system_info");
+        assert_eq!(
+            a2a_normalise_capability("Read File!", None),
+            "a2a.read_file"
+        );
+        assert_eq!(
+            a2a_normalise_capability("system-info", Some("tools")),
+            "tools.system_info"
+        );
     }
 
     #[test]

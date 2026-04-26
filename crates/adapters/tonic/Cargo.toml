@@ -12,6 +12,8 @@ tonic = "0.12"
 tower = { version = "0.5", features = ["util"] }
 tokio = { version = "1", features = ["rt", "macros", "sync"] }
 http = "1"
+tracing = "0.1"
+tf-otel = { path = "../../tf-otel" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }

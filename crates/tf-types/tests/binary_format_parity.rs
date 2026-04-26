@@ -55,10 +55,8 @@ fn binary_format_vectors_round_trip() {
         "{}/../../conformance/binary-format-vectors.yaml",
         env!("CARGO_MANIFEST_DIR")
     );
-    let raw =
-        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path, e));
-    let file: VectorFile =
-        serde_yaml::from_str(&raw).expect("parse binary-format-vectors.yaml");
+    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path, e));
+    let file: VectorFile = serde_yaml::from_str(&raw).expect("parse binary-format-vectors.yaml");
 
     assert_eq!(file.tfbundle.len(), 4, "expected 4 tfbundle fixtures");
     assert_eq!(file.tfpkt.len(), 4, "expected 4 tfpkt fixtures");
@@ -70,14 +68,9 @@ fn binary_format_vectors_round_trip() {
         let body: serde_json::Value =
             serde_yaml::from_str(&f.input_yaml).expect("parse bundle input_yaml");
         let sig: Option<Vec<u8>> = f.signature_hex.as_deref().map(from_hex);
-        let bytes =
-            write_tfbundle(&body, sig.as_deref()).expect("write_tfbundle");
+        let bytes = write_tfbundle(&body, sig.as_deref()).expect("write_tfbundle");
         let got = to_hex(&bytes);
-        assert_eq!(
-            got, f.expected_hex,
-            "tfbundle.{} hex mismatch",
-            f.id
-        );
+        assert_eq!(got, f.expected_hex, "tfbundle.{} hex mismatch", f.id);
     }
 
     for f in &file.tfpkt {
@@ -85,8 +78,7 @@ fn binary_format_vectors_round_trip() {
         // production code path. The BTreeMap-via-serde_json::Value
         // canonicalization step inside `cbor_encode` ensures the
         // emitted bytes match the TS encoder's sorted-key output.
-        let pkt: Packet =
-            serde_yaml::from_str(&f.input_yaml).expect("parse packet input_yaml");
+        let pkt: Packet = serde_yaml::from_str(&f.input_yaml).expect("parse packet input_yaml");
         let bytes = write_tfpkt(&pkt).expect("write_tfpkt");
         let got = to_hex(&bytes);
         assert_eq!(got, f.expected_hex, "tfpkt.{} hex mismatch", f.id);

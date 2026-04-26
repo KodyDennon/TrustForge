@@ -1,0 +1,13 @@
+go 1.21
+
+use (
+	./trustforge
+	./trustforge-buffalo
+	./trustforge-chi
+	./trustforge-echo
+	./trustforge-fiber
+	./trustforge-gin
+	./trustforge-grpc
+	./trustforge-iris
+	./trustforge-nethttp
+)

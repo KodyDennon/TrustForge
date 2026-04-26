@@ -1,12 +1,12 @@
-use std::sync::Arc;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::{mpsc, Mutex};
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
 use futures::{SinkExt, StreamExt};
+use std::sync::Arc;
+use tf_types::rpc::RpcTransport;
 use tf_types::session::{
     Initiator, Responder, SessionConfig, SessionError, SessionFrame, SessionState,
 };
-use tf_types::rpc::RpcTransport;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::sync::{mpsc, Mutex};
+use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CarrierError {
@@ -28,7 +28,9 @@ pub struct SessionEndpoint {
 
 impl SessionEndpoint {
     pub async fn send(&self, frame: SessionFrame) -> Result<(), CarrierError> {
-        self.tx.send(frame).map_err(|_| CarrierError::Handshake("channel closed".into()))?;
+        self.tx
+            .send(frame)
+            .map_err(|_| CarrierError::Handshake("channel closed".into()))?;
         Ok(())
     }
 
@@ -77,7 +79,9 @@ where
     framed.send(hello_i_bytes.into()).await?;
 
     // 2. Receive HelloR
-    let hello_r_bytes = framed.next().await
+    let hello_r_bytes = framed
+        .next()
+        .await
         .ok_or_else(|| CarrierError::Handshake("peer closed during HelloR".into()))??;
     let hello_r = serde_json::from_slice(&hello_r_bytes)?;
 
@@ -101,7 +105,9 @@ where
     let mut responder = Responder::new(config);
 
     // 1. Receive HelloI
-    let hello_i_bytes = framed.next().await
+    let hello_i_bytes = framed
+        .next()
+        .await
         .ok_or_else(|| CarrierError::Handshake("peer closed during HelloI".into()))??;
     let hello_i = serde_json::from_slice(&hello_i_bytes)?;
 
@@ -111,7 +117,9 @@ where
     framed.send(hello_r_bytes.into()).await?;
 
     // 3. Receive Auth and establish
-    let auth_bytes = framed.next().await
+    let auth_bytes = framed
+        .next()
+        .await
         .ok_or_else(|| CarrierError::Handshake("peer closed during Auth".into()))??;
     let auth = serde_json::from_slice(&auth_bytes)?;
     let session = responder.process_auth(auth)?;
@@ -128,7 +136,8 @@ where
 {
     let session = Arc::new(Mutex::new(session));
     let (tx, mut rx) = mpsc::unbounded_channel::<SessionFrame>();
-    let listeners: Arc<Mutex<Vec<Arc<dyn Fn(SessionFrame) + Send + Sync>>>> = Arc::new(Mutex::new(Vec::new()));
+    let listeners: Arc<Mutex<Vec<Arc<dyn Fn(SessionFrame) + Send + Sync>>>> =
+        Arc::new(Mutex::new(Vec::new()));
 
     let session_inner = session.clone();
     let listeners_inner = listeners.clone();

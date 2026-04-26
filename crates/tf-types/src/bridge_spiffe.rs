@@ -15,15 +15,17 @@ pub fn parse_spiffe_id(id: &str) -> Result<ParsedSpiffeId, BridgeError> {
     if id.is_empty() {
         return Err(BridgeError::InvalidInput("empty SPIFFE ID".into()));
     }
-    let rest = id
-        .strip_prefix("spiffe://")
-        .ok_or_else(|| BridgeError::InvalidInput(format!("SPIFFE ID must start with spiffe://, got {:?}", id)))?;
+    let rest = id.strip_prefix("spiffe://").ok_or_else(|| {
+        BridgeError::InvalidInput(format!("SPIFFE ID must start with spiffe://, got {:?}", id))
+    })?;
     let (trust_domain, path) = match rest.find('/') {
         Some(i) => (&rest[..i], &rest[i + 1..]),
         None => (rest, ""),
     };
     if trust_domain.is_empty() {
-        return Err(BridgeError::InvalidInput("SPIFFE ID has no trust domain".into()));
+        return Err(BridgeError::InvalidInput(
+            "SPIFFE ID has no trust domain".into(),
+        ));
     }
     if path.is_empty() {
         return Err(BridgeError::InvalidInput("SPIFFE ID has no path".into()));
@@ -63,12 +65,12 @@ pub fn actor_id_to_spiffe(actor_id: &str) -> Result<String, BridgeError> {
             type_segment
         )));
     }
-    let slash = path_segment
-        .find('/')
-        .ok_or_else(|| BridgeError::InvalidInput(format!(
+    let slash = path_segment.find('/').ok_or_else(|| {
+        BridgeError::InvalidInput(format!(
             "service actor path must be <trust-domain>/<path>, got {}",
             path_segment
-        )))?;
+        ))
+    })?;
     let trust_domain = &path_segment[..slash];
     let tail = &path_segment[slash + 1..];
     Ok(format!("spiffe://{}/{}", trust_domain, tail))

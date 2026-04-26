@@ -162,3 +162,50 @@ fn malformed_policy_returns_constructor_error() {
         Ok(_) => panic!("malformed policy must fail"),
     }
 }
+
+#[test]
+fn partial_input_does_not_panic_and_safe_denies() {
+    // Partial / sparse input — only a subject is supplied, several rule
+    // branches reference nested context fields that aren't present. The
+    // engine must (a) not panic, (b) collapse those branches to false,
+    // and (c) the `default allow = false` must take effect.
+    let policy = r#"
+package trustforge
+
+default allow = false
+
+# admin escape hatch needs a rich context shape
+allow if {
+    input.context.role == "admin"
+    input.context.tenant == "primary"
+    input.action == "write"
+}
+
+# minimal-form allow that only requires a subject + action
+allow if {
+    input.subject == "trusted-bot"
+    input.action == "read"
+}
+"#;
+    let engine = RegoPolicyEngine::new(policy).expect("engine");
+
+    // Sparse input: matches the second rule.
+    let allow = engine.evaluate(&PolicyQuery {
+        subject: "trusted-bot".into(),
+        action: "read".into(),
+        ..Default::default()
+    });
+    assert_eq!(allow.decision, "allow");
+
+    // Sparse input: hits the admin branch but `context.tenant` missing →
+    // safe deny, not a runtime error.
+    let mut admin_ctx = HashMap::new();
+    admin_ctx.insert("role".to_string(), serde_json::json!("admin"));
+    let deny = engine.evaluate(&PolicyQuery {
+        subject: "alice".into(),
+        action: "write".into(),
+        context: admin_ctx,
+        ..Default::default()
+    });
+    assert_eq!(deny.decision, "deny");
+}

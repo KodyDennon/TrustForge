@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Revocation record that invalidates a capability, actor, delegation, or instance (TF-0004).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

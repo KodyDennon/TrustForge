@@ -99,7 +99,10 @@ fn parity_vectors_match() {
         match v.expect.as_str() {
             "forward" => {
                 let (out, ev) = handler.forward(&frame, &file.now).expect(&v.name);
-                assert_eq!(out.hop_count, v.expect_hop_count_out.expect("expect_hop_count_out"));
+                assert_eq!(
+                    out.hop_count,
+                    v.expect_hop_count_out.expect("expect_hop_count_out")
+                );
                 assert_eq!(ev.kind, "relay.forwarded");
             }
             "reject" => {

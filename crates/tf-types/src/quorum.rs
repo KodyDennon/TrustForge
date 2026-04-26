@@ -90,12 +90,7 @@ impl QuorumHandle {
     /// Record one approver's vote. Returns true when the vote was accepted
     /// (approver is in the eligible set and hasn't already voted), false
     /// otherwise.
-    pub fn respond_as(
-        &self,
-        approver: &str,
-        decision: &str,
-        signature: QuorumSignature,
-    ) -> bool {
+    pub fn respond_as(&self, approver: &str, decision: &str, signature: QuorumSignature) -> bool {
         if !self.cfg.of.iter().any(|a| a == approver) {
             return false;
         }
@@ -111,9 +106,7 @@ impl QuorumHandle {
         } else {
             state.deniers.push(approver.to_string());
         }
-        if state.approvers.len() as u32 >= self.cfg.min_approvers
-            && state.outcome.is_none()
-        {
+        if state.approvers.len() as u32 >= self.cfg.min_approvers && state.outcome.is_none() {
             state.outcome = Some(self.materialise(&state, "approve"));
         } else if state.approvers.len() + state.deniers.len() >= self.cfg.of.len()
             && state.outcome.is_none()
@@ -174,7 +167,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

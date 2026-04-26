@@ -164,7 +164,10 @@ mod tests {
         };
         let digest = relay_authority_signing_bytes(&auth);
         let sig = kp.sk.sign(digest, None);
-        auth.signature.signature.extend_from_slice(sig.as_ref()).unwrap();
+        auth.signature
+            .signature
+            .extend_from_slice(sig.as_ref())
+            .unwrap();
         (auth, pk_bytes)
     }
 

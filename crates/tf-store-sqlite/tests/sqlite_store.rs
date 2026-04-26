@@ -45,7 +45,10 @@ fn proof_ledger_roundtrip() {
     assert_eq!(tail[0], event_a);
     assert_eq!(tail[1], event_b);
 
-    assert!(ledger.lookup("does-not-exist").expect("lookup miss").is_none());
+    assert!(ledger
+        .lookup("does-not-exist")
+        .expect("lookup miss")
+        .is_none());
 }
 
 #[test]
@@ -54,20 +57,40 @@ fn revocation_cache_roundtrip() {
     let cache = SqliteRevocationCache::open(&path).expect("open cache");
 
     cache
-        .insert("actor", "tf:actor:agent:example.com/x", "2026-04-25T00:00:00Z")
+        .insert(
+            "actor",
+            "tf:actor:agent:example.com/x",
+            "2026-04-25T00:00:00Z",
+        )
         .expect("insert");
 
     assert!(cache
-        .is_revoked("actor", "tf:actor:agent:example.com/x", "2026-04-25T00:00:00Z")
+        .is_revoked(
+            "actor",
+            "tf:actor:agent:example.com/x",
+            "2026-04-25T00:00:00Z"
+        )
         .expect("is_revoked at boundary"));
     assert!(cache
-        .is_revoked("actor", "tf:actor:agent:example.com/x", "2026-04-26T00:00:00Z")
+        .is_revoked(
+            "actor",
+            "tf:actor:agent:example.com/x",
+            "2026-04-26T00:00:00Z"
+        )
         .expect("is_revoked after"));
     assert!(!cache
-        .is_revoked("actor", "tf:actor:agent:example.com/x", "2026-04-24T00:00:00Z")
+        .is_revoked(
+            "actor",
+            "tf:actor:agent:example.com/x",
+            "2026-04-24T00:00:00Z"
+        )
         .expect("not revoked before effective"));
     assert!(!cache
-        .is_revoked("actor", "tf:actor:agent:example.com/y", "2099-01-01T00:00:00Z")
+        .is_revoked(
+            "actor",
+            "tf:actor:agent:example.com/y",
+            "2099-01-01T00:00:00Z"
+        )
         .expect("unknown is not revoked"));
 
     let listed = cache.list().expect("list");

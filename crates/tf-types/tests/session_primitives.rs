@@ -51,7 +51,8 @@ fn load_vectors() -> VectorsFile {
         .join("..")
         .join("conformance")
         .join("session-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse session-vectors.yaml")
 }
 
@@ -84,7 +85,12 @@ fn x25519_dh_is_symmetric() {
 #[test]
 fn hkdf_vectors() {
     for v in &load_vectors().hkdf_sha256 {
-        let out = hkdf_sha256(&from_hex(&v.ikm), &from_hex(&v.salt), &from_hex(&v.info), v.length);
+        let out = hkdf_sha256(
+            &from_hex(&v.ikm),
+            &from_hex(&v.salt),
+            &from_hex(&v.info),
+            v.length,
+        );
         assert_eq!(hex_encode(&out), v.output.to_lowercase(), "{}", v.name);
     }
 }
@@ -97,10 +103,20 @@ fn aead_vectors() {
         let aad = from_hex(&v.aad);
         let plaintext = from_hex(&v.plaintext);
         let ct = chacha20poly1305_encrypt(&key, &nonce, &aad, &plaintext);
-        assert_eq!(hex_encode(&ct), v.ciphertext_with_tag.to_lowercase(), "{} encrypt", v.name);
+        assert_eq!(
+            hex_encode(&ct),
+            v.ciphertext_with_tag.to_lowercase(),
+            "{} encrypt",
+            v.name
+        );
         let pt = chacha20poly1305_decrypt(&key, &nonce, &aad, &from_hex(&v.ciphertext_with_tag))
             .unwrap_or_else(|e| panic!("{}: {}", v.name, e));
-        assert_eq!(hex_encode(&pt), v.plaintext.to_lowercase(), "{} decrypt", v.name);
+        assert_eq!(
+            hex_encode(&pt),
+            v.plaintext.to_lowercase(),
+            "{} decrypt",
+            v.name
+        );
     }
 }
 

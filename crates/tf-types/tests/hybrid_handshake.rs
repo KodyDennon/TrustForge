@@ -58,7 +58,10 @@ fn hybrid_handshake_round_trip() {
     assert!(hello_r.ident_pub_mldsa.is_some());
 
     let (auth, init_session) = initiator.process_hello_r(hello_r).expect("process_hello_r");
-    assert!(auth.signature_mldsa.is_some(), "initiator Auth must carry mldsa sig");
+    assert!(
+        auth.signature_mldsa.is_some(),
+        "initiator Auth must carry mldsa sig"
+    );
     assert!(auth.ident_pub_mldsa.is_some());
 
     let resp_session = responder.process_auth(auth).expect("process_auth");

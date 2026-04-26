@@ -293,13 +293,7 @@ async fn subscribe_emits_subscribed_and_unsubscribed_ack() {
     let mut saw_subscribed = false;
     let mut saw_unsubscribed = false;
     for f in frames.iter() {
-        if let RpcFrame::RpcStream {
-            seq,
-            more,
-            ext,
-            ..
-        } = f
-        {
+        if let RpcFrame::RpcStream { seq, more, ext, .. } = f {
             if *seq == -1 {
                 if let Some(ext) = ext {
                     match ext.ack.as_deref() {
@@ -424,12 +418,12 @@ async fn bulk_transfer_verifies_hash() {
             _ => None,
         })
         .expect("response frame");
-    assert_eq!(response_frame.method_kind, Some(RpcMethodKind::BulkTransfer));
     assert_eq!(
-        response_frame
-            .bulk
-            .and_then(|b| b.expected_hash)
-            .as_deref(),
+        response_frame.method_kind,
+        Some(RpcMethodKind::BulkTransfer)
+    );
+    assert_eq!(
+        response_frame.bulk.and_then(|b| b.expected_hash).as_deref(),
         Some(expected_hash.as_str())
     );
 }
@@ -528,18 +522,12 @@ async fn bulk_transfer_rejects_hash_mismatch() {
         .clone()
         .expect("server response not received");
     let RpcFrame::RpcResponse {
-        status,
-        error,
-        ext,
-        ..
+        status, error, ext, ..
     } = response
     else {
         panic!("expected rpc-response");
     };
-    assert!(matches!(
-        status,
-        tf_types::rpc::ResponseStatus::Error
-    ));
+    assert!(matches!(status, tf_types::rpc::ResponseStatus::Error));
     let err = error.expect("error body");
     assert_eq!(err.code, tf_types::rpc::RpcErrorCode::InvalidArgument);
     // ext.bulk.expected_hash should echo the *actual* hash so the client
@@ -705,12 +693,7 @@ async fn agent_session_preserves_chain() {
         })
         .unwrap();
     drop(frames_tx);
-    let mut rx = client.agent_session_raw(
-        "session",
-        json!({}),
-        initial_chain.clone(),
-        frames_rx,
-    );
+    let mut rx = client.agent_session_raw("session", json!({}), initial_chain.clone(), frames_rx);
     let mut got = Vec::new();
     let result = timeout(Duration::from_secs(2), async {
         while let Some(item) = rx.recv().await {
@@ -735,7 +718,10 @@ async fn agent_session_preserves_chain() {
     let frames = rpc_frames(&pair.server_sent);
     let mut saw_chained_stream = false;
     for f in &frames {
-        if let RpcFrame::RpcStream { ext, more, value, .. } = f {
+        if let RpcFrame::RpcStream {
+            ext, more, value, ..
+        } = f
+        {
             if *more && value.is_some() {
                 if let Some(ext) = ext {
                     assert_eq!(ext.method_kind, Some(RpcMethodKind::AgentSession));

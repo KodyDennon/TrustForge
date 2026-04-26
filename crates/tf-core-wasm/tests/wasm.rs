@@ -14,9 +14,9 @@
 
 #![cfg(target_arch = "wasm32")]
 
+use serde_wasm_bindgen::to_value;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_test::wasm_bindgen_test;
-use serde_wasm_bindgen::to_value;
 
 use tf_core_wasm::{canonicalize, ed25519_verify, evaluate_policy, verify_packet};
 
@@ -49,28 +49,18 @@ fn verify_packet_returns_decision_object() {
             "signature": "AAAA"
         }
     });
-    let pk = base64::Engine::encode(
-        &base64::engine::general_purpose::STANDARD,
-        [0u8; 32],
-    );
-    let res = verify_packet(jv(packet), pk, "2026-04-25T00:00:00Z".to_string())
-        .expect("verify_packet");
-    let v: serde_json::Value =
-        serde_wasm_bindgen::from_value(res).expect("from_value");
+    let pk = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 32]);
+    let res =
+        verify_packet(jv(packet), pk, "2026-04-25T00:00:00Z".to_string()).expect("verify_packet");
+    let v: serde_json::Value = serde_wasm_bindgen::from_value(res).expect("from_value");
     assert!(v.get("ok").is_some(), "missing ok field");
     assert!(v.get("reason").is_some(), "missing reason field");
 }
 
 #[wasm_bindgen_test]
 fn ed25519_verify_returns_false_on_garbage() {
-    let pk = base64::Engine::encode(
-        &base64::engine::general_purpose::STANDARD,
-        [0u8; 32],
-    );
-    let sig = base64::Engine::encode(
-        &base64::engine::general_purpose::STANDARD,
-        [0u8; 64],
-    );
+    let pk = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 32]);
+    let sig = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 64]);
     let ok = ed25519_verify(pk, b"hello".to_vec(), sig);
     assert!(!ok);
 }
@@ -92,7 +82,6 @@ fn evaluate_policy_returns_decision() {
         "action": "fs.read"
     }));
     let res = evaluate_policy(manifest, query).expect("evaluate_policy");
-    let v: serde_json::Value =
-        serde_wasm_bindgen::from_value(res).expect("from_value");
+    let v: serde_json::Value = serde_wasm_bindgen::from_value(res).expect("from_value");
     assert!(v.get("decision").is_some(), "missing decision field");
 }

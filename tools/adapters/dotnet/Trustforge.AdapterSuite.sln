@@ -1,0 +1,81 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.Sdk", "Trustforge.Sdk\Trustforge.Sdk.csproj", "{B401CA19-3FE1-4830-89D7-7E25D4B9BDAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.AspNetCore", "Trustforge.AspNetCore\Trustforge.AspNetCore.csproj", "{350B390E-6AAE-4DB7-93E2-DE1F572BB41E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.AspNetCore.Tests", "Trustforge.AspNetCore.Tests\Trustforge.AspNetCore.Tests.csproj", "{CF9D0AF8-7AC4-4ED0-9D43-410A88907373}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.OWIN", "Trustforge.OWIN\Trustforge.OWIN.csproj", "{CA2C1648-C70A-47D2-8F94-8D814542E36C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.OWIN.Tests", "Trustforge.OWIN.Tests\Trustforge.OWIN.Tests.csproj", "{F35B74E2-48E1-40C0-BF2C-F0EDDA439373}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.MinimalApi", "Trustforge.MinimalApi\Trustforge.MinimalApi.csproj", "{B9D55892-936B-48F6-B2B9-A7597990147A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.MinimalApi.Tests", "Trustforge.MinimalApi.Tests\Trustforge.MinimalApi.Tests.csproj", "{07E7A92B-7FF8-4BE3-A124-1407C2A73D24}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.SignalR", "Trustforge.SignalR\Trustforge.SignalR.csproj", "{320A1D63-692F-4398-A1B0-1522286C8403}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.SignalR.Tests", "Trustforge.SignalR.Tests\Trustforge.SignalR.Tests.csproj", "{EC375415-6864-4D78-A01A-945C4820287B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.Orleans", "Trustforge.Orleans\Trustforge.Orleans.csproj", "{9439F663-0F6B-4BE7-9C2E-0BD59EEF97ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trustforge.Orleans.Tests", "Trustforge.Orleans.Tests\Trustforge.Orleans.Tests.csproj", "{7F333244-111E-414D-92E6-5C318D8E80E3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B401CA19-3FE1-4830-89D7-7E25D4B9BDAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B401CA19-3FE1-4830-89D7-7E25D4B9BDAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B401CA19-3FE1-4830-89D7-7E25D4B9BDAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B401CA19-3FE1-4830-89D7-7E25D4B9BDAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{350B390E-6AAE-4DB7-93E2-DE1F572BB41E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{350B390E-6AAE-4DB7-93E2-DE1F572BB41E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{350B390E-6AAE-4DB7-93E2-DE1F572BB41E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{350B390E-6AAE-4DB7-93E2-DE1F572BB41E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF9D0AF8-7AC4-4ED0-9D43-410A88907373}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF9D0AF8-7AC4-4ED0-9D43-410A88907373}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF9D0AF8-7AC4-4ED0-9D43-410A88907373}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF9D0AF8-7AC4-4ED0-9D43-410A88907373}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA2C1648-C70A-47D2-8F94-8D814542E36C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA2C1648-C70A-47D2-8F94-8D814542E36C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA2C1648-C70A-47D2-8F94-8D814542E36C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA2C1648-C70A-47D2-8F94-8D814542E36C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F35B74E2-48E1-40C0-BF2C-F0EDDA439373}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F35B74E2-48E1-40C0-BF2C-F0EDDA439373}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F35B74E2-48E1-40C0-BF2C-F0EDDA439373}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F35B74E2-48E1-40C0-BF2C-F0EDDA439373}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9D55892-936B-48F6-B2B9-A7597990147A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9D55892-936B-48F6-B2B9-A7597990147A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9D55892-936B-48F6-B2B9-A7597990147A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9D55892-936B-48F6-B2B9-A7597990147A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07E7A92B-7FF8-4BE3-A124-1407C2A73D24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07E7A92B-7FF8-4BE3-A124-1407C2A73D24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07E7A92B-7FF8-4BE3-A124-1407C2A73D24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07E7A92B-7FF8-4BE3-A124-1407C2A73D24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{320A1D63-692F-4398-A1B0-1522286C8403}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{320A1D63-692F-4398-A1B0-1522286C8403}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{320A1D63-692F-4398-A1B0-1522286C8403}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{320A1D63-692F-4398-A1B0-1522286C8403}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC375415-6864-4D78-A01A-945C4820287B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC375415-6864-4D78-A01A-945C4820287B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC375415-6864-4D78-A01A-945C4820287B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC375415-6864-4D78-A01A-945C4820287B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9439F663-0F6B-4BE7-9C2E-0BD59EEF97ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9439F663-0F6B-4BE7-9C2E-0BD59EEF97ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9439F663-0F6B-4BE7-9C2E-0BD59EEF97ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9439F663-0F6B-4BE7-9C2E-0BD59EEF97ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F333244-111E-414D-92E6-5C318D8E80E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F333244-111E-414D-92E6-5C318D8E80E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F333244-111E-414D-92E6-5C318D8E80E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F333244-111E-414D-92E6-5C318D8E80E3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

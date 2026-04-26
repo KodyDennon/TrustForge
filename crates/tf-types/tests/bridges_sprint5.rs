@@ -1,7 +1,7 @@
 //! Sprint-5 Rust bridge tests: DID, Matrix, Webhook, Service-Mesh.
 
-use ed25519_dalek::SigningKey;
 use ed25519_dalek::Signer;
+use ed25519_dalek::SigningKey;
 use hmac::{Hmac, Mac};
 use rand::rngs::OsRng;
 use sha2::Sha256;
@@ -29,9 +29,7 @@ fn did_key_resolves_and_projects() {
     let doc = bridge.resolve_did_key(&did_url).expect("resolve");
     assert_eq!(doc.id, did_url);
     let identity = bridge.accept(&doc).expect("accept");
-    assert!(identity
-        .actor_id
-        .starts_with("tf:actor:human:example.com/"));
+    assert!(identity.actor_id.starts_with("tf:actor:human:example.com/"));
 }
 
 #[test]
@@ -79,7 +77,12 @@ fn webhook_hmac_sha256_round_trip() {
     let body = serde_json::to_vec(&serde_json::json!({"id":"evt_1"})).unwrap();
     let mut mac = HmacSha256::new_from_slice(&secret).unwrap();
     mac.update(&body);
-    let sig: String = mac.finalize().into_bytes().iter().map(|b| format!("{:02x}", b)).collect();
+    let sig: String = mac
+        .finalize()
+        .into_bytes()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect();
     let bridge = WebhookBridge::new(WebhookBridgeConfig {
         bridge_id: "tf-wh".into(),
         trust_domain: "example.com".into(),
@@ -113,7 +116,11 @@ fn webhook_ed25519_verifies_signed_payload() {
     payload.push(b'.');
     payload.extend_from_slice(&body);
     let sig: ed25519_dalek::Signature = signing.sign(&payload);
-    let sig_hex: String = sig.to_bytes().iter().map(|b| format!("{:02x}", b)).collect();
+    let sig_hex: String = sig
+        .to_bytes()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect();
     let bridge = WebhookBridge::new(WebhookBridgeConfig {
         bridge_id: "tf-wh".into(),
         trust_domain: "example.com".into(),
@@ -133,7 +140,10 @@ fn webhook_ed25519_verifies_signed_payload() {
             received_at: None,
         })
         .expect("verify");
-    assert!(result.event["type"].as_str().unwrap().contains("webhook.discord."));
+    assert!(result.event["type"]
+        .as_str()
+        .unwrap()
+        .contains("webhook.discord."));
 }
 
 #[test]

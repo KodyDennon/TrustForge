@@ -90,11 +90,14 @@ impl DidBridge {
             .as_ref()
             .ok_or_else(|| BridgeError::Rejected("DID has no verification methods".into()))?;
         if vms.is_empty() {
-            return Err(BridgeError::Rejected("DID verification_method is empty".into()));
+            return Err(BridgeError::Rejected(
+                "DID verification_method is empty".into(),
+            ));
         }
         let vm = &vms[0];
-        let pk = extract_public_key(vm)
-            .ok_or_else(|| BridgeError::Unsupported(format!("vm {} has no usable public key", vm.id)))?;
+        let pk = extract_public_key(vm).ok_or_else(|| {
+            BridgeError::Unsupported(format!("vm {} has no usable public key", vm.id))
+        })?;
         let actor_id = format!(
             "tf:actor:human:{}/{}",
             self.cfg.trust_domain,
@@ -314,7 +317,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

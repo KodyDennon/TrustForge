@@ -28,6 +28,12 @@ struct Args {
     /// HTTP timeout for daemon scrapes, in seconds.
     #[arg(long, default_value_t = 5)]
     timeout_seconds: u64,
+
+    /// Optional OTLP gRPC endpoint. When set the exporter mirrors every
+    /// scrape into the canonical `tf.*` OTel instruments in addition to
+    /// the Prometheus text format. Defaults to OTEL_EXPORTER_OTLP_ENDPOINT.
+    #[arg(long, env = "OTEL_EXPORTER_OTLP_ENDPOINT")]
+    otlp_endpoint: Option<String>,
 }
 
 #[tokio::main]
@@ -41,7 +47,13 @@ async fn main() -> std::io::Result<()> {
 
     let args = Args::parse();
 
-    let metrics = Arc::new(Metrics::new());
+    // Bring up OTel side channel. If neither --otlp-endpoint nor the env
+    // var is set, init_otel installs a stdout exporter so dev runs still
+    // see the canonical `tf.*` metrics.
+    let otel = tf_otel::init_otel("tf-prom-exporter", args.otlp_endpoint.as_deref())
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("otel init: {e}")))?;
+
+    let metrics = Arc::new(Metrics::new().with_otel(Some(otel.clone())));
     let mut cfg = ScrapeConfig::new(args.daemon_url.clone());
     if let Some(t) = args.admin_token.clone() {
         cfg.admin_token = Some(t);
@@ -78,5 +90,6 @@ async fn main() -> std::io::Result<()> {
     // socket; the scrape loop holds the polling task. Either ending stops us.
     let _ = scrape_loop.await;
     serve.stop().await;
+    otel.shutdown();
     Ok(())
 }

@@ -82,7 +82,11 @@ fn load_native_plugin_and_invoke_handler() {
     assert_eq!(loaded.capabilities, vec!["file.read"]);
 
     let result = registry
-        .invoke("com.example.native-rust", "file.read", &json!({ "path": "README.md" }))
+        .invoke(
+            "com.example.native-rust",
+            "file.read",
+            &json!({ "path": "README.md" }),
+        )
         .unwrap();
     assert_eq!(result["contents"], json!("hello README.md"));
     assert_eq!(*calls.lock().unwrap(), 1);
@@ -95,7 +99,10 @@ fn tampered_signature_rejected() {
     let (priv_k, pub_k) = fresh_keypair();
     let mut signed = sign_manifest(base_manifest(&pub_k), &priv_k);
     // Tamper: flip a character in the signature.
-    let sig_str = signed["signature"]["signature"].as_str().unwrap().to_string();
+    let sig_str = signed["signature"]["signature"]
+        .as_str()
+        .unwrap()
+        .to_string();
     let mut bytes = B64.decode(&sig_str).unwrap();
     bytes[0] ^= 0xff;
     signed["signature"]["signature"] = Value::String(B64.encode(&bytes));

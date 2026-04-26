@@ -1,0 +1,16 @@
+{application, trustforge_cowboy, [
+    {description, "TrustForge cowboy middleware for the /v1/decide enforcement point"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        cowboy,
+        trustforge,
+        jsx
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

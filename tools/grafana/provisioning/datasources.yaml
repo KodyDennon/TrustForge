@@ -1,0 +1,82 @@
+# Grafana datasource provisioning for TrustForge.
+#
+# Drop this file under `/etc/grafana/provisioning/datasources/` (or mount
+# the whole `tools/grafana/provisioning/` directory in a docker-compose
+# `grafana` service). Grafana reloads at startup.
+#
+# Two datasources are wired up:
+#   * Prometheus  — scrapes the tf-prom-exporter binary AND any OTLP
+#                   collector configured to write the canonical tf.* OTel
+#                   metric names through the OTLP -> Prometheus mapping.
+#   * Tempo       — receives OTLP traces (`tf.daemon.decide`,
+#                   `tf.bridge.import_credential`, `tf.proof.sign`,
+#                   `tf.proof.verify`, `tf.session.handshake`,
+#                   `tf.session.tick`, `tf.evidence.assemble`,
+#                   `tf.evidence.verify`).
+#
+# UID values are referenced from the dashboard JSON files; do not change
+# them without updating the dashboards.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: "2.50.0"
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+          urlDisplayLabel: View trace
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      httpMethod: GET
+      tracesToLogsV2:
+        datasourceUid: prometheus
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+        tags:
+          - { key: "service.name", value: "service" }
+          - { key: "tf.action", value: "method" }
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+        tags:
+          - { key: "service.name", value: "service" }
+          - { key: "tf.action", value: "method" }
+        queries:
+          - name: tf decide latency p95
+            query: 'histogram_quantile(0.95, sum by (le) (rate(tf_decisions_latency_seconds_bucket{service="$service",method="$method"}[5m])))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: ""
+      search:
+        hide: false
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+      spanBar:
+        type: Tag
+        tag: tf.decision

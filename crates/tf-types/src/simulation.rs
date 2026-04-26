@@ -22,9 +22,7 @@ use crate::quorum::{QuorumApprovalCollector, QuorumConfig, QuorumSignature};
 use crate::relay::{
     sign_relay_authority, RelayAuthority, RelayFrame, RelayHandler, SignatureEnvelope,
 };
-use crate::session_migration::{
-    migrate_session, verify_session_migration, TransportBinding,
-};
+use crate::session_migration::{migrate_session, verify_session_migration, TransportBinding};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "kebab-case")]
@@ -535,11 +533,7 @@ mod tests {
     fn each_scenario_runs() {
         for s in ALL_SCENARIOS.iter().cloned() {
             let r = run_scenario(s.clone());
-            assert!(
-                r.ok,
-                "scenario {:?} failed: {:?}",
-                s, r.failures
-            );
+            assert!(r.ok, "scenario {:?} failed: {:?}", s, r.failures);
         }
     }
 

@@ -1,0 +1,29 @@
+{
+  "name": "@trustforge/koa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TrustForge Koa middleware: gates every request through tf-daemon /v1/decide.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "bun x tsc -p tsconfig.json --noEmit",
+    "typecheck": "bun x tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@trustforge/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "koa": "^2.14.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@trustforge/test-utils": "workspace:*",
+    "@types/bun": "^1.3.9",
+    "@types/koa": "^2.15.0",
+    "koa": "^2.15.3",
+    "typescript": "^5.6.3"
+  }
+}

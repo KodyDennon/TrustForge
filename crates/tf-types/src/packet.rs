@@ -150,18 +150,17 @@ pub struct VerifyPacketResult {
     pub payload: Option<Vec<u8>>,
 }
 
-pub fn verify_packet(
-    packet: &Packet,
-    public_key: &[u8; 32],
-    now: &str,
-) -> VerifyPacketResult {
+pub fn verify_packet(packet: &Packet, public_key: &[u8; 32], now: &str) -> VerifyPacketResult {
     let rejected = |r: &str| VerifyPacketResult {
         ok: false,
         reason: Some(r.to_string()),
         payload: None,
     };
     if packet.packet_version != "1" {
-        return rejected(&format!("unsupported packet_version {}", packet.packet_version));
+        return rejected(&format!(
+            "unsupported packet_version {}",
+            packet.packet_version
+        ));
     }
     if packet.signature.signer != packet.source {
         return rejected("signature signer does not match source");
@@ -428,7 +427,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }
@@ -473,8 +476,7 @@ pub fn simulate_lora(
         state ^= state << 13;
         state ^= state >> 7;
         state ^= state << 17;
-        let v = (state.wrapping_mul(0x2545_F491_4F6C_DD1Du64) >> 11) as f64
-            / (1u64 << 53) as f64;
+        let v = (state.wrapping_mul(0x2545_F491_4F6C_DD1Du64) >> 11) as f64 / (1u64 << 53) as f64;
         v
     };
     let mut delivered = Vec::with_capacity(packets.len());

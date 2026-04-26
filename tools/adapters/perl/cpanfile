@@ -1,0 +1,20 @@
+requires 'perl', '5.020';
+requires 'JSON::PP';
+requires 'LWP::UserAgent';
+requires 'HTTP::Request';
+requires 'URI';
+
+# Optional integrations -- the framework adapters use them when the
+# host application has them installed. They are listed here so a
+# `cpanm --installdeps .` in development pulls everything in.
+recommends 'Plack';
+recommends 'Plack::Request';
+recommends 'Mojolicious';
+
+on 'test' => sub {
+    requires 'Test::More';
+    requires 'Test::Exception';
+    # Used by t/00-trustforge.t to mock LWP. Many CPAN networks ship
+    # this under either name; either is fine.
+    suggests 'Test::LWP::UserAgent';
+};

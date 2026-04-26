@@ -30,8 +30,18 @@ fn assemble_and_verify_round_trip() {
     let (signing, public) = keypair();
     let priv_bytes = signing.to_bytes();
     let events = vec![
-        ev("ev-1", "2026-04-24T12:01:00Z", "rpc.call", "tf:actor:agent:example.com/x"),
-        ev("ev-2", "2026-04-24T12:02:00Z", "approval.approve", "tf:actor:human:example.com/alice"),
+        ev(
+            "ev-1",
+            "2026-04-24T12:01:00Z",
+            "rpc.call",
+            "tf:actor:agent:example.com/x",
+        ),
+        ev(
+            "ev-2",
+            "2026-04-24T12:02:00Z",
+            "approval.approve",
+            "tf:actor:human:example.com/alice",
+        ),
     ];
     let r = assemble_evidence_bundle(
         &events,
@@ -58,9 +68,24 @@ fn filter_by_actor_and_event_type_pattern() {
     let (signing, _) = keypair();
     let priv_bytes = signing.to_bytes();
     let events = vec![
-        ev("ev-1", "2026-04-24T12:01:00Z", "rpc.call", "tf:actor:agent:example.com/x"),
-        ev("ev-2", "2026-04-24T12:02:00Z", "approval.approve", "tf:actor:human:example.com/alice"),
-        ev("ev-3", "2026-04-24T12:03:00Z", "approval.deny", "tf:actor:human:example.com/alice"),
+        ev(
+            "ev-1",
+            "2026-04-24T12:01:00Z",
+            "rpc.call",
+            "tf:actor:agent:example.com/x",
+        ),
+        ev(
+            "ev-2",
+            "2026-04-24T12:02:00Z",
+            "approval.approve",
+            "tf:actor:human:example.com/alice",
+        ),
+        ev(
+            "ev-3",
+            "2026-04-24T12:03:00Z",
+            "approval.deny",
+            "tf:actor:human:example.com/alice",
+        ),
     ];
     let r = assemble_evidence_bundle(
         &events,
@@ -85,7 +110,12 @@ fn filter_by_actor_and_event_type_pattern() {
 fn empty_filtered_set_errors() {
     let (signing, _) = keypair();
     let priv_bytes = signing.to_bytes();
-    let events = vec![ev("ev-1", "2026-04-24T12:01:00Z", "rpc.call", "tf:actor:agent:example.com/x")];
+    let events = vec![ev(
+        "ev-1",
+        "2026-04-24T12:01:00Z",
+        "rpc.call",
+        "tf:actor:agent:example.com/x",
+    )];
     let r = assemble_evidence_bundle(
         &events,
         AssembleArgs {
@@ -106,7 +136,12 @@ fn empty_filtered_set_errors() {
 fn signing_bytes_is_stable() {
     let (signing, _) = keypair();
     let priv_bytes = signing.to_bytes();
-    let events = vec![ev("ev-1", "2026-04-24T12:01:00Z", "rpc.call", "tf:actor:agent:example.com/x")];
+    let events = vec![ev(
+        "ev-1",
+        "2026-04-24T12:01:00Z",
+        "rpc.call",
+        "tf:actor:agent:example.com/x",
+    )];
     let r = assemble_evidence_bundle(
         &events,
         AssembleArgs {
@@ -130,7 +165,12 @@ fn signing_bytes_is_stable() {
 fn verify_rejects_tampered_label() {
     let (signing, public) = keypair();
     let priv_bytes = signing.to_bytes();
-    let events = vec![ev("ev-1", "2026-04-24T12:01:00Z", "rpc.call", "tf:actor:agent:example.com/x")];
+    let events = vec![ev(
+        "ev-1",
+        "2026-04-24T12:01:00Z",
+        "rpc.call",
+        "tf:actor:agent:example.com/x",
+    )];
     let mut r = assemble_evidence_bundle(
         &events,
         AssembleArgs {

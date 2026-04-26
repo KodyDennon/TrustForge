@@ -1,8 +1,8 @@
-use tf_session::{attach_initiator, attach_responder};
-use tf_types::session::{SessionConfig, SessionFrame};
-use tf_types::crypto::Ed25519Signer;
-use tokio::io::duplex;
 use std::sync::Arc;
+use tf_session::{attach_initiator, attach_responder};
+use tf_types::crypto::Ed25519Signer;
+use tf_types::session::{SessionConfig, SessionFrame};
+use tokio::io::duplex;
 use tokio::sync::mpsc;
 
 fn fresh_id() -> ([u8; 32], [u8; 32]) {
@@ -34,13 +34,9 @@ async fn test_carrier_handshake_and_data() {
 
     let (client, server) = duplex(1024);
 
-    let i_handle = tokio::spawn(async move {
-        attach_initiator(client, iconfig).await.unwrap()
-    });
+    let i_handle = tokio::spawn(async move { attach_initiator(client, iconfig).await.unwrap() });
 
-    let r_handle = tokio::spawn(async move {
-        attach_responder(server, rconfig).await.unwrap()
-    });
+    let r_handle = tokio::spawn(async move { attach_responder(server, rconfig).await.unwrap() });
 
     let (i_ep, r_ep) = tokio::try_join!(i_handle, r_handle).unwrap();
 
@@ -55,12 +51,15 @@ async fn test_carrier_handshake_and_data() {
     let (tx, mut rx) = mpsc::unbounded_channel();
     r_ep.on_frame(move |f| {
         let _ = tx.send(f);
-    }).await;
+    })
+    .await;
 
     let test_payload = serde_json::json!({"hello": "from initiator"});
     i_ep.send(SessionFrame::Data {
         payload: test_payload.clone(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     let received = rx.recv().await.unwrap();
     match received {

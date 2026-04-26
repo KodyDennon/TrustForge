@@ -96,7 +96,8 @@ pub fn read_tflog(buf: &[u8]) -> Result<Vec<ProofEvent>, FormatError> {
         }
         let slice = &buf[off..off + len];
         let text = std::str::from_utf8(slice).map_err(|e| FormatError::Utf8(e.to_string()))?;
-        let value: Value = serde_json::from_str(text).map_err(|e| FormatError::Serde(e.to_string()))?;
+        let value: Value =
+            serde_json::from_str(text).map_err(|e| FormatError::Serde(e.to_string()))?;
         let event: ProofEvent =
             serde_json::from_value(value).map_err(|e| FormatError::Serde(e.to_string()))?;
         out.push(event);

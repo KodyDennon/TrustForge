@@ -34,12 +34,16 @@ fn actor_id_equals_ignores_raw_string() {
 
 #[test]
 fn instance_id_round_trip() {
-    let p = parse_instance_id("tf:instance:agent:example.com/code-helper/macbook/session-42").unwrap();
+    let p =
+        parse_instance_id("tf:instance:agent:example.com/code-helper/macbook/session-42").unwrap();
     assert_eq!(p.actor_type, ActorType::Agent);
     assert_eq!(p.actor_path, "example.com/code-helper/macbook");
     assert_eq!(p.instance_path, "session-42");
     let s = format_instance_id(&p.actor_type, &p.actor_path, &p.instance_path).unwrap();
-    assert_eq!(s, "tf:instance:agent:example.com/code-helper/macbook/session-42");
+    assert_eq!(
+        s,
+        "tf:instance:agent:example.com/code-helper/macbook/session-42"
+    );
 }
 
 #[test]

@@ -26,10 +26,7 @@ fn make_root() -> Material {
     params
         .distinguished_name
         .push(DnType::CommonName, "TrustForge Root CA");
-    params.key_usages = vec![
-        KeyUsagePurpose::KeyCertSign,
-        KeyUsagePurpose::CrlSign,
-    ];
+    params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
     params.not_before = OffsetDateTime::now_utc() - Duration::minutes(1);
     params.not_after = OffsetDateTime::now_utc() + Duration::hours(1);
     let key_pair = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap();
@@ -45,10 +42,7 @@ fn make_intermediate(parent: &Material, cn: &str) -> Material {
     let mut params = CertificateParams::new(vec![cn.into()]).unwrap();
     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
     params.distinguished_name.push(DnType::CommonName, cn);
-    params.key_usages = vec![
-        KeyUsagePurpose::KeyCertSign,
-        KeyUsagePurpose::CrlSign,
-    ];
+    params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
     params.not_before = OffsetDateTime::now_utc() - Duration::minutes(1);
     params.not_after = OffsetDateTime::now_utc() + Duration::hours(1);
     let key_pair = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap();

@@ -203,22 +203,42 @@ impl AgentGuard {
             let allow_targets = a
                 .get("allow_targets")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|t| t.as_str())
+                        .map(str::to_string)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
             let deny_targets = a
                 .get("deny_targets")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|t| t.as_str())
+                        .map(str::to_string)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
             let allow_actors = a
                 .get("allow_actors")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|t| t.as_str())
+                        .map(str::to_string)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
             let deny_actors = a
                 .get("deny_actors")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|t| t.as_str()).map(str::to_string).collect::<Vec<_>>())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|t| t.as_str())
+                        .map(str::to_string)
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
             actions.insert(
                 name.clone(),
@@ -482,9 +502,19 @@ impl AgentGuard {
 pub fn apply_enforcement_level(raw: GuardDecision, level: EnforcementLevel) -> GuardDecision {
     match level {
         EnforcementLevel::E0 => match raw {
-            GuardDecision::Deny { reason, mut danger_tags }
-            | GuardDecision::Escalate { reason, mut danger_tags }
-            | GuardDecision::ApprovalRequired { reason, mut danger_tags, .. } => {
+            GuardDecision::Deny {
+                reason,
+                mut danger_tags,
+            }
+            | GuardDecision::Escalate {
+                reason,
+                mut danger_tags,
+            }
+            | GuardDecision::ApprovalRequired {
+                reason,
+                mut danger_tags,
+                ..
+            } => {
                 danger_tags.push("shadow".to_string());
                 GuardDecision::LogOnly {
                     reason: format!("[shadow] would have decided: {}", reason),
@@ -494,12 +524,18 @@ pub fn apply_enforcement_level(raw: GuardDecision, level: EnforcementLevel) -> G
             other => other,
         },
         EnforcementLevel::E1 => match raw {
-            GuardDecision::Deny { reason, mut danger_tags } => {
+            GuardDecision::Deny {
+                reason,
+                mut danger_tags,
+            } => {
                 danger_tags.push("warn".to_string());
                 danger_tags.push(format!("would-deny:{}", reason));
                 GuardDecision::Allow { danger_tags }
             }
-            GuardDecision::Escalate { reason, mut danger_tags } => {
+            GuardDecision::Escalate {
+                reason,
+                mut danger_tags,
+            } => {
                 danger_tags.push("warn".to_string());
                 GuardDecision::LogOnly {
                     reason: format!("[warn] {}", reason),
@@ -523,18 +559,27 @@ pub fn apply_enforcement_level(raw: GuardDecision, level: EnforcementLevel) -> G
         },
         EnforcementLevel::E4 => raw,
         EnforcementLevel::E5 => match raw {
-            GuardDecision::Escalate { reason, danger_tags }
-            | GuardDecision::ApprovalRequired { reason, danger_tags, .. } => GuardDecision::Deny {
+            GuardDecision::Escalate {
+                reason,
+                danger_tags,
+            }
+            | GuardDecision::ApprovalRequired {
+                reason,
+                danger_tags,
+                ..
+            } => GuardDecision::Deny {
                 reason: format!("E5 fail-closed: {}", reason),
                 danger_tags,
             },
-            GuardDecision::Allow { danger_tags } if !danger_tags.is_empty() => GuardDecision::Deny {
-                reason: format!(
-                    "E5 fail-closed: allow with danger tags {} blocked",
-                    danger_tags.join(", ")
-                ),
-                danger_tags,
-            },
+            GuardDecision::Allow { danger_tags } if !danger_tags.is_empty() => {
+                GuardDecision::Deny {
+                    reason: format!(
+                        "E5 fail-closed: allow with danger tags {} blocked",
+                        danger_tags.join(", ")
+                    ),
+                    danger_tags,
+                }
+            }
             other => other,
         },
     }
@@ -546,21 +591,47 @@ fn tag_decision(d: GuardDecision, tag: &str) -> GuardDecision {
             danger_tags.push(tag.to_string());
             GuardDecision::Allow { danger_tags }
         }
-        GuardDecision::ApprovalRequired { approval, reason, mut danger_tags } => {
+        GuardDecision::ApprovalRequired {
+            approval,
+            reason,
+            mut danger_tags,
+        } => {
             danger_tags.push(tag.to_string());
-            GuardDecision::ApprovalRequired { approval, reason, danger_tags }
+            GuardDecision::ApprovalRequired {
+                approval,
+                reason,
+                danger_tags,
+            }
         }
-        GuardDecision::Escalate { reason, mut danger_tags } => {
+        GuardDecision::Escalate {
+            reason,
+            mut danger_tags,
+        } => {
             danger_tags.push(tag.to_string());
-            GuardDecision::Escalate { reason, danger_tags }
+            GuardDecision::Escalate {
+                reason,
+                danger_tags,
+            }
         }
-        GuardDecision::Deny { reason, mut danger_tags } => {
+        GuardDecision::Deny {
+            reason,
+            mut danger_tags,
+        } => {
             danger_tags.push(tag.to_string());
-            GuardDecision::Deny { reason, danger_tags }
+            GuardDecision::Deny {
+                reason,
+                danger_tags,
+            }
         }
-        GuardDecision::LogOnly { reason, mut danger_tags } => {
+        GuardDecision::LogOnly {
+            reason,
+            mut danger_tags,
+        } => {
             danger_tags.push(tag.to_string());
-            GuardDecision::LogOnly { reason, danger_tags }
+            GuardDecision::LogOnly {
+                reason,
+                danger_tags,
+            }
         }
     }
 }

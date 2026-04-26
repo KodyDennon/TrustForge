@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// A single conformance vector consumed by tf-conformance runners. Vectors describe a category, the inputs the runner needs, and the canonical output (or expected error) every conformant implementation must produce. The format is the wire-level record that backs every category file under conformance/ — schema, signature, chain, framing, session, bridge, relay, trust-overlay, guard, packet, evidence, federation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

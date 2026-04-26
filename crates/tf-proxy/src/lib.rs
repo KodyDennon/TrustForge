@@ -10,8 +10,8 @@
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
@@ -88,6 +88,11 @@ pub struct ProxyState {
     pub config: ProxyConfig,
     pub http: reqwest::Client,
     counter: AtomicU64,
+    /// OpenTelemetry handle owned by the binary entry point. Set once at
+    /// startup via [`ProxyState::set_otel`]. We use `OnceLock` so the
+    /// `Arc<ProxyState>` we hand to connection tasks does not need to be
+    /// rebuilt after wiring telemetry.
+    otel: std::sync::OnceLock<tf_otel::TfOtelHandle>,
 }
 
 impl ProxyState {
@@ -100,7 +105,20 @@ impl ProxyState {
             config,
             http,
             counter: AtomicU64::new(0),
+            otel: std::sync::OnceLock::new(),
         })
+    }
+
+    /// Install the process-wide OpenTelemetry handle. Should be called
+    /// at most once during startup, before [`run`] handles any traffic.
+    /// Uses `OnceLock` so this works through an `Arc<Self>`.
+    pub fn set_otel(&self, handle: tf_otel::TfOtelHandle) {
+        let _ = self.otel.set(handle);
+    }
+
+    /// Borrow the OTel handle, if one was installed.
+    pub fn otel(&self) -> Option<&tf_otel::TfOtelHandle> {
+        self.otel.get()
     }
 
     fn next_trace_id(&self) -> String {
@@ -149,7 +167,10 @@ pub fn extract_host_token(headers: &hyper::HeaderMap) -> Option<(String, String)
 
 fn classify_token(t: &str) -> String {
     let dots = t.bytes().filter(|b| *b == b'.').count();
-    if dots == 2 && t.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-' || b == b'_') {
+    if dots == 2
+        && t.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-' || b == b'_')
+    {
         "jwt".to_string()
     } else {
         "opaque".to_string()
@@ -159,10 +180,7 @@ fn classify_token(t: &str) -> String {
 /// Build the `action` string for a request. We split on `/`, drop empty
 /// segments, lowercase the method, and join with `.`.
 pub fn action_for(method: &Method, path: &str) -> String {
-    let segments: Vec<&str> = path
-        .split('/')
-        .filter(|s| !s.is_empty())
-        .collect();
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     let m = method.as_str().to_ascii_lowercase();
     if segments.is_empty() {
         format!("{m}.root")
@@ -232,8 +250,8 @@ pub async fn call_decide(
         .text()
         .await
         .map_err(|e| format!("daemon body read: {e}"))?;
-    let decoded: DecideResponse = serde_json::from_str(&txt)
-        .map_err(|e| format!("daemon malformed body: {e}: {txt}"))?;
+    let decoded: DecideResponse =
+        serde_json::from_str(&txt).map_err(|e| format!("daemon malformed body: {e}: {txt}"))?;
     if decoded.decision.is_empty() {
         return Err("daemon returned empty decision".to_string());
     }
@@ -346,25 +364,51 @@ pub async fn handle_request(
     let path = req.uri().path().to_string();
     let is_ws = is_websocket_upgrade(&req);
 
-    let decision = match call_decide(
-        &state,
-        req.headers(),
-        &method,
-        &path,
-        client_addr,
-        is_ws,
-    )
-    .await
-    {
-        Ok(d) => d,
-        Err(e) => {
-            error!(error = %e, "daemon decide failed");
-            return Ok(json_response(
-                StatusCode::BAD_GATEWAY,
-                serde_json::json!({"error": "daemon-error", "detail": e}),
-            ));
-        }
-    };
+    // Span the entire decision lifetime under tf.daemon.decide so the
+    // Grafana trace explorer can pivot on tf.action / tf.decision /
+    // tf.actor_resolved exactly like the TS daemon does.
+    let span = tracing::info_span!(
+        "tf.daemon.decide",
+        otel.name = "tf.daemon.decide",
+        tf.action = %action_for(&method, &path),
+        tf.target = %path,
+        // Filled in once the decision lands. tracing supports
+        // record-after-creation so we don't need to know these up front.
+        tf.decision = tracing::field::Empty,
+        tf.actor_resolved = tracing::field::Empty,
+    );
+    let _enter = span.enter();
+
+    let started = std::time::Instant::now();
+    let decision =
+        match call_decide(&state, req.headers(), &method, &path, client_addr, is_ws).await {
+            Ok(d) => d,
+            Err(e) => {
+                error!(error = %e, "daemon decide failed");
+                return Ok(json_response(
+                    StatusCode::BAD_GATEWAY,
+                    serde_json::json!({"error": "daemon-error", "detail": e}),
+                ));
+            }
+        };
+
+    // Record the outcome on the active span and on the canonical metric
+    // pipeline. Both are fire-and-forget; if telemetry is off they are
+    // cheap no-ops.
+    span.record("tf.decision", decision.decision.as_str());
+    if let Some(otel) = state.otel() {
+        let actor = "unknown";
+        let action = action_for(&method, &path);
+        let elapsed = started.elapsed().as_secs_f64();
+        tf_otel::record_decide(
+            otel.metrics(),
+            &decision.decision,
+            &action,
+            actor,
+            Some(&path),
+            elapsed,
+        );
+    }
 
     info!(
         decision = %decision.decision,
@@ -396,8 +440,7 @@ pub async fn handle_request(
                     .unwrap_or_else(|| state.config.profile.clone());
                 let reason = decision.reason.clone().unwrap_or_default();
                 let proof = decision.proof_id.clone().unwrap_or_default();
-                let www_auth =
-                    format!("TrustForge realm=\"{realm}\", reason=\"{reason}\"");
+                let www_auth = format!("TrustForge realm=\"{realm}\", reason=\"{reason}\"");
                 let body = serde_json::json!({
                     "error": "deny",
                     "reason": reason,
@@ -478,11 +521,7 @@ pub async fn handle_request(
 /// Drive a single connection. If the request is a websocket upgrade (and the
 /// daemon allows it), we transparently splice the client and upstream TCP
 /// streams together. Otherwise we fall through to [`handle_request`].
-pub async fn serve_connection(
-    state: Arc<ProxyState>,
-    stream: TcpStream,
-    client_addr: SocketAddr,
-) {
+pub async fn serve_connection(state: Arc<ProxyState>, stream: TcpStream, client_addr: SocketAddr) {
     // We need to peek at the request before deciding between websocket
     // splice and regular HTTP service. Use hyper with a service_fn that owns
     // a one-shot signal: when the handler sees a websocket upgrade we let
@@ -515,8 +554,7 @@ async fn serve_connection_inner(
     if is_ws {
         // Parse method+path+headers minimally for the decide call.
         if let Some((method, path, headers)) = parse_request_head(head) {
-            let m = Method::from_bytes(method.as_bytes())
-                .unwrap_or(Method::GET);
+            let m = Method::from_bytes(method.as_bytes()).unwrap_or(Method::GET);
             match call_decide(&state, &headers, &m, &path, client_addr, true).await {
                 Ok(d) => {
                     let allow = d.decision == "allow"
@@ -526,8 +564,7 @@ async fn serve_connection_inner(
                     if allow {
                         info!(decision = %d.decision, "websocket upgrade allowed");
                         return splice_to_upstream(&state, stream).await;
-                    } else if d.decision == "approval-required"
-                        || d.decision == "approval_required"
+                    } else if d.decision == "approval-required" || d.decision == "approval_required"
                     {
                         let approval_id = d.approval_id.unwrap_or_default();
                         let loc = format!(
@@ -535,9 +572,8 @@ async fn serve_connection_inner(
                             state.config.daemon.trim_end_matches('/'),
                             approval_id
                         );
-                        let body = format!(
-                            "{{\"status\":\"pending\",\"approval_id\":\"{approval_id}\"}}"
-                        );
+                        let body =
+                            format!("{{\"status\":\"pending\",\"approval_id\":\"{approval_id}\"}}");
                         let resp = format!(
                             "HTTP/1.1 202 Accepted\r\nLocation: {loc}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                             body.len()
@@ -628,10 +664,7 @@ fn parse_request_head(buf: &[u8]) -> Option<(String, String, hyper::HeaderMap)> 
     Some((method, path, headers))
 }
 
-async fn splice_to_upstream(
-    state: &ProxyState,
-    mut client: TcpStream,
-) -> std::io::Result<()> {
+async fn splice_to_upstream(state: &ProxyState, mut client: TcpStream) -> std::io::Result<()> {
     // Connect to upstream and pipe bytes both ways. We assume the upstream
     // URL is plain http://host:port (TLS upstream is out of scope for this
     // first cut; reverse-proxy TLS termination happens at the listener).
@@ -686,8 +719,8 @@ fn build_tls_acceptor(cfg: &ProxyConfig) -> std::io::Result<Option<TlsAcceptor>>
             let certs: Vec<rustls::pki_types::CertificateDer<'static>> =
                 rustls_pemfile::certs(&mut BufReader::new(cert_file))
                     .collect::<Result<Vec<_>, _>>()?;
-            let key = rustls_pemfile::private_key(&mut BufReader::new(key_file))?
-                .ok_or_else(|| {
+            let key =
+                rustls_pemfile::private_key(&mut BufReader::new(key_file))?.ok_or_else(|| {
                     std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
                         "no private key in pem file",
@@ -727,4 +760,3 @@ async fn serve_tls(
     }
     Ok(())
 }
-

@@ -11,9 +11,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use tf_types::rpc::{
-    AllowAllEnforcer, RpcClient, RpcContext, RpcError, RpcServer, RpcTransport,
-};
+use tf_types::rpc::{AllowAllEnforcer, RpcClient, RpcContext, RpcError, RpcServer, RpcTransport};
 use tf_types::session::SessionFrame;
 use tokio::sync::mpsc;
 
@@ -120,7 +118,10 @@ async fn unary_round_trip_through_generated_client() {
     );
     register_code_helper(&server, Arc::new(DemoServer));
 
-    let rpc_client = Arc::new(RpcClient::new(client_t.clone(), "tf:actor:human:example.com/user"));
+    let rpc_client = Arc::new(RpcClient::new(
+        client_t.clone(),
+        "tf:actor:human:example.com/user",
+    ));
     let client = CodeHelperClient::new(rpc_client);
 
     let resp = client
@@ -144,12 +145,13 @@ async fn server_stream_delivers_entries_through_generated_client() {
     );
     register_code_helper(&server, Arc::new(DemoServer));
 
-    let rpc_client = Arc::new(RpcClient::new(client_t.clone(), "tf:actor:human:example.com/user"));
+    let rpc_client = Arc::new(RpcClient::new(
+        client_t.clone(),
+        "tf:actor:human:example.com/user",
+    ));
     let client = CodeHelperClient::new(rpc_client);
 
-    let mut rx = client.stream_directory(&StreamDirectoryRequest {
-        path: ".".into(),
-    });
+    let mut rx = client.stream_directory(&StreamDirectoryRequest { path: ".".into() });
     let mut names = Vec::new();
     while let Some(item) = rx.recv().await {
         let entry = item.expect("stream item ok");

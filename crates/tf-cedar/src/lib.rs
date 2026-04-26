@@ -90,23 +90,13 @@ impl CedarPolicyEngine {
         let principal = match parse_or_wrap_uid(&query.subject, "Subject") {
             Ok(uid) => uid,
             Err(e) => {
-                return self.deny(
-                    query,
-                    &now,
-                    None,
-                    format!("invalid subject UID: {e}"),
-                );
+                return self.deny(query, &now, None, format!("invalid subject UID: {e}"));
             }
         };
         let action = match parse_or_wrap_uid(&query.action, "Action") {
             Ok(uid) => uid,
             Err(e) => {
-                return self.deny(
-                    query,
-                    &now,
-                    None,
-                    format!("invalid action UID: {e}"),
-                );
+                return self.deny(query, &now, None, format!("invalid action UID: {e}"));
             }
         };
         let resource_str = query
@@ -116,24 +106,14 @@ impl CedarPolicyEngine {
         let resource = match parse_or_wrap_uid(&resource_str, "Resource") {
             Ok(uid) => uid,
             Err(e) => {
-                return self.deny(
-                    query,
-                    &now,
-                    None,
-                    format!("invalid resource UID: {e}"),
-                );
+                return self.deny(query, &now, None, format!("invalid resource UID: {e}"));
             }
         };
 
         let context = match build_context(&query.context) {
             Ok(c) => c,
             Err(e) => {
-                return self.deny(
-                    query,
-                    &now,
-                    None,
-                    format!("invalid context: {e}"),
-                );
+                return self.deny(query, &now, None, format!("invalid context: {e}"));
             }
         };
 
@@ -168,7 +148,10 @@ impl CedarPolicyEngine {
             Decision::Deny => {
                 if reason_ids.is_empty() {
                     if errors.is_empty() {
-                        ("deny", "no cedar permit policy matched (default deny)".to_string())
+                        (
+                            "deny",
+                            "no cedar permit policy matched (default deny)".to_string(),
+                        )
                     } else {
                         (
                             "deny",
@@ -248,9 +231,7 @@ fn parse_or_wrap_uid(s: &str, fallback_type: &str) -> Result<EntityUid, String> 
     EntityUid::from_str(&fallback).map_err(|e| e.to_string())
 }
 
-fn build_context(
-    ctx: &std::collections::HashMap<String, Value>,
-) -> Result<Context, String> {
+fn build_context(ctx: &std::collections::HashMap<String, Value>) -> Result<Context, String> {
     if ctx.is_empty() {
         return Ok(Context::empty());
     }
@@ -290,7 +271,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

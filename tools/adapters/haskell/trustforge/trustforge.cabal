@@ -1,0 +1,35 @@
+cabal-version:      2.2
+name:               trustforge
+version:            0.1.0
+synopsis:           TrustForge HTTP client for the local tf-daemon /v1/decide endpoint.
+description:        Shared client used by framework-specific TrustForge adapters.
+license:            Apache-2.0
+author:             TrustForge contributors
+maintainer:         dev@trustforge.local
+category:           Network
+build-type:         Simple
+
+library
+    exposed-modules:  Trustforge
+    build-depends:    base         >= 4.14 && < 5
+                    , aeson        >= 2.0  && < 3
+                    , bytestring   >= 0.10 && < 0.13
+                    , http-client  >= 0.7  && < 0.8
+                    , http-types   >= 0.12 && < 0.13
+                    , text         >= 1.2  && < 3
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    ghc-options:      -Wall
+
+test-suite trustforge-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    build-depends:    base
+                    , trustforge
+                    , aeson
+                    , bytestring
+                    , text
+                    , hspec        >= 2.7  && < 3
+    default-language: Haskell2010
+    ghc-options:      -Wall

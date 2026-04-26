@@ -79,5 +79,9 @@ fn persist_leaves_no_temp_file_behind() {
                 .unwrap_or(false)
         })
         .collect();
-    assert!(leftover.is_empty(), "no leftover temp files: {:?}", leftover);
+    assert!(
+        leftover.is_empty(),
+        "no leftover temp files: {:?}",
+        leftover
+    );
 }

@@ -1,0 +1,13 @@
+.{
+    .name = .trustforge,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "test",
+    },
+    .dependencies = .{},
+    .fingerprint = 0x5ed80d636b6e3d8e,
+}

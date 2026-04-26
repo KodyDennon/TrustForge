@@ -36,6 +36,12 @@ pub struct Metrics {
     pub sessions_open: IntGauge,
     pub plugins_loaded: GaugeVec,
     pub proof_events_total: IntCounterVec,
+    /// Optional OTel handle. When set, every Prometheus update made by
+    /// `scrape_once` is also fanned out to the canonical TrustForge
+    /// OTLP instruments — so the same exporter binary feeds both
+    /// Prometheus pull and OTLP push backends in parallel. Wired in
+    /// `main.rs` based on `OTEL_EXPORTER_OTLP_ENDPOINT`.
+    pub otel: Option<tf_otel::TfOtelHandle>,
 }
 
 impl Metrics {
@@ -129,7 +135,16 @@ impl Metrics {
             sessions_open,
             plugins_loaded,
             proof_events_total,
+            otel: None,
         }
+    }
+
+    /// Attach an OTel handle so every scrape also pushes the canonical
+    /// `tf.*` instrument set. Idempotent: passing `None` clears the side
+    /// channel.
+    pub fn with_otel(mut self, otel: Option<tf_otel::TfOtelHandle>) -> Self {
+        self.otel = otel;
+        self
     }
 
     /// Encode the registry into a Prometheus text-format payload.
@@ -277,14 +292,28 @@ pub async fn scrape_once(
     // Sessions.
     let sessions: SessionsBody =
         get_json(client, &format!("{}/admin/sessions", cfg.daemon_url), token).await?;
-    metrics.sessions_open.set(sessions.sessions.len() as i64);
+    let sessions_open = sessions.sessions.len() as i64;
+    metrics.sessions_open.set(sessions_open);
+    if let Some(ref otel) = metrics.otel {
+        tf_otel::set_sessions_open(otel.metrics(), sessions_open);
+    }
 
     // Approvals.
-    let approvals: ApprovalsBody =
-        get_json(client, &format!("{}/admin/approvals", cfg.daemon_url), token).await?;
-    metrics
-        .approval_queue_depth
-        .set(approvals.approvals.len() as i64);
+    let approvals: ApprovalsBody = get_json(
+        client,
+        &format!("{}/admin/approvals", cfg.daemon_url),
+        token,
+    )
+    .await?;
+    let approvals_pending = approvals.approvals.len() as i64;
+    // Prometheus is a gauge; OTel side is an UpDownCounter. Mirror by
+    // computing the delta against the last observed value held in
+    // `metrics.approval_queue_depth`.
+    let prev = metrics.approval_queue_depth.get();
+    metrics.approval_queue_depth.set(approvals_pending);
+    if let Some(ref otel) = metrics.otel {
+        tf_otel::add_approval_queue_delta(otel.metrics(), approvals_pending - prev);
+    }
 
     // Plugins. Reset and re-tally to handle plugin unload.
     let plugins: PluginsBody =
@@ -318,6 +347,9 @@ pub async fn scrape_once(
             .proof_events_total
             .with_label_values(&[&ev.kind])
             .inc();
+        if let Some(ref otel) = metrics.otel {
+            tf_otel::record_proof_event(otel.metrics(), &ev.kind);
+        }
         // guard.check carries the {decision, action} we want for
         // tf_decisions_total + tf_decisions_latency_seconds.
         if ev.kind == "guard.check" {
@@ -338,11 +370,26 @@ pub async fn scrape_once(
                 .decisions_total
                 .with_label_values(&[&decision, &action, &actor])
                 .inc();
-            if let Some(ms) = ev.context.get("duration_ms").and_then(|v| v.as_f64()) {
+            let duration_seconds = ev
+                .context
+                .get("duration_ms")
+                .and_then(|v| v.as_f64())
+                .map(|ms| ms / 1000.0);
+            if let Some(s) = duration_seconds {
                 metrics
                     .decisions_latency
                     .with_label_values(&[&action])
-                    .observe(ms / 1000.0);
+                    .observe(s);
+            }
+            if let Some(ref otel) = metrics.otel {
+                tf_otel::record_decide(
+                    otel.metrics(),
+                    &decision,
+                    &action,
+                    &actor,
+                    None,
+                    duration_seconds.unwrap_or(0.0),
+                );
             }
         }
     }
@@ -356,6 +403,9 @@ pub async fn scrape_once(
         .filter(|e| e.kind == "admin.revocation")
         .count() as i64;
     metrics.revocations_active.set(revs);
+    if let Some(ref otel) = metrics.otel {
+        tf_otel::set_revocations_active(otel.metrics(), revs);
+    }
 
     Ok(())
 }

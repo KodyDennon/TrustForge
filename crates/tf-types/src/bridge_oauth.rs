@@ -233,7 +233,10 @@ fn decoding_key_for(jwk: &Jwk) -> Result<DecodingKey, BridgeError> {
             DecodingKey::from_ed_components(x)
                 .map_err(|e| BridgeError::InvalidInput(format!("bad OKP components: {}", e)))
         }
-        other => Err(BridgeError::InvalidInput(format!("unsupported kty {}", other))),
+        other => Err(BridgeError::InvalidInput(format!(
+            "unsupported kty {}",
+            other
+        ))),
     }
 }
 
@@ -301,7 +304,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

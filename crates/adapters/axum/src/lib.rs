@@ -13,11 +13,10 @@
 //! enforces the live-mode authority gate; replay packets and per-route
 //! capability mapping are handled by higher-level helpers.
 
-use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use axum::body::{Body, to_bytes};
+use axum::body::{to_bytes, Body};
 use axum::extract::Extension;
 use axum::http::{HeaderMap, Request, Response, StatusCode};
 use axum::response::IntoResponse;
@@ -28,6 +27,7 @@ use tower_service::Service;
 use tf_decide_client::{DecideRequest, DecideResponse, TfDecideClient};
 
 pub use tf_decide_client;
+pub use tf_otel;
 
 /// Per-layer configuration.
 #[derive(Clone, Debug)]
@@ -106,7 +106,9 @@ fn extract_token(headers: &HeaderMap, opts: &TrustForgeOpts) -> Option<String> {
     let v = headers.get(opts.host_token_header.as_str())?;
     let s = v.to_str().ok()?;
     let s = if opts.strip_bearer {
-        s.strip_prefix("Bearer ").or_else(|| s.strip_prefix("bearer ")).unwrap_or(s)
+        s.strip_prefix("Bearer ")
+            .or_else(|| s.strip_prefix("bearer "))
+            .unwrap_or(s)
     } else {
         s
     };
@@ -132,13 +134,29 @@ where
         // Hyper/tower note: `inner` may not be ready, replace with `std::mem::replace`
         // pattern used by axum docs.
         let cfg = self.cfg.clone();
+        // Open one `tf.daemon.decide` span per inbound request. Fields
+        // are filled in once the daemon answers; until then they are
+        // recorded as `Empty` so the span shape is stable.
+        let span_for_async = tracing::info_span!(
+            "tf.daemon.decide",
+            otel.name = "tf.daemon.decide",
+            tf.action = tracing::field::Empty,
+            tf.target = tracing::field::Empty,
+            tf.decision = tracing::field::Empty,
+            tf.actor_resolved = tracing::field::Empty,
+        );
         Box::pin(async move {
+            let _enter = span_for_async.enter();
             let (parts, body) = req.into_parts();
 
             // Buffer the body so the inner service still gets it.
             let body_bytes = to_bytes(body, usize::MAX).await.unwrap_or_default();
 
             let action = format!("{} {}", parts.method.as_str(), parts.uri.path());
+            // Populate the always-known span attributes now; the
+            // decision-side fields are recorded once the daemon answers.
+            span_for_async.record("tf.action", action.as_str());
+            span_for_async.record("tf.target", parts.uri.to_string().as_str());
             let host_token = extract_token(&parts.headers, &cfg.opts);
             let trace_id = parts
                 .headers
@@ -170,7 +188,7 @@ where
                             authority_mode: None,
                             danger_tags: vec![],
                         }));
-                        return Pin::new(&mut inner).call(req).await;
+                        return inner.call(req).await;
                     }
                     let body = serde_json::json!({
                         "error": "tf_decide_unreachable",
@@ -185,11 +203,16 @@ where
                 }
             };
 
+            // Record the decision on the span, regardless of branch.
+            span_for_async.record("tf.decision", decision.decision.as_str());
+            if let Some(ref actor) = decision.actor_resolved {
+                span_for_async.record("tf.actor_resolved", actor.as_str());
+            }
             match decision.decision.to_ascii_lowercase().as_str() {
                 "allow" => {
                     let mut req = Request::from_parts(parts, Body::from(body_bytes));
                     req.extensions_mut().insert(TfDecision(decision));
-                    Pin::new(&mut inner).call(req).await
+                    inner.call(req).await
                 }
                 "deny" => {
                     let body = serde_json::json!({

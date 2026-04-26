@@ -240,11 +240,7 @@ pub fn builtin_profiles() -> Vec<ProfileSpec> {
             must_not: None,
             min_enforcement_level: Some(ProfileSpec_MinEnforcementLevel::E4),
             min_proof_level: Some(ProofLevel::L2),
-            required_bridges: Some(vec![
-                "webauthn".into(),
-                "oauth".into(),
-                "spiffe".into(),
-            ]),
+            required_bridges: Some(vec!["webauthn".into(), "oauth".into(), "spiffe".into()]),
             required_anchors: Some(vec![ProfileSpec_RequiredAnchors_Item::Rfc6962]),
         },
         ProfileSpec {

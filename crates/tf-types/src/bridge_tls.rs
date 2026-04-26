@@ -93,10 +93,12 @@ impl TlsBridge {
             )));
         }
 
-        let now = self
-            .cfg
-            .now_unix_seconds
-            .unwrap_or_else(|| SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs());
+        let now = self.cfg.now_unix_seconds.unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        });
         let now_asn1 = ASN1Time::from_timestamp(now as i64)
             .map_err(|e| BridgeError::InvalidInput(format!("now overflow: {}", e)))?;
 
@@ -209,7 +211,10 @@ impl TlsBridge {
         }
         let cn = parse_common_name(&leaf.subject().to_string());
         let san_dns = collect_san_dns(leaf);
-        let spiffe_san = san_uris.iter().find(|u| u.starts_with("spiffe://")).cloned();
+        let spiffe_san = san_uris
+            .iter()
+            .find(|u| u.starts_with("spiffe://"))
+            .cloned();
         let subject = spiffe_san
             .clone()
             .or(cn.clone())
@@ -239,8 +244,8 @@ impl TlsBridge {
             "1.3.101.112" => "ed25519",
             _ => "unknown",
         };
-        let public_key_b64 = base64::engine::general_purpose::STANDARD
-            .encode(pk.subject_public_key.data.as_ref());
+        let public_key_b64 =
+            base64::engine::general_purpose::STANDARD.encode(pk.subject_public_key.data.as_ref());
 
         let fingerprint = sha256_hex(leaf.as_ref());
 
@@ -392,9 +397,7 @@ fn collect_eku_actions(cert: &X509Certificate) -> Vec<String> {
     }
     // Deduplicate while preserving order.
     let mut seen = HashSet::new();
-    out.into_iter()
-        .filter(|s| seen.insert(s.clone()))
-        .collect()
+    out.into_iter().filter(|s| seen.insert(s.clone())).collect()
 }
 
 fn parse_common_name(distinguished_name: &str) -> Option<String> {
@@ -448,7 +451,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }
@@ -562,10 +569,9 @@ impl OcspCheck {
                 BridgeError::Rejected(format!("OCSP responder error {}", n))
             }
             OcspError::NotBasic => BridgeError::Rejected("OCSP not BasicOCSPResponse".into()),
-            OcspError::NotYetValid { this_update, now } => BridgeError::Rejected(format!(
-                "OCSP thisUpdate={} > now={}",
-                this_update, now
-            )),
+            OcspError::NotYetValid { this_update, now } => {
+                BridgeError::Rejected(format!("OCSP thisUpdate={} > now={}", this_update, now))
+            }
             OcspError::Stale { next_update, now } => {
                 BridgeError::Rejected(format!("OCSP nextUpdate={} < now={}", next_update, now))
             }
@@ -720,8 +726,8 @@ pub mod ocsp {
             p = pa.content_start + pa.content_len;
         }
         // responses SEQUENCE OF SingleResponse
-        let resp_seq = read_seq(der, p)
-            .ok_or_else(|| OcspError::Parse("responses SEQUENCE OF".into()))?;
+        let resp_seq =
+            read_seq(der, p).ok_or_else(|| OcspError::Parse("responses SEQUENCE OF".into()))?;
         let mut single_responses: Vec<SingleResponse> = Vec::new();
         let mut q = resp_seq.content_start;
         let qend = resp_seq.content_start + resp_seq.content_len;
@@ -741,8 +747,7 @@ pub mod ocsp {
         let mut p = 0usize;
         let end = der.len();
         // certID SEQUENCE
-        let cert_id =
-            read_seq(der, p).ok_or_else(|| OcspError::Parse("certID".into()))?;
+        let cert_id = read_seq(der, p).ok_or_else(|| OcspError::Parse("certID".into()))?;
         p = cert_id.content_start + cert_id.content_len;
         // certStatus CHOICE
         let cs = read_tlv(der, p).ok_or_else(|| OcspError::Parse("certStatus".into()))?;
@@ -1009,12 +1014,7 @@ impl ExporterBinding {
     /// session, and we layer another HKDF on top so the TrustForge
     /// session PSK is domain-separated from anything the application
     /// may already derive from the same exporter.
-    pub fn derive(
-        transport_secret: &[u8],
-        label: &str,
-        context: &[u8],
-        length: usize,
-    ) -> Vec<u8> {
+    pub fn derive(transport_secret: &[u8], label: &str, context: &[u8], length: usize) -> Vec<u8> {
         if transport_secret.is_empty() {
             // Stay in lock-step with the TS bridge, which throws on empty.
             // We can't return BridgeError here; the TS shape uses a runtime
@@ -1058,11 +1058,7 @@ impl PostHandshakeReauth {
 
     /// Verifies an Ed25519 signature over the previously issued challenge.
     /// Returns `true` iff the signature is valid.
-    pub fn verify_response(
-        challenge: &[u8],
-        pubkey: &[u8; 32],
-        signature: &[u8; 64],
-    ) -> bool {
+    pub fn verify_response(challenge: &[u8], pubkey: &[u8; 32], signature: &[u8; 64]) -> bool {
         crate::crypto::ed25519_verify(pubkey, challenge, signature).is_ok()
     }
 }

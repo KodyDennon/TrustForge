@@ -79,7 +79,11 @@ fn parity_vectors_promote_credentials_to_identities() {
             AuthorityRoot_Kind::TransparencyAnchor => "transparency-anchor",
             AuthorityRoot_Kind::TrustDomain => "trust-domain",
         };
-        assert_eq!(root_kind_str, v.authority_root_kind, "vector {} root kind", v.name);
+        assert_eq!(
+            root_kind_str, v.authority_root_kind,
+            "vector {} root kind",
+            v.name
+        );
         assert_eq!(root.id, v.authority_root_id, "vector {} root id", v.name);
     }
 }
@@ -98,7 +102,10 @@ fn rejects_mismatched_rp_id() {
         valid_from: None,
         valid_until: None,
     };
-    assert!(matches!(bridge.accept(&cred), Err(BridgeError::Rejected(_))));
+    assert!(matches!(
+        bridge.accept(&cred),
+        Err(BridgeError::Rejected(_))
+    ));
 }
 
 #[test]
@@ -120,7 +127,10 @@ fn rejects_disallowed_algorithm() {
         valid_from: None,
         valid_until: None,
     };
-    assert!(matches!(bridge.accept(&cred), Err(BridgeError::Rejected(_))));
+    assert!(matches!(
+        bridge.accept(&cred),
+        Err(BridgeError::Rejected(_))
+    ));
 }
 
 #[test]
@@ -150,8 +160,8 @@ fn round_trip_credential_back_to_credential() {
 #[test]
 fn project_rejects_non_human_actor() {
     use tf_types::generated::{
-        ActorIdentity, ActorIdentity_IdentityVersion, AuthorityRoot, PublicKey,
-        PublicKey_Purpose, TrustLevel,
+        ActorIdentity, ActorIdentity_IdentityVersion, AuthorityRoot, PublicKey, PublicKey_Purpose,
+        TrustLevel,
     };
     let bridge = make_bridge("example.com");
     let mut identity = bridge

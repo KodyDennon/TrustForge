@@ -27,9 +27,7 @@ fn map_err(e: sqlx::Error) -> StoreError {
     match e {
         RowNotFound => StoreError::NotFound,
         Database(db) if db.is_unique_violation() => StoreError::Conflict,
-        Io(_) | PoolTimedOut | PoolClosed | WorkerCrashed => {
-            StoreError::Unavailable(e.to_string())
-        }
+        Io(_) | PoolTimedOut | PoolClosed | WorkerCrashed => StoreError::Unavailable(e.to_string()),
         other => StoreError::Other(other.to_string()),
     }
 }
@@ -73,23 +71,21 @@ impl PostgresStore {
             .enable_all()
             .build()
             .map_err(|e| StoreError::Unavailable(format!("tokio runtime: {e}")))?;
-        let pool = rt.block_on(async {
-            PgPoolOptions::new()
-                .max_connections(8)
-                .connect(database_url)
-                .await
-        })
-        .map_err(|e| StoreError::Unavailable(format!("connect: {e}")))?;
+        let pool = rt
+            .block_on(async {
+                PgPoolOptions::new()
+                    .max_connections(8)
+                    .connect(database_url)
+                    .await
+            })
+            .map_err(|e| StoreError::Unavailable(format!("connect: {e}")))?;
         rt.block_on(Self::migrate(&pool))?;
         Ok(Arc::new(Self { pool, rt }))
     }
 
     async fn migrate(pool: &PgPool) -> Result<(), StoreError> {
         let sql = include_str!("../migrations/0001_init.sql");
-        sqlx::raw_sql(sql)
-            .execute(pool)
-            .await
-            .map_err(map_err)?;
+        sqlx::raw_sql(sql).execute(pool).await.map_err(map_err)?;
         Ok(())
     }
 }
@@ -169,7 +165,11 @@ impl ProofLedger for PostgresProofLedger {
             .fetch_all(&pool)
             .await
             .map_err(map_err)?;
-            Ok::<_, StoreError>(rows.into_iter().map(|r| r.get::<Value, _>("payload")).collect())
+            Ok::<_, StoreError>(
+                rows.into_iter()
+                    .map(|r| r.get::<Value, _>("payload"))
+                    .collect(),
+            )
         })
     }
 }
@@ -296,7 +296,11 @@ impl EvidenceArchive for PostgresEvidenceArchive {
                 .fetch_all(&pool)
                 .await
                 .map_err(map_err)?;
-            Ok::<_, StoreError>(rows.into_iter().map(|r| r.get::<String, _>("bundle_id")).collect())
+            Ok::<_, StoreError>(
+                rows.into_iter()
+                    .map(|r| r.get::<String, _>("bundle_id"))
+                    .collect(),
+            )
         })
     }
 }

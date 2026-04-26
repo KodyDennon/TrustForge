@@ -129,7 +129,13 @@ impl Vault {
             Some(s) => salt = s,
             None => rand::thread_rng().fill_bytes(&mut salt),
         }
-        let wrap_key = derive_key(passphrase.as_bytes(), &salt, opts.m_cost, opts.t_cost, opts.p_cost)?;
+        let wrap_key = derive_key(
+            passphrase.as_bytes(),
+            &salt,
+            opts.m_cost,
+            opts.t_cost,
+            opts.p_cost,
+        )?;
         let data = OnDiskVault {
             vault_version: "1".to_string(),
             kdf: OnDiskKdf {
@@ -154,7 +160,8 @@ impl Vault {
 
     pub fn open_at_path(path: &Path, passphrase: &str) -> Result<Self, VaultError> {
         let raw = fs::read_to_string(path).map_err(|e| VaultError::Io(e.to_string()))?;
-        let data: OnDiskVault = serde_json::from_str(&raw).map_err(|e| VaultError::Parse(e.to_string()))?;
+        let data: OnDiskVault =
+            serde_json::from_str(&raw).map_err(|e| VaultError::Parse(e.to_string()))?;
         if data.vault_version != "1" {
             return Err(VaultError::UnsupportedVersion(data.vault_version));
         }
@@ -287,8 +294,8 @@ fn derive_key(
     t_cost: u32,
     p_cost: u32,
 ) -> Result<[u8; 32], VaultError> {
-    let params =
-        Params::new(m_cost, t_cost, p_cost, Some(32)).map_err(|e| VaultError::Argon2(e.to_string()))?;
+    let params = Params::new(m_cost, t_cost, p_cost, Some(32))
+        .map_err(|e| VaultError::Argon2(e.to_string()))?;
     let argon = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
     let mut out = [0u8; 32];
     argon

@@ -89,26 +89,74 @@ async fn scrape_populates_expected_metrics() {
     let text = metrics.render();
 
     // Names exposed.
-    assert!(text.contains("tf_decisions_total"), "missing tf_decisions_total in:\n{text}");
-    assert!(text.contains("tf_decisions_latency_seconds"), "missing tf_decisions_latency_seconds");
-    assert!(text.contains("tf_approval_queue_depth"), "missing tf_approval_queue_depth");
-    assert!(text.contains("tf_revocations_active"), "missing tf_revocations_active");
-    assert!(text.contains("tf_sessions_open"), "missing tf_sessions_open");
-    assert!(text.contains("tf_plugins_loaded"), "missing tf_plugins_loaded");
-    assert!(text.contains("tf_proof_events_total"), "missing tf_proof_events_total");
+    assert!(
+        text.contains("tf_decisions_total"),
+        "missing tf_decisions_total in:\n{text}"
+    );
+    assert!(
+        text.contains("tf_decisions_latency_seconds"),
+        "missing tf_decisions_latency_seconds"
+    );
+    assert!(
+        text.contains("tf_approval_queue_depth"),
+        "missing tf_approval_queue_depth"
+    );
+    assert!(
+        text.contains("tf_revocations_active"),
+        "missing tf_revocations_active"
+    );
+    assert!(
+        text.contains("tf_sessions_open"),
+        "missing tf_sessions_open"
+    );
+    assert!(
+        text.contains("tf_plugins_loaded"),
+        "missing tf_plugins_loaded"
+    );
+    assert!(
+        text.contains("tf_proof_events_total"),
+        "missing tf_proof_events_total"
+    );
 
     // Gauge values.
-    assert!(text.contains("tf_sessions_open 2"), "expected sessions_open 2 in:\n{text}");
-    assert!(text.contains("tf_approval_queue_depth 1"), "expected approval depth 1");
-    assert!(text.contains("tf_revocations_active 1"), "expected revocations 1");
+    assert!(
+        text.contains("tf_sessions_open 2"),
+        "expected sessions_open 2 in:\n{text}"
+    );
+    assert!(
+        text.contains("tf_approval_queue_depth 1"),
+        "expected approval depth 1"
+    );
+    assert!(
+        text.contains("tf_revocations_active 1"),
+        "expected revocations 1"
+    );
 
     // Label appearance.
-    assert!(text.contains("decision=\"allow\""), "missing decision=allow label");
-    assert!(text.contains("decision=\"deny\""), "missing decision=deny label");
-    assert!(text.contains("method=\"fs.write\"") || text.contains("action=\"fs.write\""), "missing method label for fs.write");
-    assert!(text.contains("kind=\"bridge.webauthn\""), "missing plugin kind label");
-    assert!(text.contains("kind=\"bridge.spiffe\""), "missing spiffe plugin kind label");
-    assert!(text.contains("type=\"guard.check\""), "missing proof event type label");
+    assert!(
+        text.contains("decision=\"allow\""),
+        "missing decision=allow label"
+    );
+    assert!(
+        text.contains("decision=\"deny\""),
+        "missing decision=deny label"
+    );
+    assert!(
+        text.contains("method=\"fs.write\"") || text.contains("action=\"fs.write\""),
+        "missing method label for fs.write"
+    );
+    assert!(
+        text.contains("kind=\"bridge.webauthn\""),
+        "missing plugin kind label"
+    );
+    assert!(
+        text.contains("kind=\"bridge.spiffe\""),
+        "missing spiffe plugin kind label"
+    );
+    assert!(
+        text.contains("type=\"guard.check\""),
+        "missing proof event type label"
+    );
 
     let _ = shutdown.send(());
 }
@@ -141,9 +189,13 @@ async fn scrape_dedupes_proof_events_across_polls() {
     let mut state = ScrapeState::default();
     let client = reqwest::Client::builder().build().unwrap();
 
-    scrape_once(&cfg, &metrics, &mut state, &client).await.unwrap();
+    scrape_once(&cfg, &metrics, &mut state, &client)
+        .await
+        .unwrap();
     let count_after_first = count_metric_lines(&metrics.render(), "tf_proof_events_total{");
-    scrape_once(&cfg, &metrics, &mut state, &client).await.unwrap();
+    scrape_once(&cfg, &metrics, &mut state, &client)
+        .await
+        .unwrap();
     let count_after_second = count_metric_lines(&metrics.render(), "tf_proof_events_total{");
     assert_eq!(
         count_after_first, count_after_second,

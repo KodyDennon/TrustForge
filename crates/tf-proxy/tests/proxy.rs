@@ -8,8 +8,8 @@
 //! and then drive a `reqwest::Client` against the proxy.
 
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use http_body_util::{BodyExt, Full};
@@ -21,7 +21,7 @@ use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
-use tf_proxy::{Mode, ProxyConfig, ProxyState, run};
+use tf_proxy::{run, Mode, ProxyConfig, ProxyState};
 
 // ---------- Mock daemon ----------
 
@@ -74,7 +74,11 @@ async fn handle_daemon(
 ) -> Result<Response<Full<Bytes>>, std::convert::Infallible> {
     s.hits.fetch_add(1, Ordering::Relaxed);
     let (parts, body) = req.into_parts();
-    let bytes = body.collect().await.map(|c| c.to_bytes()).unwrap_or_default();
+    let bytes = body
+        .collect()
+        .await
+        .map(|c| c.to_bytes())
+        .unwrap_or_default();
     if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes) {
         *s.last_request.lock().await = Some(v);
     }
@@ -193,11 +197,7 @@ fn client() -> reqwest::Client {
 
 #[tokio::test]
 async fn allow_forwards_to_upstream() {
-    let h = start_proxy(
-        r#"{"decision":"allow","reason":"ok"}"#,
-        Mode::Enforce,
-    )
-    .await;
+    let h = start_proxy(r#"{"decision":"allow","reason":"ok"}"#, Mode::Enforce).await;
     let url = format!("http://{}/api/users", h.addr);
     let resp = client().get(&url).send().await.unwrap();
     assert_eq!(resp.status(), 200);

@@ -14,7 +14,9 @@ conformance suite.
 ### Added
 
 #### Specifications and decisions
-* `TF-0000` through `TF-0012` published as Draft.
+* `TF-0000` through `TF-0013` published as Draft. `TF-0013` defines the
+  site-to-site binary path (length-delimited TCP/TLS framing plus the
+  `http-bridge` ProofRPC method kind).
 * `DECISIONS.md` records the long-form rationale for early architecture
   choices.
 * `GOVERNANCE.md` records the spec process.

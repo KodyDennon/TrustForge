@@ -10,9 +10,7 @@
 use ed25519_compact::{KeyPair, Seed};
 use sha2::{Digest, Sha256};
 use tf_core_no_std::nonce_cache::{ReceiverDecision, RejectReason};
-use tf_core_no_std::orl::{
-    OfflineRevocationListChecker, OrlError, RevokedKind,
-};
+use tf_core_no_std::orl::{OfflineRevocationListChecker, OrlError, RevokedKind};
 use tf_core_no_std::packet::{sign_packet, verify_packet, VerifyError};
 use tf_core_no_std::relay::{
     relay_authority_signing_bytes, verify_relay_authority, RelayAuthority, SignatureEnvelope,
@@ -72,7 +70,10 @@ fn relay_authority_round_trip() {
     };
     let digest = relay_authority_signing_bytes(&auth);
     let sig = kp.sk.sign(digest, None);
-    auth.signature.signature.extend_from_slice(sig.as_ref()).unwrap();
+    auth.signature
+        .signature
+        .extend_from_slice(sig.as_ref())
+        .unwrap();
     assert!(verify_relay_authority(&auth, &pk));
 }
 

@@ -357,9 +357,9 @@ pub fn verify_attestation(
         .as_ref()
         .ok_or_else(|| BridgeError::InvalidInput("credential id missing".into()))?
         .clone();
-    let alg = cose
-        .alg
-        .ok_or_else(|| BridgeError::InvalidInput("credential public key has no algorithm".into()))?;
+    let alg = cose.alg.ok_or_else(|| {
+        BridgeError::InvalidInput("credential public key has no algorithm".into())
+    })?;
     if let Some(allowed) = &opts.allowed_algorithms {
         if !allowed.contains(&alg) {
             return Err(BridgeError::Rejected(format!(
@@ -435,8 +435,7 @@ fn verify_packed(
             _ => {}
         }
     }
-    let sig =
-        sig.ok_or_else(|| BridgeError::InvalidInput("packed attStmt missing sig".into()))?;
+    let sig = sig.ok_or_else(|| BridgeError::InvalidInput("packed attStmt missing sig".into()))?;
     let alg = alg.ok_or_else(|| BridgeError::InvalidInput("packed attStmt missing alg".into()))?;
     let mut data = att.auth_data.clone();
     data.extend_from_slice(client_data_hash);
@@ -568,7 +567,11 @@ fn verify_cose_signature(
     )))
 }
 
-fn verify_p256_der(public_uncompressed: &[u8], data: &[u8], der_sig: &[u8]) -> Result<(), BridgeError> {
+fn verify_p256_der(
+    public_uncompressed: &[u8],
+    data: &[u8],
+    der_sig: &[u8],
+) -> Result<(), BridgeError> {
     let vk = P256VerifyingKey::from_sec1_bytes(public_uncompressed)
         .map_err(|e| BridgeError::InvalidInput(format!("bad P-256 SEC1 key: {}", e)))?;
     let sig = P256Signature::from_der(der_sig)
@@ -625,5 +628,7 @@ fn encode_raw_public_key(cose: &CosePublicKey) -> Result<Vec<u8>, BridgeError> {
     if cose.kty == 3 && cose.n.is_some() {
         return Ok(cose.n.clone().unwrap());
     }
-    Err(BridgeError::InvalidInput("unsupported COSE key shape".into()))
+    Err(BridgeError::InvalidInput(
+        "unsupported COSE key shape".into(),
+    ))
 }

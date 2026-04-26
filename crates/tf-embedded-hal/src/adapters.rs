@@ -56,7 +56,8 @@ impl MockLoraRadio {
     /// Push a frame into the inbox so a subsequent `recv` returns it.
     pub fn enqueue_inbox(&mut self, frame: &[u8]) -> Result<(), MockError> {
         let mut v: heapless::Vec<u8, MOCK_FRAME_CAP> = heapless::Vec::new();
-        v.extend_from_slice(frame).map_err(|_| MockError::BufferTooSmall)?;
+        v.extend_from_slice(frame)
+            .map_err(|_| MockError::BufferTooSmall)?;
         self.inbox.push(v).map_err(|_| MockError::OutboxFull)?;
         Ok(())
     }
@@ -67,7 +68,8 @@ impl LoraRadio for MockLoraRadio {
 
     fn send(&mut self, payload: &[u8]) -> Result<(), Self::Error> {
         let mut v: heapless::Vec<u8, MOCK_FRAME_CAP> = heapless::Vec::new();
-        v.extend_from_slice(payload).map_err(|_| MockError::BufferTooSmall)?;
+        v.extend_from_slice(payload)
+            .map_err(|_| MockError::BufferTooSmall)?;
         self.outbox.push(v).map_err(|_| MockError::OutboxFull)?;
         Ok(())
     }
@@ -113,7 +115,8 @@ impl BleAdvertiser for MockBleAdvertiser {
     type Error = MockError;
     fn advertise(&mut self, payload: &[u8]) -> Result<(), Self::Error> {
         let mut v: heapless::Vec<u8, MOCK_FRAME_CAP> = heapless::Vec::new();
-        v.extend_from_slice(payload).map_err(|_| MockError::BufferTooSmall)?;
+        v.extend_from_slice(payload)
+            .map_err(|_| MockError::BufferTooSmall)?;
         self.last = Some(v);
         self.advertise_count += 1;
         Ok(())
@@ -141,7 +144,8 @@ impl MockNfcReader {
     }
     pub fn enqueue(&mut self, frame: &[u8]) -> Result<(), MockError> {
         let mut v: heapless::Vec<u8, MOCK_FRAME_CAP> = heapless::Vec::new();
-        v.extend_from_slice(frame).map_err(|_| MockError::BufferTooSmall)?;
+        v.extend_from_slice(frame)
+            .map_err(|_| MockError::BufferTooSmall)?;
         self.queue.push(v).map_err(|_| MockError::OutboxFull)?;
         Ok(())
     }
@@ -224,7 +228,11 @@ pub struct MockEntropy {
 impl MockEntropy {
     pub fn new(seed: u64) -> Self {
         // xorshift64* requires non-zero state.
-        let s = if seed == 0 { 0xdead_beef_dead_beef } else { seed };
+        let s = if seed == 0 {
+            0xdead_beef_dead_beef
+        } else {
+            seed
+        };
         MockEntropy { state: s }
     }
 }

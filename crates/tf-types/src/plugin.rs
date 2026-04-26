@@ -41,8 +41,7 @@ impl From<CryptoError> for PluginError {
 }
 
 /// Opaque handler. Native Rust plugins register concrete implementations.
-pub type NativeHandler =
-    Arc<dyn Fn(&Value) -> Result<Value, String> + Send + Sync + 'static>;
+pub type NativeHandler = Arc<dyn Fn(&Value) -> Result<Value, String> + Send + Sync + 'static>;
 
 pub struct LoadedPlugin {
     pub plugin_id: String,
@@ -87,8 +86,8 @@ impl PluginRegistry {
         let raw = fs::read_to_string(manifest_path.as_ref())
             .map_err(|e| PluginError::Io(e.to_string()))?;
         let manifest: Value = {
-            let yaml: serde_yaml::Value = serde_yaml::from_str(&raw)
-                .map_err(|e| PluginError::Parse(e.to_string()))?;
+            let yaml: serde_yaml::Value =
+                serde_yaml::from_str(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
             serde_json::to_value(yaml).map_err(|e| PluginError::Parse(e.to_string()))?
         };
         let kind = manifest
@@ -145,22 +144,19 @@ impl PluginRegistry {
             .iter()
             .find(|p| p.plugin_id == plugin_id)
             .ok_or_else(|| PluginError::Parse(format!("plugin not loaded: {}", plugin_id)))?;
-        let handler = plugin
-            .handlers
-            .get(capability)
-            .ok_or_else(|| PluginError::Parse(format!("no handler for capability: {}", capability)))?;
+        let handler = plugin.handlers.get(capability).ok_or_else(|| {
+            PluginError::Parse(format!("no handler for capability: {}", capability))
+        })?;
         handler(request).map_err(PluginError::Parse)
     }
 }
 
 /// Standalone signature verifier for tooling (a CLI's `tf plugin verify`).
-pub fn verify_plugin_signature<P: AsRef<Path>>(
-    manifest_path: P,
-) -> Result<String, PluginError> {
-    let raw = fs::read_to_string(manifest_path.as_ref())
-        .map_err(|e| PluginError::Io(e.to_string()))?;
-    let yaml: serde_yaml::Value = serde_yaml::from_str(&raw)
-        .map_err(|e| PluginError::Parse(e.to_string()))?;
+pub fn verify_plugin_signature<P: AsRef<Path>>(manifest_path: P) -> Result<String, PluginError> {
+    let raw =
+        fs::read_to_string(manifest_path.as_ref()).map_err(|e| PluginError::Io(e.to_string()))?;
+    let yaml: serde_yaml::Value =
+        serde_yaml::from_str(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
     let manifest: Value =
         serde_json::to_value(yaml).map_err(|e| PluginError::Parse(e.to_string()))?;
     let plugin_id = manifest
@@ -187,10 +183,7 @@ fn verify_signature_value(manifest: &Value, plugin_id: &str) -> Result<(), Plugi
 
     // Clone manifest and clear signature.signature.
     let mut cleared = manifest.clone();
-    if let Some(sig) = cleared
-        .get_mut("signature")
-        .and_then(|s| s.as_object_mut())
-    {
+    if let Some(sig) = cleared.get_mut("signature").and_then(|s| s.as_object_mut()) {
         sig.insert("signature".to_string(), Value::String(String::new()));
     }
     let canonical = canonicalize(&cleared).map_err(|e| PluginError::Parse(e.to_string()))?;

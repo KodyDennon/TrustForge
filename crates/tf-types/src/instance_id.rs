@@ -1,8 +1,7 @@
 //! Instance-URI parser mirroring `tools/tf-types-ts/src/core/instance-id.ts`.
 
 use crate::actor_id::{
-    actor_type_to_str, format_actor_id, parse_actor_type, split_scheme,
-    ActorIdParseError,
+    actor_type_to_str, format_actor_id, parse_actor_type, split_scheme, ActorIdParseError,
 };
 use crate::generated::common::ActorType;
 
@@ -21,10 +20,7 @@ pub fn parse_instance_id(s: &str) -> Result<ParsedInstanceId, ActorIdParseError>
     }
     let actor_type = parse_actor_type(parts.type_segment)
         .ok_or_else(|| ActorIdParseError::UnknownType(parts.type_segment.to_owned()))?;
-    let split = parts
-        .path
-        .rfind('/')
-        .ok_or(ActorIdParseError::EmptyPath)?;
+    let split = parts.path.rfind('/').ok_or(ActorIdParseError::EmptyPath)?;
     if split == 0 {
         return Err(ActorIdParseError::EmptyPath);
     }

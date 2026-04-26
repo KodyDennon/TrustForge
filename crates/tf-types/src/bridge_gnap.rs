@@ -181,8 +181,9 @@ impl GnapBridge {
         validation.set_issuer(&[self.cfg.issuer.as_str()]);
         validation.algorithms = vec![header.alg];
         validation.validate_aud = false;
-        let data = decode::<HashMap<String, Value>>(token, &key, &validation)
-            .map_err(|e| BridgeError::Rejected(format!("GNAP access token verify failed: {}", e)))?;
+        let data = decode::<HashMap<String, Value>>(token, &key, &validation).map_err(|e| {
+            BridgeError::Rejected(format!("GNAP access token verify failed: {}", e))
+        })?;
         let claims = data.claims;
         let expected_jkt = jwk_thumbprint(&request.client.key.jwk)?;
         if let Some(cnf) = claims.get("cnf").and_then(|v| v.as_object()) {
@@ -308,10 +309,7 @@ impl GnapBridge {
         if header.get("typ").and_then(|v| v.as_str()) != Some("dpop+jwt") {
             return DpopProofVerification {
                 ok: false,
-                reason: Some(format!(
-                    "DPoP typ {:?} is not dpop+jwt",
-                    header.get("typ")
-                )),
+                reason: Some(format!("DPoP typ {:?} is not dpop+jwt", header.get("typ"))),
                 jkt_expected: Some(expected_jkt.into()),
                 jkt_seen: None,
             };
@@ -595,7 +593,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

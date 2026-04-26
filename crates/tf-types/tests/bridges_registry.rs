@@ -31,7 +31,10 @@ bridges:
 fn loads_valid_registry() {
     let registry = BridgesRegistry::from_str(sample_doc()).expect("parse");
     assert_eq!(registry.registry_version, "1");
-    assert_eq!(registry.default_profile.as_deref(), Some("tf-home-compatible"));
+    assert_eq!(
+        registry.default_profile.as_deref(),
+        Some("tf-home-compatible")
+    );
     assert_eq!(registry.bridges.len(), 3);
     assert_eq!(registry.bridges[0].kind, BridgesRegistryKind::Oauth);
     assert_eq!(
@@ -66,7 +69,9 @@ fn resolves_by_issuer_substring_pattern() {
 #[test]
 fn resolves_by_issuer_unknown_returns_none() {
     let registry = BridgesRegistry::from_str(sample_doc()).expect("parse");
-    assert!(registry.resolve_by_issuer("https://unknown.example/").is_none());
+    assert!(registry
+        .resolve_by_issuer("https://unknown.example/")
+        .is_none());
     assert!(registry.resolve_by_issuer("").is_none());
 }
 

@@ -38,7 +38,8 @@ fn load_vectors() -> VectorsFile {
         .join("..")
         .join("conformance")
         .join("guard-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse guard-vectors.yaml")
 }
 

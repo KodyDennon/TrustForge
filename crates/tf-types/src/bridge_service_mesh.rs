@@ -109,9 +109,7 @@ pub struct ServiceMeshBridge {
 pub fn parse_xfcc(header: &str) -> Result<Vec<XfccEntry>, BridgeError> {
     let header = header.trim();
     if header.is_empty() {
-        return Err(BridgeError::InvalidInput(
-            "empty XFCC header".into(),
-        ));
+        return Err(BridgeError::InvalidInput("empty XFCC header".into()));
     }
     let raw_entries = split_xfcc_entries(header)?;
     let mut out = Vec::with_capacity(raw_entries.len());
@@ -250,14 +248,12 @@ fn push_pair(out: &mut Vec<(String, String)>, raw: &str) -> Result<(), BridgeErr
     if raw.is_empty() {
         return Ok(());
     }
-    let eq = raw.find('=').ok_or_else(|| {
-        BridgeError::InvalidInput(format!("XFCC pair missing '=': {}", raw))
-    })?;
+    let eq = raw
+        .find('=')
+        .ok_or_else(|| BridgeError::InvalidInput(format!("XFCC pair missing '=': {}", raw)))?;
     let key = raw[..eq].trim().to_string();
     if key.is_empty() {
-        return Err(BridgeError::InvalidInput(
-            "XFCC pair has empty key".into(),
-        ));
+        return Err(BridgeError::InvalidInput("XFCC pair has empty key".into()));
     }
     let value = unquote_xfcc_value(raw[eq + 1..].trim())?;
     out.push((key, value));
@@ -320,9 +316,7 @@ fn unquote_xfcc_value(raw: &str) -> Result<String, BridgeError> {
 pub fn parse_istio_attributes(header: &str) -> Result<IstioPrincipal, BridgeError> {
     let header = header.trim();
     if header.is_empty() {
-        return Err(BridgeError::InvalidInput(
-            "empty Istio header".into(),
-        ));
+        return Err(BridgeError::InvalidInput("empty Istio header".into()));
     }
     // JWT shape: three base64url segments separated by dots. We never
     // verify the signature here — that's the OAuth bridge's job — but
@@ -332,9 +326,8 @@ pub fn parse_istio_attributes(header: &str) -> Result<IstioPrincipal, BridgeErro
     }
     // Otherwise treat the value as a base64(-url) encoded protobuf
     // whose only field of interest is `source.principal` (string).
-    let bytes = decode_base64_either(header).ok_or_else(|| {
-        BridgeError::InvalidInput("Istio header is not base64 or a JWT".into())
-    })?;
+    let bytes = decode_base64_either(header)
+        .ok_or_else(|| BridgeError::InvalidInput("Istio header is not base64 or a JWT".into()))?;
     let principal = decode_istio_protobuf_principal(&bytes)?;
     spiffe_to_principal(&principal)
 }
@@ -377,11 +370,7 @@ fn try_parse_istio_jwt(header: &str) -> Result<Option<IstioPrincipal>, BridgeErr
         .get("sub")
         .and_then(Value::as_str)
         .or_else(|| payload.get("spiffe").and_then(Value::as_str))
-        .ok_or_else(|| {
-            BridgeError::InvalidInput(
-                "Istio JWT missing sub/spiffe claim".into(),
-            )
-        })?;
+        .ok_or_else(|| BridgeError::InvalidInput("Istio JWT missing sub/spiffe claim".into()))?;
     Ok(Some(spiffe_to_principal(spiffe)?))
 }
 
@@ -466,9 +455,7 @@ fn decode_istio_protobuf_principal(bytes: &[u8]) -> Result<String, BridgeError> 
         }
     }
     best.ok_or_else(|| {
-        BridgeError::InvalidInput(
-            "Istio proto: no spiffe:// principal field present".into(),
-        )
+        BridgeError::InvalidInput("Istio proto: no spiffe:// principal field present".into())
     })
 }
 
@@ -633,10 +620,9 @@ impl ServiceMeshBridge {
     /// retained for the existing sprint-5 callers that build entries
     /// by hand.
     pub fn accept_envoy(&self, entry: &XfccEntry) -> Result<ActorIdentity, BridgeError> {
-        let uri = entry
-            .uri
-            .as_deref()
-            .ok_or_else(|| BridgeError::InvalidInput("XFCC entry needs URI in this Rust path".into()))?;
+        let uri = entry.uri.as_deref().ok_or_else(|| {
+            BridgeError::InvalidInput("XFCC entry needs URI in this Rust path".into())
+        })?;
         if !uri.starts_with("spiffe://") {
             return Err(BridgeError::Rejected(
                 "Rust XFCC bridge only accepts spiffe:// URIs".into(),
@@ -664,14 +650,14 @@ impl ServiceMeshBridge {
             return Ok(self.identity_from(actor, Some("linkerd".into())));
         }
         let suffix = ".serviceaccount.identity.";
-        let idx = client_id
-            .find(suffix)
-            .ok_or_else(|| BridgeError::InvalidInput(format!("not a linkerd client_id: {}", client_id)))?;
+        let idx = client_id.find(suffix).ok_or_else(|| {
+            BridgeError::InvalidInput(format!("not a linkerd client_id: {}", client_id))
+        })?;
         let pre = &client_id[..idx];
         let post = &client_id[idx + suffix.len()..];
-        let cluster_local = post
-            .strip_suffix(".cluster.local")
-            .ok_or_else(|| BridgeError::InvalidInput(format!("not a linkerd client_id: {}", client_id)))?;
+        let cluster_local = post.strip_suffix(".cluster.local").ok_or_else(|| {
+            BridgeError::InvalidInput(format!("not a linkerd client_id: {}", client_id))
+        })?;
         let dot = pre.find('.').ok_or_else(|| {
             BridgeError::InvalidInput(format!("not a linkerd client_id: {}", client_id))
         })?;
@@ -744,7 +730,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

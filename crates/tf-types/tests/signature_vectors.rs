@@ -38,7 +38,8 @@ fn load_vectors() -> VectorsFile {
         .join("..")
         .join("conformance")
         .join("signature-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse signature-vectors.yaml")
 }
 
@@ -58,16 +59,27 @@ fn ed25519_derives_and_signs() {
 
         if let Some(expected_pk) = &v.public_key {
             let derived = signer.public_key_bytes();
-            assert_eq!(hex_encode(&derived), expected_pk.to_lowercase(), "{} public key", v.name);
+            assert_eq!(
+                hex_encode(&derived),
+                expected_pk.to_lowercase(),
+                "{} public key",
+                v.name
+            );
         }
 
         let msg = from_hex(&v.message);
         let signature = signer.sign(&msg);
         if let Some(expected_sig) = &v.signature {
-            assert_eq!(hex_encode(&signature), expected_sig.to_lowercase(), "{} signature", v.name);
+            assert_eq!(
+                hex_encode(&signature),
+                expected_sig.to_lowercase(),
+                "{} signature",
+                v.name
+            );
         }
         let pk = signer.public_key_bytes();
-        ed25519_verify(&pk, &msg, &signature).unwrap_or_else(|e| panic!("{} verify: {}", v.name, e));
+        ed25519_verify(&pk, &msg, &signature)
+            .unwrap_or_else(|e| panic!("{} verify: {}", v.name, e));
     }
 }
 
@@ -86,7 +98,12 @@ fn ed25519_rejects_tampered_message() {
 fn sha256_vectors_match() {
     let vectors = load_vectors();
     for v in &vectors.sha256 {
-        assert_eq!(sha256_hashref(&from_hex(&v.input_hex)), v.output, "{}", v.name);
+        assert_eq!(
+            sha256_hashref(&from_hex(&v.input_hex)),
+            v.output,
+            "{}",
+            v.name
+        );
     }
 }
 
@@ -94,6 +111,11 @@ fn sha256_vectors_match() {
 fn blake3_vectors_match() {
     let vectors = load_vectors();
     for v in &vectors.blake3 {
-        assert_eq!(blake3_hashref(&from_hex(&v.input_hex)), v.output, "{}", v.name);
+        assert_eq!(
+            blake3_hashref(&from_hex(&v.input_hex)),
+            v.output,
+            "{}",
+            v.name
+        );
     }
 }

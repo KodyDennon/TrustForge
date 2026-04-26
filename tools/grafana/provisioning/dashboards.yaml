@@ -1,0 +1,26 @@
+# Grafana dashboard provisioning for TrustForge.
+#
+# This file tells Grafana to scan a directory for JSON dashboard models
+# and load them into the "TrustForge" folder. Mount the
+# `tools/grafana/dashboards/` directory at `/var/lib/grafana/dashboards/trustforge`
+# in your container or copy the JSON files into Grafana's
+# `dashboards/trustforge/` directory.
+#
+# `updateIntervalSeconds` makes Grafana re-scan the directory and reload
+# any changed dashboards every 30s — convenient when iterating on
+# dashboards in source control. For production, raise it.
+
+apiVersion: 1
+
+providers:
+  - name: TrustForge
+    orgId: 1
+    folder: TrustForge
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/trustforge
+      foldersFromFilesStructure: false

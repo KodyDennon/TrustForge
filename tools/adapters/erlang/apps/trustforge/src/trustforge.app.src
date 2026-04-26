@@ -1,0 +1,18 @@
+{application, trustforge, [
+    {description, "TrustForge HTTP client (Erlang) for tf-daemon /v1/decide"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        inets,
+        ssl,
+        crypto,
+        public_key,
+        jsx
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

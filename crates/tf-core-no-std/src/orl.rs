@@ -157,8 +157,11 @@ impl OfflineRevocationListChecker {
         #[cfg(feature = "alloc")]
         let mut index: BTreeMap<String, RevokedEntry> = BTreeMap::new();
         #[cfg(not(feature = "alloc"))]
-        let mut index: FnvIndexMap<HString<NO_ALLOC_KEY_CAP>, RevokedEntry, NO_ALLOC_CAPACITY> =
-            FnvIndexMap::new();
+        let mut index: FnvIndexMap<
+            HString<NO_ALLOC_KEY_CAP>,
+            RevokedEntry,
+            NO_ALLOC_CAPACITY,
+        > = FnvIndexMap::new();
 
         for _ in 0..entry_count {
             let kind_byte = cur.read_u8()?;
@@ -195,7 +198,8 @@ impl OfflineRevocationListChecker {
 
         let sig = Signature::from_slice(sig_bytes).map_err(|_| OrlError::BadSignature)?;
         let pk = PublicKey::from_slice(issuer_pub).map_err(|_| OrlError::BadPublicKey)?;
-        pk.verify(digest_bytes, &sig).map_err(|_| OrlError::BadSignature)?;
+        pk.verify(digest_bytes, &sig)
+            .map_err(|_| OrlError::BadSignature)?;
 
         // Sanity: re-hash should match prefix bytes; consume `entries_start`
         // to avoid the unused-binding lint while keeping the variable in
@@ -245,7 +249,8 @@ fn make_key(kind: RevokedKind, id: &[u8]) -> Result<String, OrlError> {
 fn make_key(kind: RevokedKind, id: &[u8]) -> Result<HString<NO_ALLOC_KEY_CAP>, OrlError> {
     let id_str = core::str::from_utf8(id).map_err(|_| OrlError::KeyTooLarge)?;
     let mut s: HString<NO_ALLOC_KEY_CAP> = HString::new();
-    s.push_str(kind.as_str()).map_err(|_| OrlError::KeyTooLarge)?;
+    s.push_str(kind.as_str())
+        .map_err(|_| OrlError::KeyTooLarge)?;
     s.push(':').map_err(|_| OrlError::KeyTooLarge)?;
     s.push_str(id_str).map_err(|_| OrlError::KeyTooLarge)?;
     Ok(s)
@@ -364,8 +369,8 @@ mod tests {
                 (RevokedKind::Actor, "tf:actor:agent:example.com/bad"),
             ],
         );
-        let orl = OfflineRevocationListChecker::new(&bytes, &pk, "2026-04-25T00:00:00Z")
-            .expect("load");
+        let orl =
+            OfflineRevocationListChecker::new(&bytes, &pk, "2026-04-25T00:00:00Z").expect("load");
         assert_eq!(orl.len(), 2);
         assert!(orl.is_revoked(RevokedKind::Key, "tf:key:1234"));
         assert!(orl.is_revoked(RevokedKind::Actor, "tf:actor:agent:example.com/bad"));

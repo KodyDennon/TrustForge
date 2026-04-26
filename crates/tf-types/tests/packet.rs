@@ -177,11 +177,7 @@ fn fragment_and_reassemble_byte_identical() {
         created_at: Some(now()),
     })
     .unwrap();
-    let fragments = fragment_packet(
-        &original,
-        &priv_bytes,
-        FragmentOptions { mtu: Some(256) },
-    );
+    let fragments = fragment_packet(&original, &priv_bytes, FragmentOptions { mtu: Some(256) });
     assert!(fragments.len() > 1);
     let r = reassemble_fragments(&fragments);
     assert!(r.ok, "expected ok, got {:?}", r.reason);
@@ -214,11 +210,7 @@ fn reassembly_rejects_missing_fragment() {
         created_at: Some(now()),
     })
     .unwrap();
-    let fragments = fragment_packet(
-        &original,
-        &priv_bytes,
-        FragmentOptions { mtu: Some(128) },
-    );
+    let fragments = fragment_packet(&original, &priv_bytes, FragmentOptions { mtu: Some(128) });
     let truncated = &fragments[..fragments.len() - 1];
     let r = reassemble_fragments(truncated);
     assert!(!r.ok);

@@ -4,9 +4,7 @@
 use std::collections::BTreeSet;
 
 use tf_types::generated::common::{EnforcementLevel, ProofLevel};
-use tf_types::profile::{
-    builtin_profile, builtin_profiles, select_profile, ProfileFeatureGate,
-};
+use tf_types::profile::{builtin_profile, builtin_profiles, select_profile, ProfileFeatureGate};
 
 fn set<I, S>(items: I) -> BTreeSet<String>
 where

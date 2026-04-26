@@ -1,0 +1,56 @@
+[package]
+name = "tf-bootloader-example"
+version = "0.1.0"
+edition = "2021"
+description = "TrustForge K9 — reference verify-then-boot bootloader fragment for Cortex-M4."
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.embedded]
+chip = "STM32F411 (illustrative)"
+flash_size = "512K"
+ram_size = "128K"
+target_triple = "thumbv7em-none-eabihf"
+profile = "constrained"
+spec = "TF-0011 + bootloader pattern"
+role = "first-stage boot verifier"
+
+[[bin]]
+name = "tf-bootloader-example"
+path = "src/main.rs"
+test = false
+bench = false
+
+[lib]
+name = "tf_bootloader_example"
+path = "src/lib.rs"
+
+[dependencies]
+tf-core-no-std = { path = "../../tf-core-no-std", default-features = false }
+
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+sha2 = { version = "0.10", default-features = false }
+
+heapless = "0.8"
+
+[features]
+default = []
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = "fat"
+opt-level = "s"
+overflow-checks = false
+panic = "abort"
+
+[profile.dev]
+codegen-units = 1
+debug = true
+opt-level = 1
+overflow-checks = true
+panic = "abort"

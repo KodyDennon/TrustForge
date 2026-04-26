@@ -23,9 +23,20 @@ pub struct ParsedActorId {
 }
 
 pub const ACTOR_TYPE_STRS: &[&str] = &[
-    "human", "agent", "device", "service", "site", "organization",
-    "relay", "plugin", "process", "tool", "model-provider",
-    "policy-engine", "proof-anchor", "emergency-authority",
+    "human",
+    "agent",
+    "device",
+    "service",
+    "site",
+    "organization",
+    "relay",
+    "plugin",
+    "process",
+    "tool",
+    "model-provider",
+    "policy-engine",
+    "proof-anchor",
+    "emergency-authority",
 ];
 
 pub fn parse_actor_id(s: &str) -> Result<ParsedActorId, ActorIdParseError> {
@@ -49,7 +60,11 @@ pub fn format_actor_id(actor_type: &ActorType, path: &str) -> Result<String, Act
     if path.is_empty() {
         return Err(ActorIdParseError::EmptyPath);
     }
-    Ok(format!("tf:actor:{}:{}", actor_type_to_str(actor_type), path))
+    Ok(format!(
+        "tf:actor:{}:{}",
+        actor_type_to_str(actor_type),
+        path
+    ))
 }
 
 pub fn actor_id_equals(a: &str, b: &str) -> bool {
@@ -89,7 +104,11 @@ pub(crate) fn split_scheme(s: &str) -> Option<SchemeParts<'_>> {
     let second = remainder.find(':')?;
     let type_segment = &remainder[..second];
     let path = &remainder[second + 1..];
-    Some(SchemeParts { kind, type_segment, path })
+    Some(SchemeParts {
+        kind,
+        type_segment,
+        path,
+    })
 }
 
 pub(crate) fn parse_actor_type(s: &str) -> Option<ActorType> {

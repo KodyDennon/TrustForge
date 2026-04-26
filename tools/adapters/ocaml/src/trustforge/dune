@@ -1,0 +1,4 @@
+(library
+ (name trustforge)
+ (public_name trustforge)
+ (libraries cohttp-lwt-unix lwt yojson))

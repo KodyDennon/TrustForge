@@ -125,11 +125,7 @@ impl RegoPolicyEngine {
         let result = match engine.eval_rule(self.rule_path.clone()) {
             Ok(v) => v,
             Err(e) => {
-                return self.deny(
-                    query,
-                    &now,
-                    format!("rego evaluation error: {e}"),
-                );
+                return self.deny(query, &now, format!("rego evaluation error: {e}"));
             }
         };
 
@@ -269,7 +265,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

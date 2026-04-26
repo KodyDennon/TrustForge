@@ -33,7 +33,7 @@ This is the **0.1.0** release. Every documented profile, bridge, and protocol su
 
 ```
 docs/
-  specs/                    TF-0000 through TF-0012 RFC-style specs
+  specs/                    TF-0000 through TF-0013 RFC-style specs (TF-0013 defines the site-to-site binary path)
   bridges/                  WebAuthn / SPIFFE / OAuth-GNAP / MCP / TLS / DID / Matrix bridge specs
   profiles/                 home / enterprise / constrained / compliance-evidence
   ai-integration.md         How an AI agent should consume the contract

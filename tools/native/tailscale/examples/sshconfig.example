@@ -1,0 +1,99 @@
+# Tailscale SSH integration with TrustForge — example sshd_config
+# fragment plus the ACL-policy snippet you'd attach to it.
+#
+# Tailscale SSH (the "tailscaled-as-sshd" mode) supports an external
+# auth-request hook. When `tailscale serve` or the equivalent ACL
+# block enables it, every SSH session opened over the tailnet is
+# preceded by an HTTP POST to the configured `OnAuthRequest` URL.
+# The TrustForge sidecar (`tf-tailscale-sync`) handles that POST at
+# /trustforge/ssh/auth.
+#
+# 1. Tailscale ACL fragment
+# -------------------------
+#
+# Add this to your tailnet's ACL HuJSON:
+#
+#   "ssh": [
+#     {
+#       "action": "accept",
+#       "src":    ["autogroup:member"],
+#       "dst":    ["autogroup:self"],
+#       "users":  ["root", "$USER"],
+#       "checkPeriod": "5m",
+#       "extAuth": {
+#         "url":     "http://127.0.0.1:8789/trustforge/ssh/auth",
+#         "method":  "POST",
+#         "timeout": "2s",
+#         "fields": {
+#           "node_key":   "$src.NodeKey",
+#           "user_login": "$src.User.LoginName",
+#           "host_name":  "$dst.HostName",
+#           "ip":         "$dst.TailscaleIP",
+#           "src_ips":    "$src.TailscaleIPs"
+#         }
+#       }
+#     }
+#   ]
+#
+# Notes:
+#   - The `extAuth` block above uses a non-standard shape. As of
+#     Tailscale's public ACL grammar (April 2026) external SSH auth
+#     is only available via the `tailscale serve --auth-hook` CLI
+#     flag, not via ACL HuJSON. The block above is what the
+#     TrustForge integration *would* configure if/when external auth
+#     hooks land in the ACL grammar; for the current Tailscale
+#     release, see step 2.
+#
+# 2. CLI form (works today)
+# -------------------------
+#
+# Until external auth hooks ship in ACL HuJSON, run tailscaled with:
+#
+#   tailscale up \
+#     --ssh \
+#     --advertise-ssh-extauth=http://127.0.0.1:8789/trustforge/ssh/auth
+#
+# Note: --advertise-ssh-extauth is a tailscaled-internal flag; it has
+# graduated in/out of the public CLI in successive Tailscale releases.
+# Confirm with `tailscale up --help | grep ssh` against your version.
+#
+# 3. Standalone OpenSSH fallback
+# ------------------------------
+#
+# If you are using OpenSSH (not Tailscale SSH) over the tailnet, add
+# a ForceCommand wrapper to /etc/ssh/sshd_config that hits the
+# sidecar before opening the user's shell:
+#
+#   Match Address 100.64.0.0/10
+#       ForceCommand /usr/local/libexec/tf-ssh-gate "$SSH_CONNECTION" "$USER"
+#       PermitTTY    yes
+#
+# /usr/local/libexec/tf-ssh-gate is a small wrapper:
+#
+#   #!/usr/bin/env bash
+#   set -euo pipefail
+#   SSH_CONN="${1:-}"
+#   USER_LOGIN="${2:-}"
+#   resp=$(curl --silent --max-time 2 \
+#       --header 'content-type: application/json' \
+#       --data "{\"user_login\":\"$USER_LOGIN\",\"src_ips\":[\"${SSH_CONN%% *}\"]}" \
+#       http://127.0.0.1:8789/trustforge/ssh/auth) || {
+#       echo "trustforge: daemon unavailable; closing session" >&2
+#       exit 1
+#   }
+#   if [[ "$(jq -r .allow <<<"$resp")" != "true" ]]; then
+#       echo "trustforge: $(jq -r .reason <<<"$resp")" >&2
+#       exit 1
+#   fi
+#   exec "${SHELL:-/bin/sh}"
+#
+# 4. End-to-end smoke test
+# ------------------------
+#
+#   # Run the sidecar against a mock daemon that always allows.
+#   TF_DAEMON_URL=http://localhost:9999 \
+#   tf-tailscale-sync --ssh-addr 127.0.0.1:8789 &
+#   curl -s -X POST -H 'content-type: application/json' \
+#        -d '{"user_login":"alice@example.com"}' \
+#        http://127.0.0.1:8789/trustforge/ssh/auth
+#   # → {"allow":true}

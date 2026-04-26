@@ -46,7 +46,12 @@
             "grpc",
             "service-mesh",
             "a2a",
-            "session-cookie"
+            "session-cookie",
+            "aws",
+            "gcp",
+            "azure",
+            "vault",
+            "doppler"
           ]
         },
         "issuer_match": {

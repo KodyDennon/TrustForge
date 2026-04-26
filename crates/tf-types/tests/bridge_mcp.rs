@@ -159,10 +159,7 @@ fn warning_prefix_appears_when_action_has_danger_tags() {
         }],
     };
     let mut tag_map = std::collections::HashMap::new();
-    tag_map.insert(
-        "fs.delete".to_string(),
-        vec!["destructive".to_string()],
-    );
+    tag_map.insert("fs.delete".to_string(), vec!["destructive".to_string()]);
     let actions = mcp_to_contract_actions(
         &list,
         &McpImportOptions {
@@ -172,10 +169,7 @@ fn warning_prefix_appears_when_action_has_danger_tags() {
     )
     .unwrap();
     let back = contract_to_mcp_tools(&actions);
-    let desc = back.tools[0]
-        .description
-        .as_deref()
-        .unwrap_or_default();
+    let desc = back.tools[0].description.as_deref().unwrap_or_default();
     assert!(desc.contains("⚠️"));
     assert!(desc.contains("destructive"));
 }

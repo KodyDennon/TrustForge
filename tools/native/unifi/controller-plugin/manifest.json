@@ -1,0 +1,42 @@
+{
+  "id": "com.trustforge.unifi-plugin",
+  "name": "TrustForge",
+  "version": "0.1.0",
+  "description": "Gates UniFi client-connect, port-block, and firewall-rule events on a TrustForge /v1/decide verdict.",
+  "author": "TrustForge Maintainers <maintainers@trustforge.dev>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/trustforge/trustforge",
+  "entrypoint": "src/index.js",
+  "permissions": [
+    "controller.events.subscribe",
+    "controller.api.read",
+    "controller.api.write",
+    "outbound.http"
+  ],
+  "events": [
+    "client.connected",
+    "client.authorized",
+    "firewall.rule.added",
+    "firewall.rule.removed",
+    "switch.port.blocked",
+    "switch.port.unblocked",
+    "guest.voucher.requested"
+  ],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "daemon_url": {
+        "type": "string",
+        "default": "http://127.0.0.1:8787"
+      },
+      "fail_closed": {
+        "type": "boolean",
+        "default": true
+      },
+      "site_actor": {
+        "type": "string",
+        "default": "tf:actor:device:unifi/site-default"
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ pub mod generated;
 
 pub mod actor_id;
 pub mod approval;
+pub mod binary_format;
 pub mod bridge_a2a;
 pub mod bridge_did;
 pub mod bridge_gnap;
@@ -23,9 +24,7 @@ pub mod bridge_webauthn;
 pub mod bridge_webhook;
 pub mod bridges;
 pub mod bridges_registry;
-pub mod binary_format;
 pub mod bundle;
-pub mod webauthn_attestation;
 pub mod canonical;
 pub mod capability;
 pub mod chain;
@@ -59,12 +58,18 @@ pub mod tf_manifests;
 pub mod trust_domain;
 pub mod trust_overlay;
 pub mod vault;
+pub mod webauthn_attestation;
 
-pub use actor_id::{actor_id_equals, format_actor_id, parse_actor_id, ActorIdParseError, ParsedActorId};
+pub use actor_id::{
+    actor_id_equals, format_actor_id, parse_actor_id, ActorIdParseError, ParsedActorId,
+};
 pub use canonical::{canonicalize, CanonicalJsonError};
 pub use capability::{constraints_satisfied, intersect_constraints, EvalContext};
 pub use delegation::{walk_chain, WalkResult};
 pub use envelope::{validate_envelope_shape, EnvelopeIssue, EnvelopeValidation};
 pub use instance_id::{format_instance_id, parse_instance_id, to_actor_id, ParsedInstanceId};
 pub use revocation::RevocationIndex;
-pub use trust_domain::{parse_trust_domain, trust_domain_equals, ParsedTrustDomain, TrustDomainKind, TrustDomainParseError};
+pub use trust_domain::{
+    parse_trust_domain, trust_domain_equals, ParsedTrustDomain, TrustDomainKind,
+    TrustDomainParseError,
+};

@@ -1,0 +1,25 @@
+name: trustforge
+version: 0.1.0
+
+description: |
+  TrustForge HTTP adapters for Crystal: shared client, Kemal middleware, and
+  a Lucky-action helper for talking to a local tf-daemon.
+
+authors:
+  - TrustForge contributors
+
+crystal: ">= 1.6.0"
+
+license: Apache-2.0
+
+targets:
+  trustforge:
+    main: src/trustforge.cr
+
+# Note: Kemal and Lucky are intentionally NOT listed as dependencies. The
+# framework adapter files use lightweight bridging shapes so they compile
+# without those frameworks present. Adopting apps add Kemal or Lucky to their
+# own shard.yml and require the matching adapter file.
+dependencies: {}
+
+development_dependencies: {}

@@ -21,7 +21,7 @@ The project is moving toward a functional site-to-site prototype. Do not claim c
 
 TrustForge is written as an **RFC-style spec series together with a reference implementation** (Rust, not yet written). The two must not drift — spec changes and implementation must move together.
 
-- `docs/specs/TF-XXXX-*.md` — numbered specs, `TF-0000` (manifesto) through `TF-0012` (compliance evidence profile). Read these before answering architecture questions. `TF-0001-core-architecture.md` defines the 12 core layers and canonical object vocabulary.
+- `docs/specs/TF-XXXX-*.md` — numbered specs, `TF-0000` (manifesto) through `TF-0013` (site-to-site binary path). Read these before answering architecture questions. `TF-0001-core-architecture.md` defines the 12 core layers and canonical object vocabulary.
 - `docs/bridges/` — compatibility bridge specs (WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS/DID/Matrix). TrustForge integrates with existing standards rather than replacing them; new protocol work should check for a relevant bridge first.
 - `docs/profiles/` — deployment profiles (home, enterprise, constrained, compliance-evidence). Profiles are how complexity is controlled; the same architecture serves home and enterprise by selecting a profile.
 - `docs/adr/` — architecture decision records.

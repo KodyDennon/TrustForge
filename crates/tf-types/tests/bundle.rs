@@ -5,8 +5,8 @@ use rand::rngs::OsRng;
 use rand::RngCore;
 use serde_json::json;
 use tf_types::bundle::{
-    build_rfc3161_request, encrypted_signing_bytes, open_bundle, seal_bundle,
-    BundleRecipient, MemoryAnchor,
+    build_rfc3161_request, encrypted_signing_bytes, open_bundle, seal_bundle, BundleRecipient,
+    MemoryAnchor,
 };
 use x25519_dalek::{PublicKey, StaticSecret};
 

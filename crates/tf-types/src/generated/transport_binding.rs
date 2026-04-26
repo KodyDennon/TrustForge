@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Describes the underlying transport a TrustForge session is currently bound to. Used for session migration (TF-0003) and for relay path policy decisions.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

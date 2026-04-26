@@ -1,0 +1,110 @@
+# Bidirectional translation between Tailscale ACLs and TrustForge
+# capability grants.
+#
+# Tailscale ACLs are HuJSON files describing peer-to-peer reachability
+# in terms of users, groups, tags, and ports. TrustForge models the
+# same problem as positive/negative capability grants on actor URIs.
+#
+# This file documents the mapping in both directions; tooling can
+# consume it as a reference when:
+#
+#   - generating a Tailscale ACL from an existing TrustForge policy
+#     (e.g. for an organisation that uses TrustForge as its source of
+#     truth and pushes derived ACLs to Tailscale's admin API), or
+#   - importing an existing Tailscale ACL into a TrustForge policy
+#     (e.g. when migrating to TrustForge as the policy authority).
+#
+# Status: Draft (Phase 0). The translation is illustrative; edge cases
+# (autoApprovers, IP-set rewriting, group-of-groups) are TODOs.
+
+version: 1
+mapping_direction: bidirectional
+
+translations:
+  # --- Forward: Tailscale → TrustForge -------------------------------
+
+  # ACL "src": "group:engineering" → actor URI for the group.
+  - tailscale:
+      kind: src
+      pattern: "group:engineering"
+    trustforge:
+      kind: actor
+      uri:  "tf:actor:role:engineering"
+
+  # ACL "tag:server" → device-class actor URI.
+  - tailscale:
+      kind: tag
+      pattern: "tag:server"
+    trustforge:
+      kind: actor
+      uri:  "tf:actor:device:tailscale/tag:server"
+
+  # ACL "user@example.com" → user actor URI.
+  - tailscale:
+      kind: user
+      pattern: "*@example.com"
+    trustforge:
+      kind: actor
+      uri:  "tf:actor:user:tailscale/{user_login}"
+
+  # An ACL accept-rule like
+  #   { "action": "accept",
+  #     "src":  ["group:engineering"],
+  #     "dst":  ["tag:server:22,80,443"] }
+  # becomes a positive grant.
+  - tailscale:
+      kind: accept_rule
+      shape:
+        action: accept
+        src:    ["<src-pattern>"]
+        dst:    ["<tag-or-host>:<ports>"]
+    trustforge:
+      kind: capability_grant
+      grant:
+        name: "tailscale.tcp.connect"
+        to:   "<src-actor-uri>"
+        conditions:
+          - target_in: ["<dst-actor-uri>"]
+          - dst_port_in: ["<comma-separated-ports>"]
+
+  # --- Reverse: TrustForge → Tailscale -------------------------------
+
+  # A negative capability becomes an explicit drop-rule (Tailscale ACL
+  # syntax does not have negatives, so we model them as accept-with-no-
+  # match by emitting nothing for the offending pair). Lossy.
+  - trustforge:
+      kind: capability_deny
+      grant:
+        name: "tailscale.*"
+        from: "<actor-uri>"
+    tailscale:
+      kind: drop_rule
+      shape:
+        action: drop
+        src:   ["<actor-uri-as-tailscale-src>"]
+        dst:   ["*:*"]
+      lossy: true
+      lossy_reason: |
+        Tailscale ACL has no first-class deny — it is whitelist-only.
+        We approximate by *not emitting* the corresponding accept
+        rule. If a deny in TrustForge overrides a grant from a
+        broader actor (e.g. `denies: cli:enable from: '*'`), the
+        translator must emit a more specific accept rule that
+        excludes the denied actor — coverage of this rewrite is a
+        TODO and currently produces a translator warning.
+
+# --- Notes ---------------------------------------------------------
+
+notes:
+  - Tailscale's `autoApprovers` and `ssh` blocks have no direct
+    TrustForge analogue; they are translated to per-actor SSH and
+    subnet-router capability grants but those grants are flagged as
+    profile-specific and may require manual review.
+  - Tailscale's tags and TrustForge's actor classes overlap but are
+    not identical. A `tag:server` is a device class; a TrustForge
+    `tf:actor:device:...` is a *specific* device. The translator
+    therefore emits a synthetic actor of class `tag:` for each tag.
+  - Tailscale ACLs are global per-tailnet; TrustForge policies are
+    per-deployment (profile-scoped). When translating, choose a
+    TrustForge profile (`tf-home-compatible`, `tf-enterprise-baseline`,
+    etc.) appropriate to the tailnet's posture.

@@ -1,0 +1,35 @@
+cabal-version:      2.2
+name:               trustforge-yesod
+version:            0.1.0
+synopsis:           Yesod helpers for TrustForge.
+license:            Apache-2.0
+author:             TrustForge contributors
+maintainer:         dev@trustforge.local
+category:           Web
+build-type:         Simple
+
+library
+    exposed-modules:  Trustforge.Yesod
+    build-depends:    base         >= 4.14 && < 5
+                    , bytestring   >= 0.10 && < 0.13
+                    , case-insensitive >= 1.2 && < 2
+                    , http-types   >= 0.12 && < 0.13
+                    , text         >= 1.2  && < 3
+                    , wai          >= 3.2  && < 4
+                    , yesod-core   >= 1.6  && < 2
+                    , trustforge
+                    , trustforge-wai
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    ghc-options:      -Wall
+
+test-suite trustforge-yesod-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    build-depends:    base
+                    , trustforge
+                    , trustforge-yesod
+                    , hspec        >= 2.7 && < 3
+    default-language: Haskell2010
+    ghc-options:      -Wall

@@ -23,7 +23,30 @@ members = [
     "crates/adapters/poem",
     "crates/adapters/salvo",
     "crates/adapters/hyper",
+    "crates/tf-otel",
+    "crates/bridges/tf-bridge-aws",
+    "crates/bridges/tf-bridge-gcp",
+    "crates/bridges/tf-bridge-azure",
+    "crates/bridges/tf-bridge-vault",
+    "crates/bridges/tf-bridge-doppler",
     "tools/native/prometheus-exporter",
+]
+
+# Embedded firmware example projects (K2-K9) live under `crates/embedded/`
+# and target bare-metal MCUs (Cortex-M, Xtensa, RISC-V, AVR). They use
+# board-specific HALs and link against linker scripts; they cannot
+# compile for the host triple, so we exclude them from the workspace.
+# Each project is a standalone Cargo bin crate with its own Cargo.lock,
+# .cargo/config.toml, and memory.x (where appropriate). Build them with
+# the per-target instructions in each crate's README.md.
+exclude = [
+    "crates/embedded/tf-stm32wl-lora",
+    "crates/embedded/tf-esp32-wifi",
+    "crates/embedded/tf-rp2040-picow",
+    "crates/embedded/tf-nrf52-ble",
+    "crates/embedded/tf-esp32c3-uart",
+    "crates/embedded/tf-avr-atmega328",
+    "crates/embedded/tf-bootloader-example",
 ]
 
 [workspace.package]

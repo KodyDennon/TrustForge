@@ -113,10 +113,7 @@ pub fn assemble_evidence_bundle(
     let mut skipped = 0usize;
     let mut filtered = Vec::new();
     for ev in events {
-        let ts = ev
-            .get("timestamp")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let ts = ev.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
         if ts < args.started_at.as_str() {
             skipped += 1;
             continue;
@@ -148,7 +145,11 @@ pub fn assemble_evidence_bundle(
     }
     let mut actors: Vec<String> = filtered
         .iter()
-        .filter_map(|ev| ev.get("actor_id").and_then(|v| v.as_str()).map(str::to_string))
+        .filter_map(|ev| {
+            ev.get("actor_id")
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+        })
         .collect();
     actors.sort();
     actors.dedup();
@@ -271,7 +272,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

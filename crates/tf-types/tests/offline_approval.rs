@@ -3,9 +3,7 @@
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
 use serde_json::json;
-use tf_types::offline_approval::{
-    sign_offline_approval_packet, verify_offline_approval_packet,
-};
+use tf_types::offline_approval::{sign_offline_approval_packet, verify_offline_approval_packet};
 
 fn make_keypair() -> (SigningKey, [u8; 32]) {
     let signing = SigningKey::generate(&mut OsRng);
@@ -74,12 +72,8 @@ fn rejects_packet_older_than_max_age() {
         "file-drop",
         Some("2026-04-23T00:00:00Z"),
     );
-    let result = verify_offline_approval_packet(
-        &packet,
-        &public,
-        Some("2026-04-25T00:00:00Z"),
-        Some(3600),
-    );
+    let result =
+        verify_offline_approval_packet(&packet, &public, Some("2026-04-25T00:00:00Z"), Some(3600));
     assert!(!result.ok);
     assert!(result.reason.unwrap_or_default().contains("older than"));
 }

@@ -38,7 +38,10 @@ fn make_pair_clean() -> Pair {
         identity_pub: rpub,
         ..Default::default()
     });
-    Pair { initiator, responder }
+    Pair {
+        initiator,
+        responder,
+    }
 }
 
 fn shake() -> (SessionState, SessionState) {
@@ -118,7 +121,9 @@ fn data_frame_round_trips() {
 fn monotonic_sequence() {
     let (mut i, mut r) = shake();
     for n in 0..5 {
-        let framed = i.encrypt(&SessionFrame::Data { payload: json!(n) }).unwrap();
+        let framed = i
+            .encrypt(&SessionFrame::Data { payload: json!(n) })
+            .unwrap();
         let decoded = r.decrypt(&framed).unwrap();
         match decoded {
             SessionFrame::Data { payload } => assert_eq!(payload, json!(n)),
@@ -132,8 +137,12 @@ fn monotonic_sequence() {
 #[test]
 fn out_of_order_rejected() {
     let (mut i, mut r) = shake();
-    let f1 = i.encrypt(&SessionFrame::Data { payload: json!(1) }).unwrap();
-    let f2 = i.encrypt(&SessionFrame::Data { payload: json!(2) }).unwrap();
+    let f1 = i
+        .encrypt(&SessionFrame::Data { payload: json!(1) })
+        .unwrap();
+    let f2 = i
+        .encrypt(&SessionFrame::Data { payload: json!(2) })
+        .unwrap();
     // Receiving f2 (seq=1) before f1 (seq=0) is rejected.
     assert!(matches!(r.decrypt(&f2), Err(SessionError::Generic(_))));
     // f1 still works.
@@ -146,7 +155,9 @@ fn out_of_order_rejected() {
 fn tampered_frame_rejected() {
     let (mut i, mut r) = shake();
     let mut framed = i
-        .encrypt(&SessionFrame::Data { payload: json!("abc") })
+        .encrypt(&SessionFrame::Data {
+            payload: json!("abc"),
+        })
         .unwrap();
     let last = framed.len() - 1;
     framed[last] ^= 0xff;
@@ -159,7 +170,9 @@ fn rekey_rotates_and_resets_seqs() {
     let key_before = i.send_key;
 
     for n in 0..3 {
-        let f = i.encrypt(&SessionFrame::Data { payload: json!(n) }).unwrap();
+        let f = i
+            .encrypt(&SessionFrame::Data { payload: json!(n) })
+            .unwrap();
         r.decrypt(&f).unwrap();
     }
 
@@ -170,7 +183,10 @@ fn rekey_rotates_and_resets_seqs() {
     };
     let ack_frame = r.process_rekey_req(&eph_pub, None).unwrap();
     let decoded_ack = i.decrypt(&ack_frame).unwrap();
-    let SessionFrame::RekeyAck { eph_pub: peer_eph_pub } = decoded_ack else {
+    let SessionFrame::RekeyAck {
+        eph_pub: peer_eph_pub,
+    } = decoded_ack
+    else {
         panic!("expected rekey-ack");
     };
     i.process_rekey_ack(&peer_eph_pub).unwrap();

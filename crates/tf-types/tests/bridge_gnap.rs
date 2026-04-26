@@ -25,7 +25,10 @@ use tf_types::bridge_gnap::{
 use tf_types::bridge_oauth::{Jwk, Jwks};
 
 fn now() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
 
 fn b64u(b: &[u8]) -> String {
@@ -184,10 +187,17 @@ fn build_grant_response_returns_a_stub() {
     let bridge = make_bridge(&as_key);
     let req = make_grant_request(&client, &["files.read"]);
     let resp = bridge
-        .build_grant_response(&req, "stub-token", Some("https://as.example.com/continue/abc"))
+        .build_grant_response(
+            &req,
+            "stub-token",
+            Some("https://as.example.com/continue/abc"),
+        )
         .expect("build");
     assert_eq!(resp.access_token.value, "stub-token");
-    assert_eq!(resp.continue_uri.as_deref(), Some("https://as.example.com/continue/abc"));
+    assert_eq!(
+        resp.continue_uri.as_deref(),
+        Some("https://as.example.com/continue/abc")
+    );
 }
 
 #[test]
@@ -216,7 +226,10 @@ fn verify_access_token_projects_bound_identity() {
     let token = mint_access_token(&as_key, "agent-007", &client.jkt);
     let req = make_grant_request(&client, &["files.read", "files.write"]);
     let grant = bridge.verify_access_token(&token, &req).expect("verify");
-    assert_eq!(grant.identity.actor_id, "tf:actor:agent:example.com/agent-007");
+    assert_eq!(
+        grant.identity.actor_id,
+        "tf:actor:agent:example.com/agent-007"
+    );
     assert_eq!(grant.client_key_thumbprint, client.jkt);
     assert_eq!(grant.capabilities.len(), 2);
     assert!(grant.identity.public_keys[0].public_key != "AA==");
@@ -306,13 +319,8 @@ fn verify_dpop_rejects_typ_other_than_dpop_jwt() {
     };
     let signing_key = EncodingKey::from_ec_pem(&client.sign_pem).unwrap();
     let proof = encode(&header, &claims, &signing_key).unwrap();
-    let result = bridge.verify_dpop_proof(
-        &proof,
-        "GET",
-        "https://api.example.com",
-        None,
-        &client.jkt,
-    );
+    let result =
+        bridge.verify_dpop_proof(&proof, "GET", "https://api.example.com", None, &client.jkt);
     assert!(!result.ok);
     // suppress unused-import warnings for ed25519_dalek pieces.
     let _ = (

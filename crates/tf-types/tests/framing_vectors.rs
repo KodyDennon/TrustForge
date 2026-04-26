@@ -66,7 +66,12 @@ fn tflog_round_trips() {
         let reframed = write_tflog(&parsed).expect("re-write");
         assert_eq!(hex_of(&reframed), hex_of(&framed), "{} byte parity", c.name);
         if let Some(expected) = &c.expected_hex {
-            assert_eq!(&hex_of(&framed), expected, "{} cross-language byte parity", c.name);
+            assert_eq!(
+                &hex_of(&framed),
+                expected,
+                "{} cross-language byte parity",
+                c.name
+            );
         }
     }
 }
@@ -93,11 +98,21 @@ fn tfproof_round_trips() {
         let framed = write_tfproof(&c.bundle, &sig).expect("write");
         assert_eq!(&framed[..8], TFPROOF_MAGIC, "{} magic", c.name);
         let parsed = read_tfproof(&framed).expect("read");
-        assert_eq!(hex_of(&parsed.signature), c.signature_hex, "{} signature", c.name);
+        assert_eq!(
+            hex_of(&parsed.signature),
+            c.signature_hex,
+            "{} signature",
+            c.name
+        );
         let reframed = write_tfproof(&parsed.bundle, &parsed.signature).expect("re-write");
         assert_eq!(hex_of(&reframed), hex_of(&framed), "{} byte parity", c.name);
         if let Some(expected) = &c.expected_hex {
-            assert_eq!(&hex_of(&framed), expected, "{} cross-language byte parity", c.name);
+            assert_eq!(
+                &hex_of(&framed),
+                expected,
+                "{} cross-language byte parity",
+                c.name
+            );
         }
     }
 }

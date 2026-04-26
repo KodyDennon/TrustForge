@@ -619,6 +619,8 @@ Initial RFC-style documents:
 - TF-0010: Conformance and Governance
 - TF-0011: Constrained / LoRa / Offline Profile
 - TF-0012: Compliance Evidence Profile
+- TF-0013: Site-to-Site Binary Path (length-delimited TCP/TLS framing
+  with the `http-bridge` ProofRPC method kind for cross-site HTTP)
 
 ## Conformance and certification
 

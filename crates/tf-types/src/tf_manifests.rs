@@ -68,9 +68,10 @@ pub fn load_tf_manifests(paths: &TfManifestPaths) -> TfManifests {
         if !path.exists() {
             return;
         }
-        match fs::read_to_string(path).map_err(|e| e.to_string()).and_then(|raw| {
-            serde_yaml::from_str::<Value>(&raw).map_err(|e| e.to_string())
-        }) {
+        match fs::read_to_string(path)
+            .map_err(|e| e.to_string())
+            .and_then(|raw| serde_yaml::from_str::<Value>(&raw).map_err(|e| e.to_string()))
+        {
             Ok(v) => *target = Some(v),
             Err(reason) => diags.push(TfDiagnostic {
                 file: path.display().to_string(),
@@ -82,9 +83,10 @@ pub fn load_tf_manifests(paths: &TfManifestPaths) -> TfManifests {
         if !path.exists() {
             return;
         }
-        match fs::read_to_string(path).map_err(|e| e.to_string()).and_then(|raw| {
-            serde_json::from_str::<Value>(&raw).map_err(|e| e.to_string())
-        }) {
+        match fs::read_to_string(path)
+            .map_err(|e| e.to_string())
+            .and_then(|raw| serde_json::from_str::<Value>(&raw).map_err(|e| e.to_string()))
+        {
             Ok(v) => *target = Some(v),
             Err(reason) => diags.push(TfDiagnostic {
                 file: path.display().to_string(),

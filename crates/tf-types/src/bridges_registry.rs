@@ -34,6 +34,11 @@ pub enum BridgesRegistryKind {
     ServiceMesh,
     A2a,
     SessionCookie,
+    Aws,
+    Gcp,
+    Azure,
+    Vault,
+    Doppler,
 }
 
 impl BridgesRegistryKind {
@@ -55,6 +60,11 @@ impl BridgesRegistryKind {
             "service-mesh" => Self::ServiceMesh,
             "a2a" => Self::A2a,
             "session-cookie" => Self::SessionCookie,
+            "aws" => Self::Aws,
+            "gcp" => Self::Gcp,
+            "azure" => Self::Azure,
+            "vault" => Self::Vault,
+            "doppler" => Self::Doppler,
             _ => return None,
         })
     }
@@ -77,6 +87,11 @@ impl BridgesRegistryKind {
             Self::ServiceMesh => "service-mesh",
             Self::A2a => "a2a",
             Self::SessionCookie => "session-cookie",
+            Self::Aws => "aws",
+            Self::Gcp => "gcp",
+            Self::Azure => "azure",
+            Self::Vault => "vault",
+            Self::Doppler => "doppler",
         }
     }
 }
@@ -200,11 +215,15 @@ impl BridgesRegistry {
 
     /// Parse + validate a YAML/JSON registry document from a string.
     pub fn from_str(text: &str) -> Result<Self, BridgesRegistryError> {
-        let raw: serde_yaml::Value = serde_yaml::from_str(text)
-            .map_err(|e| BridgesRegistryError::Parse(format!("{e}")))?;
+        let raw: serde_yaml::Value =
+            serde_yaml::from_str(text).map_err(|e| BridgesRegistryError::Parse(format!("{e}")))?;
         let doc = match raw {
             serde_yaml::Value::Mapping(m) => m,
-            _ => return Err(BridgesRegistryError::Invalid("registry root must be a mapping".into())),
+            _ => {
+                return Err(BridgesRegistryError::Invalid(
+                    "registry root must be a mapping".into(),
+                ))
+            }
         };
         let mut registry_version: Option<String> = None;
         let mut default_profile: Option<String> = None;
@@ -245,9 +264,8 @@ impl BridgesRegistry {
                 }
             }
         }
-        let registry_version = registry_version.ok_or_else(|| {
-            BridgesRegistryError::Invalid("registry_version is required".into())
-        })?;
+        let registry_version = registry_version
+            .ok_or_else(|| BridgesRegistryError::Invalid("registry_version is required".into()))?;
         if registry_version != "1" {
             return Err(BridgesRegistryError::Invalid(format!(
                 "registry_version must be \"1\", got {registry_version:?}"
@@ -306,7 +324,10 @@ impl BridgesRegistry {
     }
 }
 
-fn parse_entry(value: serde_yaml::Value, index: usize) -> Result<BridgeEntry, BridgesRegistryError> {
+fn parse_entry(
+    value: serde_yaml::Value,
+    index: usize,
+) -> Result<BridgeEntry, BridgesRegistryError> {
     let map = match value {
         serde_yaml::Value::Mapping(m) => m,
         _ => {
@@ -325,13 +346,15 @@ fn parse_entry(value: serde_yaml::Value, index: usize) -> Result<BridgeEntry, Br
     for (k, v) in map {
         let key = k
             .as_str()
-            .ok_or_else(|| BridgesRegistryError::Invalid(format!("bridges[{index}] has non-string key")))?
+            .ok_or_else(|| {
+                BridgesRegistryError::Invalid(format!("bridges[{index}] has non-string key"))
+            })?
             .to_string();
         match key.as_str() {
             "kind" => {
-                let s = v
-                    .as_str()
-                    .ok_or_else(|| BridgesRegistryError::Invalid(format!("bridges[{index}].kind must be a string")))?;
+                let s = v.as_str().ok_or_else(|| {
+                    BridgesRegistryError::Invalid(format!("bridges[{index}].kind must be a string"))
+                })?;
                 kind = Some(BridgesRegistryKind::parse(s).ok_or_else(|| {
                     BridgesRegistryError::Invalid(format!("bridges[{index}].kind invalid: {s}"))
                 })?);

@@ -6,18 +6,14 @@
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
-use wasmtime::{
-    Caller, Engine, Func, Instance, Linker, Module, Store, Trap, Val, ValType,
-};
+use wasmtime::{Caller, Engine, Func, Instance, Linker, Module, Store, Trap, Val, ValType};
 
 use crate::plugin::PluginError;
 
-pub type CapabilityCheck = Arc<
-    dyn Fn(&CapabilityArgs) -> bool + Send + Sync + 'static,
->;
+pub type CapabilityCheck = Arc<dyn Fn(&CapabilityArgs) -> bool + Send + Sync + 'static>;
 
 #[derive(Clone, Debug)]
 pub struct CapabilityArgs {
@@ -51,15 +47,11 @@ impl WasmPlugin {
         path: P,
         opts: WasmPluginRuntimeOptions,
     ) -> Result<Self, PluginError> {
-        let bytes = std::fs::read(path.as_ref())
-            .map_err(|e| PluginError::Io(e.to_string()))?;
+        let bytes = std::fs::read(path.as_ref()).map_err(|e| PluginError::Io(e.to_string()))?;
         Self::from_bytes(&bytes, opts)
     }
 
-    pub fn from_bytes(
-        wasm: &[u8],
-        opts: WasmPluginRuntimeOptions,
-    ) -> Result<Self, PluginError> {
+    pub fn from_bytes(wasm: &[u8], opts: WasmPluginRuntimeOptions) -> Result<Self, PluginError> {
         let engine = Engine::default();
         let module = Module::from_binary(&engine, wasm)
             .map_err(|e| PluginError::Parse(format!("wasm compile: {e}")))?;
@@ -102,7 +94,10 @@ impl WasmPlugin {
             let func = Func::new(
                 &mut store,
                 func_ty.clone(),
-                move |_caller: Caller<'_, HostState>, params: &[Val], results: &mut [Val]| -> Result<(), wasmtime::Error> {
+                move |_caller: Caller<'_, HostState>,
+                      params: &[Val],
+                      results: &mut [Val]|
+                      -> Result<(), wasmtime::Error> {
                     if !allowed {
                         return Err(Trap::UnreachableCodeReached.into());
                     }
@@ -193,8 +188,7 @@ mod tests {
         // Type section: one [] -> [i32] type
         0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f,
         // Function section: function 0 uses type 0
-        0x03, 0x02, 0x01, 0x00,
-        // Export section: export "f" (func 0)
+        0x03, 0x02, 0x01, 0x00, // Export section: export "f" (func 0)
         0x07, 0x05, 0x01, 0x01, 0x66, 0x00, 0x00,
         // Code section: function 0 body — i32.const 0, end
         0x0a, 0x06, 0x01, 0x04, 0x00, 0x41, 0x00, 0x0b,

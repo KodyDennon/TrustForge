@@ -74,9 +74,7 @@ pub fn migrate_session(
     private_key: &[u8; 32],
     migrated_at: Option<&str>,
 ) -> SessionMigration {
-    let migrated_at = migrated_at
-        .map(str::to_string)
-        .unwrap_or_else(now_iso8601);
+    let migrated_at = migrated_at.map(str::to_string).unwrap_or_else(now_iso8601);
     let mut m = SessionMigration {
         migration_version: "1".into(),
         session_id: session_id.into(),
@@ -238,7 +236,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

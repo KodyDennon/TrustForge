@@ -1,0 +1,18 @@
+# Defaults for the ESP-IDF menuconfig surface so a fresh checkout
+# builds cleanly without an interactive prompt.
+
+# WiFi station mode — STA only, no AP, no SoftAP.
+CONFIG_ESP32_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP32_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP32_WIFI_TX_BUFFER=DYNAMIC
+
+# Larger main task stack — TrustForge sign + JSON encode + TLS
+# handshake doesn't fit in 3.5 KiB.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
+
+# Enable mbedTLS — the HTTP client uses it for HTTPS uplink.
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+
+# Logging: INFO by default, hosts can drop to DEBUG via menuconfig.
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y

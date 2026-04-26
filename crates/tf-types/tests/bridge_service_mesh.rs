@@ -182,11 +182,7 @@ fn istio_missing_namespace_is_rejected() {
     let header = istio_attribute_proto("spiffe://cluster.local/some/random/path");
     let err = parse_istio_attributes(&header).expect_err("namespace required");
     let msg = format!("{}", err);
-    assert!(
-        msg.contains("/ns/"),
-        "unexpected error message: {}",
-        msg
-    );
+    assert!(msg.contains("/ns/"), "unexpected error message: {}", msg);
 }
 
 #[test]
@@ -251,9 +247,5 @@ fn linkerd_wrong_scheme_is_rejected() {
 fn linkerd_empty_header_is_rejected() {
     let err = parse_linkerd_client_id("").expect_err("empty must fail");
     let msg = format!("{}", err);
-    assert!(
-        msg.contains("empty"),
-        "unexpected error message: {}",
-        msg
-    );
+    assert!(msg.contains("empty"), "unexpected error message: {}", msg);
 }

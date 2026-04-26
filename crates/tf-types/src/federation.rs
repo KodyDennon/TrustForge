@@ -119,19 +119,13 @@ pub fn verify_federation_attestation(
         reason: Some(r.to_string()),
     };
     if a.attestation_version != "1" {
-        return rejected(&format!(
-            "unsupported version {}",
-            a.attestation_version
-        ));
+        return rejected(&format!("unsupported version {}", a.attestation_version));
     }
     if a.signature.signer != a.issuer {
         return rejected("signature signer does not match issuer");
     }
     if a.signature.algorithm != "ed25519" {
-        return rejected(&format!(
-            "unsupported algorithm {}",
-            a.signature.algorithm
-        ));
+        return rejected(&format!("unsupported algorithm {}", a.signature.algorithm));
     }
     let now_string = now.map(str::to_string).unwrap_or_else(now_iso8601);
     let window = Window {
@@ -227,7 +221,10 @@ impl FederatedTrustStore {
             None => {
                 return ForeignIdentityCheck {
                     ok: false,
-                    reason: Some(format!("no active attestation for {} in {}", actor, subject_domain)),
+                    reason: Some(format!(
+                        "no active attestation for {} in {}",
+                        actor, subject_domain
+                    )),
                     matched_attestation_id: None,
                     trust_levels: None,
                     scope: None,
@@ -320,7 +317,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

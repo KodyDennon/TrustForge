@@ -1,0 +1,5 @@
+(library
+ (name trustforge_dream)
+ (public_name trustforge_dream)
+ (libraries trustforge dream lwt)
+ (preprocess (pps lwt_ppx)))

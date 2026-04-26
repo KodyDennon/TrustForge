@@ -173,22 +173,18 @@ impl ProofLedger for SqliteProofLedger {
         let payload = serde_json::to_string(event)
             .map_err(|e| StoreError::Other(format!("serialize event: {e}")))?;
         let conn = self.inner.conn.lock().unwrap();
-        let tx = conn
-            .unchecked_transaction()
+        let tx = conn.unchecked_transaction().map_err(map_err)?;
+        tx.execute("UPDATE proof_seq SET val = val + 1 WHERE id = 1", [])
             .map_err(map_err)?;
-        tx.execute(
-            "UPDATE proof_seq SET val = val + 1 WHERE id = 1",
-            [],
-        )
-        .map_err(map_err)?;
         let seq: i64 = tx
             .query_row("SELECT val FROM proof_seq WHERE id = 1", [], |r| r.get(0))
             .map_err(map_err)?;
-        let inserted = tx.execute(
-            "INSERT OR IGNORE INTO proof_events(event_hash, payload, seq) VALUES (?1, ?2, ?3)",
-            params![&hash, &payload, seq],
-        )
-        .map_err(map_err)?;
+        let inserted = tx
+            .execute(
+                "INSERT OR IGNORE INTO proof_events(event_hash, payload, seq) VALUES (?1, ?2, ?3)",
+                params![&hash, &payload, seq],
+            )
+            .map_err(map_err)?;
         tx.commit().map_err(map_err)?;
         // `INSERT OR IGNORE` for a duplicate hash is a successful no-op;
         // the ledger is content-addressed, so a duplicate append is

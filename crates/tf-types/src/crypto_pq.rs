@@ -20,9 +20,12 @@ pub fn ml_dsa_65_generate() -> Result<(Vec<u8>, Vec<u8>), CryptoError> {
 
 /// Sign a message with ml-dsa-65.
 pub fn ml_dsa_65_sign(private_key: &[u8], message: &[u8]) -> Result<Vec<u8>, CryptoError> {
-    let bytes: [u8; ml_dsa_65::SK_LEN] = private_key
-        .try_into()
-        .map_err(|_| CryptoError::Generic(format!("ml-dsa-65 priv must be {} bytes", ml_dsa_65::SK_LEN)))?;
+    let bytes: [u8; ml_dsa_65::SK_LEN] = private_key.try_into().map_err(|_| {
+        CryptoError::Generic(format!(
+            "ml-dsa-65 priv must be {} bytes",
+            ml_dsa_65::SK_LEN
+        ))
+    })?;
     let sk = ml_dsa_65::PrivateKey::try_from_bytes(bytes)
         .map_err(|e| CryptoError::Generic(format!("ml-dsa-65 priv parse: {e}")))?;
     let sig = sk

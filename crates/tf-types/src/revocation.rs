@@ -10,7 +10,8 @@ pub struct RevocationIndex {
 
 impl RevocationIndex {
     pub fn from_slice(revocations: &[Revocation]) -> Self {
-        let mut by_kind: HashMap<Revocation_TargetKind, HashMap<String, Revocation>> = HashMap::new();
+        let mut by_kind: HashMap<Revocation_TargetKind, HashMap<String, Revocation>> =
+            HashMap::new();
         for r in revocations {
             let bucket = by_kind.entry(r.target_kind.clone()).or_default();
             match bucket.get(&r.target_id) {

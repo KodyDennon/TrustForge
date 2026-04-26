@@ -1,0 +1,200 @@
+{
+  "annotations": { "list": [] },
+  "description": "Per-bridge view: import-credential success/error rate (tf.bridge.import_credential), sniffer breakdown by host_token_kind. Counts come from tf_proof_events_total filtered to bridge.* event types and host_token_kind labels emitted by the daemon's sniffer pipeline.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "ops" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "editorMode": "code",
+          "expr": "sum by (bridge_kind) (rate(tf_proof_events_total{service=~\"$service\",type=\"bridge.import_credential.ok\",bridge_kind=~\"$bridge_kind\"}[$__rate_interval]))",
+          "legendFormat": "{{bridge_kind}} ok",
+          "refId": "A"
+        }
+      ],
+      "title": "import_credential success rate by bridge",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "ops" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "editorMode": "code",
+          "expr": "sum by (bridge_kind) (rate(tf_proof_events_total{service=~\"$service\",type=\"bridge.import_credential.error\",bridge_kind=~\"$bridge_kind\"}[$__rate_interval]))",
+          "legendFormat": "{{bridge_kind}} error",
+          "refId": "A"
+        }
+      ],
+      "title": "import_credential error rate by bridge",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.2 }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "editorMode": "code",
+          "expr": "sum by (bridge_kind) (rate(tf_proof_events_total{service=~\"$service\",type=\"bridge.import_credential.error\",bridge_kind=~\"$bridge_kind\"}[$__rate_interval])) / clamp_min(sum by (bridge_kind) (rate(tf_proof_events_total{service=~\"$service\",type=~\"bridge.import_credential.(ok|error)\",bridge_kind=~\"$bridge_kind\"}[$__rate_interval])), 0.0001)",
+          "legendFormat": "{{bridge_kind}}",
+          "refId": "A"
+        }
+      ],
+      "title": "import_credential error ratio by bridge",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "ops" },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 16 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "editorMode": "code",
+          "expr": "sum by (host_token_kind) (rate(tf_proof_events_total{service=~\"$service\",type=\"bridge.sniff\"}[$__rate_interval]))",
+          "legendFormat": "{{host_token_kind}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sniffer breakdown by host_token_kind",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["trustforge", "bridges"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(tf_proof_events_total, service)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "service",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": { "query": "label_values(tf_proof_events_total, service)", "refId": "service" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(tf_proof_events_total{service=~\"$service\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": { "query": "label_values(tf_proof_events_total{service=~\"$service\"}, instance)", "refId": "instance" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(tf_proof_events_total{service=~\"$service\",type=~\"bridge\\\\..*\"}, bridge_kind)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "bridge_kind",
+        "multi": true,
+        "name": "bridge_kind",
+        "options": [],
+        "query": { "query": "label_values(tf_proof_events_total{service=~\"$service\",type=~\"bridge\\\\..*\"}, bridge_kind)", "refId": "bridge_kind" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "TrustForge — Bridges",
+  "uid": "trustforge-bridges",
+  "version": 1,
+  "weekStart": ""
+}

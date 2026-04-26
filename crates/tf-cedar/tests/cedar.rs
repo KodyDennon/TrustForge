@@ -35,7 +35,11 @@ fn allow_simple_permit() {
         );
     "#;
     let engine = CedarPolicyEngine::new(policy, "[]").expect("engine");
-    let q = query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"vacation.jpg""#));
+    let q = query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"vacation.jpg""#),
+    );
     let d = engine.evaluate(&q);
     assert_eq!(d.decision, "allow");
     assert!(d.rule_id.is_some(), "allow should carry the policy id");
@@ -53,7 +57,11 @@ fn deny_via_forbid() {
         );
     "#;
     let engine = CedarPolicyEngine::new(policy, "[]").expect("engine");
-    let q = query(r#"User::"alice""#, r#"Action::"delete""#, Some(r#"Photo::"x""#));
+    let q = query(
+        r#"User::"alice""#,
+        r#"Action::"delete""#,
+        Some(r#"Photo::"x""#),
+    );
     let d = engine.evaluate(&q);
     assert_eq!(d.decision, "deny");
     assert!(
@@ -79,7 +87,11 @@ fn deny_overrides_allow_when_both_match() {
         );
     "#;
     let engine = CedarPolicyEngine::new(policy, "[]").expect("engine");
-    let q = query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"x""#));
+    let q = query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"x""#),
+    );
     let d = engine.evaluate(&q);
     assert_eq!(d.decision, "deny", "forbid must override permit");
 }
@@ -100,9 +112,17 @@ fn allow_with_attribute_condition() {
         {"uid": {"type": "Photo", "id": "p2"}, "attrs": {"owner": "bob"}, "parents": []}
     ]"#;
     let engine = CedarPolicyEngine::new(policy, entities).expect("engine");
-    let allow = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"p1""#)));
+    let allow = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"p1""#),
+    ));
     assert_eq!(allow.decision, "allow");
-    let deny = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"p2""#)));
+    let deny = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"p2""#),
+    ));
     assert_eq!(deny.decision, "deny", "alice does not own p2");
 }
 
@@ -117,11 +137,23 @@ fn allow_with_action_in_set_constraint() {
         );
     "#;
     let engine = CedarPolicyEngine::new(policy, "[]").expect("engine");
-    let read = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"x""#)));
+    let read = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"x""#),
+    ));
     assert_eq!(read.decision, "allow");
-    let list = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"list""#, Some(r#"Photo::"x""#)));
+    let list = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"list""#,
+        Some(r#"Photo::"x""#),
+    ));
     assert_eq!(list.decision, "allow");
-    let write = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"write""#, Some(r#"Photo::"x""#)));
+    let write = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"write""#,
+        Some(r#"Photo::"x""#),
+    ));
     assert_eq!(write.decision, "deny", "write is not in the action set");
 }
 
@@ -141,7 +173,11 @@ fn missing_entity_results_in_safe_deny() {
     "#;
     // No entities at all: resource.classified can't resolve.
     let engine = CedarPolicyEngine::new(policy, "[]").expect("engine");
-    let d = engine.evaluate(&query(r#"User::"alice""#, r#"Action::"read""#, Some(r#"Photo::"unknown""#)));
+    let d = engine.evaluate(&query(
+        r#"User::"alice""#,
+        r#"Action::"read""#,
+        Some(r#"Photo::"unknown""#),
+    ));
     assert_eq!(d.decision, "deny", "missing attributes must safe-deny");
 }
 
@@ -152,6 +188,23 @@ fn malformed_policy_returns_constructor_error() {
         Err(CedarError::Policy(_)) => {}
         Err(other) => panic!("expected CedarError::Policy, got {:?}", other),
         Ok(_) => panic!("malformed policy must fail to compile"),
+    }
+}
+
+#[test]
+fn schema_mismatch_in_entities_returns_constructor_error() {
+    // The Entities JSON document is structurally invalid — `attrs` should be
+    // an object, not a string. Cedar's loader rejects this at construction
+    // time, surfaced as `CedarError::Entities`. This is the schema-shape
+    // mismatch path that production deployments must surface eagerly.
+    let policy = r#"permit(principal, action, resource);"#;
+    let bad_entities = r#"[
+        {"uid": {"type": "User", "id": "alice"}, "attrs": "not-an-object", "parents": []}
+    ]"#;
+    match CedarPolicyEngine::new(policy, bad_entities) {
+        Err(CedarError::Entities(_)) => {}
+        Err(other) => panic!("expected CedarError::Entities, got {:?}", other),
+        Ok(_) => panic!("schema-mismatched entities must fail to load"),
     }
 }
 

@@ -126,7 +126,10 @@ fn resolve(
                     let key = format!("{}_{}", to_pascal(current_file), def_name);
                     ensure_def(current_file, def_name, &key, registry, bundled);
                     let mut out = serde_json::Map::new();
-                    out.insert("$ref".to_string(), Value::String(format!("#/$defs/{}", key)));
+                    out.insert(
+                        "$ref".to_string(),
+                        Value::String(format!("#/$defs/{}", key)),
+                    );
                     return Value::Object(out);
                 }
                 let schema_name_json = file_part;
@@ -135,14 +138,20 @@ fn resolve(
                     let key = format!("{}_{}", to_pascal(schema_name), def_name);
                     ensure_def(schema_name, def_name, &key, registry, bundled);
                     let mut out = serde_json::Map::new();
-                    out.insert("$ref".to_string(), Value::String(format!("#/$defs/{}", key)));
+                    out.insert(
+                        "$ref".to_string(),
+                        Value::String(format!("#/$defs/{}", key)),
+                    );
                     return Value::Object(out);
                 }
                 // Whole-schema ref
                 let root_key = format!("{}_root", to_pascal(schema_name));
                 ensure_root(schema_name, &root_key, registry, bundled);
                 let mut out = serde_json::Map::new();
-                out.insert("$ref".to_string(), Value::String(format!("#/$defs/{}", root_key)));
+                out.insert(
+                    "$ref".to_string(),
+                    Value::String(format!("#/$defs/{}", root_key)),
+                );
                 return Value::Object(out);
             }
             let mut out = serde_json::Map::new();
@@ -151,7 +160,10 @@ fn resolve(
                     out.insert(k.clone(), v.clone());
                     continue;
                 }
-                out.insert(k.clone(), resolve(v, current_file, root_name, registry, bundled));
+                out.insert(
+                    k.clone(),
+                    resolve(v, current_file, root_name, registry, bundled),
+                );
             }
             Value::Object(out)
         }
@@ -250,11 +262,21 @@ fn parity_against_ts() {
         let yaml = fs::read_to_string(&fixture_path)
             .unwrap_or_else(|e| panic!("read {}: {}", fixture_path.display(), e));
         let doc = yaml_to_json(&yaml);
-        let verdict = if validator.is_valid(&doc) { "valid" } else { "invalid" };
+        let verdict = if validator.is_valid(&doc) {
+            "valid"
+        } else {
+            "invalid"
+        };
         if verdict != v.expect {
             let detail = if verdict == "invalid" {
-                let errors: Vec<String> = validator.validate(&doc).err().into_iter()
-                    .flat_map(|errs| errs.map(|e| format!("{}@{}", e, e.instance_path)).collect::<Vec<_>>())
+                let errors: Vec<String> = validator
+                    .validate(&doc)
+                    .err()
+                    .into_iter()
+                    .flat_map(|errs| {
+                        errs.map(|e| format!("{}@{}", e, e.instance_path))
+                            .collect::<Vec<_>>()
+                    })
                     .collect();
                 format!(" [{}]", errors.join("; "))
             } else {

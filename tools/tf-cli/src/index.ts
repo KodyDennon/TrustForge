@@ -2818,6 +2818,438 @@ register({
 });
 
 // ---------------------------------------------------------------------------
+// init / decide / simulate / chain / federation / bundle / approval-aliases
+// ---------------------------------------------------------------------------
+
+/** `tf init` — scaffold a fresh `.tf/` workspace directory with the canonical
+ *  set of starter manifests. Mirrors the contract referenced in
+ *  `docs/ai-implementation.md` and `DECISIONS.md`. Exits 0 on success and
+ *  emits the list of files created. */
+register({
+  noun: "init",
+  verb: "workspace",
+  summary: "Initialize a TrustForge workspace (.tf/ directory + starter manifests).",
+  usage: "tf init workspace [--dir <path>] [--trust-domain <d>] [--project <name>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("init workspace")!);
+    const dir = resolve(flagOne(args, "dir") ?? ".tf");
+    const trustDomain = flagOne(args, "trust-domain") ?? "local.example";
+    const project = flagOne(args, "project") ?? "trustforge-project";
+    ensureDir(dir);
+    const written: string[] = [];
+
+    const writeIf = (rel: string, content: string): void => {
+      const dest = resolve(dir, rel);
+      if (existsSync(dest) && !flagBool(args, "force")) return;
+      writeFileEnsuringDir(dest, content);
+      written.push(dest);
+    };
+
+    writeIf(
+      "agent-contract.yaml",
+      [
+        `contract_version: "1"`,
+        `spec_version: TF-0006-draft`,
+        `project: ${project}`,
+        `trust_domain: ${trustDomain}`,
+        "actions:",
+        "  - name: tf.ping",
+        "    risk: R0",
+        "    approval: none",
+        "",
+      ].join("\n"),
+    );
+    writeIf(
+      "policy.yaml",
+      [
+        `policy_version: "1"`,
+        `policy_id: ${project}-default-policy`,
+        `trust_domain: ${trustDomain}`,
+        "rules:",
+        "  - id: default-allow-r0",
+        `    rule_version: "1"`,
+        "    when: { action: \"tf.ping\" }",
+        "    decision: allow",
+        "negative_capabilities: []",
+        "",
+      ].join("\n"),
+    );
+    writeIf(
+      "actions.yaml",
+      [
+        `actions_version: "1"`,
+        "actions:",
+        "  - name: tf.ping",
+        "    risk: R0",
+        "    description: liveness check",
+        "",
+      ].join("\n"),
+    );
+    writeIf(
+      "threat-model.yaml",
+      [
+        `threat_model_version: "1"`,
+        `project: ${project}`,
+        "threats: []",
+        "",
+      ].join("\n"),
+    );
+    writeIf(
+      "bridges.yaml",
+      [
+        `registry_version: "1"`,
+        "bridges: []",
+        "",
+      ].join("\n"),
+    );
+    emitJson(args, { ok: true, dir, files: written, trust_domain: trustDomain, project });
+    return 0;
+  },
+});
+
+/** `tf decide` — issue a /v1/decide call against the daemon. This is the
+ *  short-form authoritative decision command; `tf policy simulate` is the
+ *  offline equivalent. */
+register({
+  noun: "decide",
+  verb: "request",
+  summary: "Issue a live policy decision request against the daemon's /v1/decide endpoint.",
+  usage:
+    "tf decide request --subject <actor> --action <name> [--target <t>] [--context <json|@file>] [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("decide request")!);
+    const subject = flagOne(args, "subject");
+    const action = flagOne(args, "action");
+    if (!subject || !action) {
+      console.error("usage: tf decide request --subject <actor> --action <name>");
+      return 2;
+    }
+    const ctxRaw = flagOne(args, "context");
+    let context: unknown = undefined;
+    if (ctxRaw) {
+      context = ctxRaw.startsWith("@")
+        ? JSON.parse(readFileSync(resolve(ctxRaw.slice(1)), "utf8"))
+        : JSON.parse(ctxRaw);
+    }
+    try {
+      const url = `${adminBase(args).replace(/\/$/, "").replace(/\/admin$/, "")}/v1/decide`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${adminToken()}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          subject,
+          action,
+          target: flagOne(args, "target"),
+          context,
+          enforcement_level: flagOne(args, "enforcement-level"),
+        }),
+      });
+      const body = await res.json();
+      emitJson(args, body);
+      return res.ok && (body as { decision?: string }).decision !== "deny" ? 0 : 1;
+    } catch (err) {
+      console.error((err as Error).message);
+      return 1;
+    }
+  },
+});
+
+/** `tf simulate` — alias for `tf policy simulate`. Spec drafts and the
+ *  README often refer to it bare. */
+register({
+  noun: "simulate",
+  verb: "policy",
+  summary: "Alias for `tf policy simulate` — simulate a contract / policy decision offline.",
+  usage:
+    "tf simulate policy <contract.yaml | policy.yaml> <action> [--target <t>] [--subject <actor>] [--policy <p>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("policy simulate");
+    if (!inner) {
+      console.error("policy simulate not registered");
+      return 1;
+    }
+    return inner.handler(args);
+  },
+});
+
+/** `tf chain walk` — walk a tflog file and print the chain link sequence,
+ *  reporting the first broken link if any. Native (no daemon needed). */
+register({
+  noun: "chain",
+  verb: "walk",
+  summary: "Walk a proof-event chain (tflog file) and verify the prev_event_hash links.",
+  usage: "tf chain walk --tflog <file> [--limit <n>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("chain walk")!);
+    const tflogPath = flagOne(args, "tflog") ?? args.positional[0];
+    if (!tflogPath) {
+      console.error("usage: tf chain walk --tflog <file>");
+      return 2;
+    }
+    const text = readFileSync(resolve(tflogPath), "utf8");
+    const events: ProofEvent[] = [];
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        events.push(JSON.parse(trimmed) as ProofEvent);
+      } catch {
+        // skip malformed lines
+      }
+    }
+    const limit = flagOne(args, "limit");
+    const sliced = limit ? events.slice(0, parseInt(limit, 10)) : events;
+    let ok = true;
+    let reason: string | null = null;
+    try {
+      verifyChain(sliced);
+    } catch (err) {
+      ok = false;
+      reason = (err as Error).message;
+    }
+    emitJson(args, {
+      events_seen: events.length,
+      events_walked: sliced.length,
+      ok,
+      reason,
+    });
+    return ok ? 0 : 1;
+  },
+});
+
+/** `tf federation add` / `tf federation list` — federation-centric aliases
+ *  that route to trust-domain federate / list-roots. They appear in the
+ *  v0.1 spec as the user-facing surface. */
+register({
+  noun: "federation",
+  verb: "add",
+  summary: "Federate a remote trust domain (alias for `tf trust-domain federate`).",
+  usage:
+    "tf federation add --issuer-domain <d> --subject-domain <d> --valid-until <iso> --issuer <actor> --key <priv> --trust-bundle <file>",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("trust-domain federate");
+    if (!inner) {
+      console.error("trust-domain federate not registered");
+      return 1;
+    }
+    return inner.handler(args);
+  },
+});
+
+register({
+  noun: "federation",
+  verb: "list",
+  summary: "List federated trust domains (alias for `tf trust-domain list-roots`).",
+  usage: "tf federation list [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("trust-domain list-roots");
+    if (!inner) {
+      console.error("trust-domain list-roots not registered");
+      return 1;
+    }
+    return inner.handler(args);
+  },
+});
+
+/** `tf trust-domain join` / `tf trust-domain leave` — operator-facing verbs
+ *  that wrap the daemon admin API for joining or leaving an existing
+ *  federation. Both are POSTs to /admin/federation/{join,leave}. */
+register({
+  noun: "trust-domain",
+  verb: "join",
+  summary: "Join an existing federation by submitting a federation attestation to the local daemon.",
+  usage: "tf trust-domain join --attestation <file> [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("trust-domain join")!);
+    const path = flagOne(args, "attestation");
+    if (!path) {
+      console.error("usage: tf trust-domain join --attestation <file>");
+      return 2;
+    }
+    const attestation = JSON.parse(readFileSync(resolve(path), "utf8"));
+    try {
+      const out = await adminPost(args, "/admin/federation/join", { attestation });
+      emitJson(args, out);
+      return 0;
+    } catch (err) {
+      console.error((err as Error).message);
+      return 1;
+    }
+  },
+});
+
+register({
+  noun: "trust-domain",
+  verb: "leave",
+  summary: "Leave a federation by revoking the local side of a federation attestation.",
+  usage: "tf trust-domain leave --domain <d> [--reason <text>] [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("trust-domain leave")!);
+    const domain = flagOne(args, "domain");
+    if (!domain) {
+      console.error("usage: tf trust-domain leave --domain <d>");
+      return 2;
+    }
+    try {
+      const out = await adminPost(args, "/admin/federation/leave", {
+        domain,
+        reason: flagOne(args, "reason"),
+      });
+      emitJson(args, out);
+      return 0;
+    } catch (err) {
+      console.error((err as Error).message);
+      return 1;
+    }
+  },
+});
+
+/** `tf bundle sign` / `tf bundle verify` / `tf bundle list` — proof-bundle
+ *  oriented aliases. In TrustForge, "bundle" and "evidence bundle" are the
+ *  same artifact; these verbs route to the evidence subcommands so the
+ *  user-facing CLI matches both vocabularies. */
+register({
+  noun: "bundle",
+  verb: "sign",
+  summary: "Sign a proof bundle (alias for `tf evidence assemble`).",
+  usage:
+    "tf bundle sign --bundle-id <id> --trust-domain <d> --issuer <actor> --key <priv> [--tflog <file>] [--out <file>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("evidence assemble");
+    if (!inner) return notImplemented(args, REGISTRY.get("bundle sign")!);
+    return inner.handler(args);
+  },
+});
+
+register({
+  noun: "bundle",
+  verb: "verify",
+  summary: "Verify a proof bundle's integrity (alias for `tf evidence verify`).",
+  usage: "tf bundle verify --bundle <file> --issuer-pubkey <file>",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("evidence verify");
+    if (!inner) return notImplemented(args, REGISTRY.get("bundle verify")!);
+    return inner.handler(args);
+  },
+});
+
+register({
+  noun: "bundle",
+  verb: "list",
+  summary: "List proof bundles known to the daemon.",
+  usage: "tf bundle list [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("bundle list")!, { bundles: [] });
+    try {
+      const out = await adminGet(args, "/admin/bundles");
+      emitJson(args, out);
+      return 0;
+    } catch (err) {
+      console.error((err as Error).message);
+      return 1;
+    }
+  },
+});
+
+/** `tf evidence pack` — alias for `tf evidence assemble` to match the
+ *  vocabulary used in TF-0012 (compliance evidence profile). */
+register({
+  noun: "evidence",
+  verb: "pack",
+  summary: "Pack proof events into an evidence bundle (alias for `tf evidence assemble`).",
+  usage:
+    "tf evidence pack --bundle-id <id> --trust-domain <d> --issuer <actor> --key <priv> [--tflog <file>] [--out <file>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("evidence assemble");
+    if (!inner) return notImplemented(args, REGISTRY.get("evidence pack")!);
+    return inner.handler(args);
+  },
+});
+
+/** `tf bridge import` — generic credential import that hits the daemon's
+ *  /v1/import-credential endpoint with auto-detection. The existing
+ *  `bridge spiffe-import` does an offline draft conversion; this one
+ *  exercises the live B2 endpoint. */
+register({
+  noun: "bridge",
+  verb: "import",
+  summary: "Import a credential through the daemon's auto-detecting /v1/import-credential endpoint.",
+  usage:
+    "tf bridge import --credential <file>|@<file> [--hint <oauth-jwt|spiffe-svid|webauthn-assertion|...>] [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    if (args.dryRun) return dryRunStub(args, REGISTRY.get("bridge import")!);
+    const credPath = flagOne(args, "credential");
+    if (!credPath) {
+      console.error("usage: tf bridge import --credential <file> [--hint <kind>]");
+      return 2;
+    }
+    const credential = readFileSync(resolve(credPath), "utf8").trim();
+    const hint = flagOne(args, "hint");
+    try {
+      const url = `${adminBase(args).replace(/\/$/, "").replace(/\/admin$/, "")}/v1/import-credential`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${adminToken()}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ credential, hint }),
+      });
+      const body = await res.json();
+      emitJson(args, body);
+      return res.ok ? 0 : 1;
+    } catch (err) {
+      console.error((err as Error).message);
+      return 1;
+    }
+  },
+});
+
+/** `tf approval pending` / `tf approval grant` — vocabulary aliases for
+ *  `list` and `approve` to match the spec language. */
+register({
+  noun: "approval",
+  verb: "pending",
+  summary: "List pending approvals (alias for `tf approval list`).",
+  usage: "tf approval pending [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("approval list");
+    if (!inner) return notImplemented(args, REGISTRY.get("approval pending")!);
+    return inner.handler(args);
+  },
+});
+
+register({
+  noun: "approval",
+  verb: "grant",
+  summary: "Grant a pending approval (alias for `tf approval approve`).",
+  usage: "tf approval grant <id> [--note <text>] [--daemon <url>]",
+  supportsDryRun: true,
+  handler: async (args) => {
+    const inner = REGISTRY.get("approval approve");
+    if (!inner) return notImplemented(args, REGISTRY.get("approval grant")!);
+    return inner.handler(args);
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Top-level usage + dispatcher
 // ---------------------------------------------------------------------------
 
@@ -2941,7 +3373,7 @@ export async function run(argv: string[]): Promise<number> {
       }
     }
     console.error(`unknown command: tf ${noun} ${restRaw.join(" ")}`.trim());
-    console.error("run `tf --help` for the full subcommand list.");
+    console.error("usage: tf <noun> <verb> [flags] — run `tf --help` for the full subcommand list.");
     return 2;
   }
 

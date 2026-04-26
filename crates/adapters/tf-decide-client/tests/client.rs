@@ -2,8 +2,8 @@
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use http_body_util::{BodyExt, Full};
 use hyper::body::{Bytes, Incoming};
@@ -14,7 +14,7 @@ use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
-use tf_decide_client::{DecideRequest, TfDecideClient, is_allow, is_deny};
+use tf_decide_client::{is_allow, is_deny, DecideRequest, TfDecideClient};
 
 struct DaemonState {
     body: Mutex<String>,
@@ -55,7 +55,11 @@ async fn start_mock_daemon(initial_body: &str) -> (SocketAddr, Arc<DaemonState>)
                             .map(|x| x.to_string());
                         *s.last_auth.lock().await = auth;
                         let (_p, body) = req.into_parts();
-                        let bytes = body.collect().await.map(|c| c.to_bytes()).unwrap_or_default();
+                        let bytes = body
+                            .collect()
+                            .await
+                            .map(|c| c.to_bytes())
+                            .unwrap_or_default();
                         if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes) {
                             *s.last.lock().await = Some(v);
                         }

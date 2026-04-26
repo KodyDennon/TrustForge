@@ -188,7 +188,10 @@ impl OfflineRevocationListRuntime {
         }
         let mut index: HashMap<String, RevokedEntry> = HashMap::new();
         for e in &list.revoked {
-            index.insert(format!("{}:{}", revoked_entry_kind_str(&e.kind), e.id), e.clone());
+            index.insert(
+                format!("{}:{}", revoked_entry_kind_str(&e.kind), e.id),
+                e.clone(),
+            );
         }
         Ok(OfflineRevocationListRuntime { list, index })
     }
@@ -233,7 +236,8 @@ pub fn verify_offline_revocation_list_signature(
         Ok(s) => s,
         Err(_) => return Ok(false),
     };
-    let vk = VerifyingKey::from_bytes(public_key).map_err(|e| OrlError::VerifyingKey(e.to_string()))?;
+    let vk =
+        VerifyingKey::from_bytes(public_key).map_err(|e| OrlError::VerifyingKey(e.to_string()))?;
     Ok(vk.verify(canonical.as_bytes(), &sig).is_ok())
 }
 
@@ -545,7 +549,10 @@ mod tests {
     fn packet_receiver_accepts_then_rejects_replay() {
         let mut recv = PacketReceiver::new(None);
         let p = fixture_packet("pkt-A", None, "2026-04-24T12:00:00Z");
-        assert_eq!(recv.observe(&p, "2026-04-24T13:00:00Z"), PacketReceiverDecision::Accept);
+        assert_eq!(
+            recv.observe(&p, "2026-04-24T13:00:00Z"),
+            PacketReceiverDecision::Accept
+        );
         assert!(matches!(
             recv.observe(&p, "2026-04-24T13:00:00Z"),
             PacketReceiverDecision::Reject {
@@ -586,12 +593,11 @@ mod tests {
     fn packet_receiver_lru_evicts_oldest() {
         let mut recv = PacketReceiver::new(Some(2));
         for i in 0..3 {
-            let p = fixture_packet(
-                &format!("pkt-{}", i),
-                None,
-                "2026-04-24T11:00:00Z",
+            let p = fixture_packet(&format!("pkt-{}", i), None, "2026-04-24T11:00:00Z");
+            assert_eq!(
+                recv.observe(&p, "2026-04-24T12:00:00Z"),
+                PacketReceiverDecision::Accept
             );
-            assert_eq!(recv.observe(&p, "2026-04-24T12:00:00Z"), PacketReceiverDecision::Accept);
         }
         assert_eq!(recv.size(), 2);
     }
@@ -640,12 +646,18 @@ mod tests {
         };
         let _ = issuer_pub; // suppress warning if unused
         let signed = sign_offline_revocation_list(draft, &issuer_priv).expect("sign");
-        let runtime = OfflineRevocationListRuntime::load(signed.clone(), &issuer_pub2, "2026-04-25T00:00:00Z")
-            .expect("load");
+        let runtime = OfflineRevocationListRuntime::load(
+            signed.clone(),
+            &issuer_pub2,
+            "2026-04-25T00:00:00Z",
+        )
+        .expect("load");
         assert!(runtime
             .is_revoked(&RevokedEntry_Kind::Actor, "tf:actor:agent:example.com/bad")
             .is_some());
-        assert!(runtime.is_revoked(&RevokedEntry_Kind::Key, "kid-42").is_some());
+        assert!(runtime
+            .is_revoked(&RevokedEntry_Kind::Key, "kid-42")
+            .is_some());
         assert!(runtime
             .is_revoked(&RevokedEntry_Kind::Actor, "tf:actor:agent:example.com/ok")
             .is_none());

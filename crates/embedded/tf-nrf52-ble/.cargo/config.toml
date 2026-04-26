@@ -1,0 +1,10 @@
+[build]
+target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+runner = "probe-rs run --chip nRF52840_xxAA"
+rustflags = [
+    "-C", "link-arg=-Tlink.x",
+    # When building with the SoftDevice, also use its memory layout.
+    # "-C", "link-arg=-Tdefmt.x",
+]

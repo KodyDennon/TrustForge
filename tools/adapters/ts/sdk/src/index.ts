@@ -23,7 +23,12 @@ export type DecisionVerb =
 
 export type AuthorityMode = "layered" | "co-equal" | "replace";
 
-/** Host-token kinds recognised by tf-daemon (matches B1 / decide vectors). */
+/** Host-token kinds recognised by tf-daemon (matches B1 / decide vectors).
+ *
+ * Vendor-specific kinds (e.g. `firebase-id-token`, `auth0-jwt`, `kinde-jwt`,
+ * etc.) are accepted as plain strings — `(string & {})` keeps the autocomplete
+ * for the well-known cases while still admitting new bridges added by adapters
+ * without an SDK release. */
 export type HostTokenKind =
   | "auto"
   | "oauth-jwt"
@@ -34,7 +39,16 @@ export type HostTokenKind =
   | "mtls-cert-pem"
   | "spiffe-svid"
   | "session-cookie"
-  | "bearer-opaque";
+  | "bearer-opaque"
+  | "firebase-id-token"
+  | "supabase-jwt"
+  | "workos-jwt"
+  | "auth0-jwt"
+  | "stack-auth"
+  | "kinde-jwt"
+  | "logto-jwt"
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | (string & {});
 
 export interface DecideRequest {
   /** TrustForge actor URI; pass null and use host_token to ask the daemon to resolve. */

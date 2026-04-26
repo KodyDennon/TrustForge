@@ -768,8 +768,7 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
             request,
             ext: Some(ext.clone()),
         }));
-        let (client_tx, mut client_rx) =
-            mpsc::unbounded_channel::<Result<Value, RpcError>>();
+        let (client_tx, mut client_rx) = mpsc::unbounded_channel::<Result<Value, RpcError>>();
         let pump_transport = self.transport.clone();
         let pump_call_id = call_id.clone();
         tokio::spawn(async move {
@@ -1323,7 +1322,6 @@ impl Handler {
             | Handler::RemoteShell { capability, .. }
             | Handler::AgentSession { capability, .. }
             | Handler::HttpBridge { capability, .. } => capability,
-
         }
     }
 
@@ -1433,9 +1431,7 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                 .as_ref()
                 .and_then(|e| e.responsibility_chain.clone())
                 .unwrap_or_default();
-            let subscribe_topic = call_ext
-                .as_ref()
-                .and_then(|e| e.subscribe_topic.clone());
+            let subscribe_topic = call_ext.as_ref().and_then(|e| e.subscribe_topic.clone());
 
             let handler = {
                 let map = handlers_for_listener.lock().unwrap();
@@ -1567,10 +1563,8 @@ impl<T: RpcTransport + 'static> RpcServer<T> {
                     let handler = handler.clone();
                     let priority = priority.clone();
                     tokio::spawn(async move {
-                        dispatch_telemetry(
-                            transport, inflight, ctx, request, handler, priority,
-                        )
-                        .await;
+                        dispatch_telemetry(transport, inflight, ctx, request, handler, priority)
+                            .await;
                     });
                 }
                 Handler::RemoteShell { handler, .. } => {
@@ -1887,7 +1881,13 @@ async fn dispatch_server_stream<T: RpcTransport + 'static>(
     let (tx, rx) = mpsc::unbounded_channel::<Result<Value, RpcError>>();
     let fut = handler(request, ctx, tx);
     tokio::spawn(fut);
-    run_server_stream_loop(&transport, &call_id, Some(RpcMethodKind::ServerStreaming), rx).await;
+    run_server_stream_loop(
+        &transport,
+        &call_id,
+        Some(RpcMethodKind::ServerStreaming),
+        rx,
+    )
+    .await;
 }
 
 async fn dispatch_subscribe<T: RpcTransport + 'static>(
@@ -1949,10 +1949,7 @@ fn install_client_pipe(
     rx
 }
 
-fn remove_inflight(
-    inflight: &Arc<Mutex<HashMap<String, InflightCall>>>,
-    call_id: &str,
-) {
+fn remove_inflight(inflight: &Arc<Mutex<HashMap<String, InflightCall>>>, call_id: &str) {
     inflight.lock().unwrap().remove(call_id);
 }
 
@@ -2024,8 +2021,13 @@ async fn dispatch_bidi<T: RpcTransport + 'static>(
     let (server_tx, server_rx) = mpsc::unbounded_channel::<Result<Value, RpcError>>();
     let fut = handler(request, ctx, value_rx, server_tx);
     tokio::spawn(fut);
-    run_server_stream_loop(&transport, &call_id, Some(RpcMethodKind::BidiStreaming), server_rx)
-        .await;
+    run_server_stream_loop(
+        &transport,
+        &call_id,
+        Some(RpcMethodKind::BidiStreaming),
+        server_rx,
+    )
+    .await;
     remove_inflight(&inflight, &call_id);
 }
 

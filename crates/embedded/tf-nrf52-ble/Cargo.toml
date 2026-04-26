@@ -1,0 +1,77 @@
+[package]
+name = "tf-nrf52-ble"
+version = "0.1.0"
+edition = "2021"
+description = "TrustForge K5 — nRF52840 BLE peripheral that exposes a signed-packet GATT characteristic."
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.embedded]
+chip = "nRF52840"
+flash_size = "1M"
+ram_size = "256K"
+target_triple = "thumbv7em-none-eabihf"
+profile = "constrained"
+spec = "TF-0011 packet-mode L0"
+ble_stack = "Nordic SoftDevice S140 v7.3.0"
+
+[[bin]]
+name = "tf-nrf52-ble"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+tf-core-no-std = { path = "../../tf-core-no-std", default-features = false }
+tf-embedded-hal = { path = "../../tf-embedded-hal", default-features = false }
+
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+
+# Embassy on the nRF.
+embassy-executor = { version = "0.6", features = ["arch-cortex-m", "executor-thread", "task-arena-size-32768"], optional = true }
+embassy-time     = { version = "0.3", features = ["tick-hz-32_768"], optional = true }
+embassy-nrf      = { version = "0.2", features = ["nrf52840", "time-driver-rtc1", "rt", "gpiote"], optional = true }
+embassy-sync     = { version = "0.6", optional = true }
+embassy-futures  = { version = "0.1", optional = true }
+
+# Nordic's BLE stack — runs alongside the application.
+nrf-softdevice  = { version = "0.1", features = ["ble-peripheral", "ble-gatt-server", "s140", "nrf52840"], optional = true }
+nrf-softdevice-s140 = { version = "0.1", optional = true }
+
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+heapless = "0.8"
+static_cell = "2"
+
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
+
+[features]
+default = []
+# Pull in embassy + the SoftDevice for the full BLE peripheral build.
+ble = [
+    "dep:embassy-executor",
+    "dep:embassy-time",
+    "dep:embassy-nrf",
+    "dep:embassy-sync",
+    "dep:embassy-futures",
+    "dep:nrf-softdevice",
+    "dep:nrf-softdevice-s140",
+]
+defmt-rtt = ["dep:defmt", "dep:defmt-rtt"]
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = "fat"
+opt-level = "s"
+overflow-checks = false
+panic = "abort"
+
+[profile.dev]
+codegen-units = 1
+debug = true
+opt-level = 1
+overflow-checks = true
+panic = "abort"

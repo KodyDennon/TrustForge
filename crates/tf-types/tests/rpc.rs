@@ -130,7 +130,10 @@ async fn deny_all_rejects_with_permission_denied() {
         Arc::new(|_, _| Box::pin(async { Ok(json!({})) })),
     );
     let client = RpcClient::new(client_t, "tf:actor:human:example.com/user");
-    let err = client.call_raw("fetchFile", json!({ "path": "x" })).await.unwrap_err();
+    let err = client
+        .call_raw("fetchFile", json!({ "path": "x" }))
+        .await
+        .unwrap_err();
     assert_eq!(err.code, RpcErrorCode::PermissionDenied);
 }
 

@@ -24,9 +24,7 @@ fn map_err(e: sqlx::Error) -> StoreError {
     match e {
         RowNotFound => StoreError::NotFound,
         Database(db) if db.is_unique_violation() => StoreError::Conflict,
-        Io(_) | PoolTimedOut | PoolClosed | WorkerCrashed => {
-            StoreError::Unavailable(e.to_string())
-        }
+        Io(_) | PoolTimedOut | PoolClosed | WorkerCrashed => StoreError::Unavailable(e.to_string()),
         other => StoreError::Other(other.to_string()),
     }
 }
@@ -88,10 +86,7 @@ impl MysqlStore {
             if trimmed.is_empty() || trimmed.starts_with("--") {
                 continue;
             }
-            sqlx::query(trimmed)
-                .execute(pool)
-                .await
-                .map_err(map_err)?;
+            sqlx::query(trimmed).execute(pool).await.map_err(map_err)?;
         }
         Ok(())
     }
@@ -311,7 +306,11 @@ impl EvidenceArchive for MysqlEvidenceArchive {
                 .fetch_all(&pool)
                 .await
                 .map_err(map_err)?;
-            Ok::<_, StoreError>(rows.into_iter().map(|r| r.get::<String, _>("bundle_id")).collect())
+            Ok::<_, StoreError>(
+                rows.into_iter()
+                    .map(|r| r.get::<String, _>("bundle_id"))
+                    .collect(),
+            )
         })
     }
 }

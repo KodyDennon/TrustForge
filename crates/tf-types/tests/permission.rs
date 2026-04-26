@@ -40,7 +40,10 @@ fn provenance_from_request_carries_full_chain() {
     let req = make_request();
     let p = provenance_from_request(&req);
     assert_eq!(p.human.as_deref(), Some("tf:actor:human:example.com/alice"));
-    assert_eq!(p.agent.as_deref(), Some("tf:actor:agent:example.com/code-helper"));
+    assert_eq!(
+        p.agent.as_deref(),
+        Some("tf:actor:agent:example.com/code-helper")
+    );
     assert_eq!(p.model.as_deref(), Some("anthropic:claude-opus-4-7"));
     assert_eq!(p.requested_action.as_deref(), Some("shell.exec"));
 }
@@ -111,12 +114,7 @@ fn expired_grant_is_rejected() {
         Some("2026-04-23T00:00:00Z".into()),
         Some("2026-04-23T01:00:00Z".into()),
     );
-    let result = verify_permission_grant(
-        &grant,
-        &public,
-        Some(&req),
-        Some("2026-04-25T00:00:00Z"),
-    );
+    let result = verify_permission_grant(&grant, &public, Some(&req), Some("2026-04-25T00:00:00Z"));
     assert!(!result.ok);
     assert!(result.reason.unwrap_or_default().contains("window"));
 }

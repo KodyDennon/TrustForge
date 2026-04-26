@@ -30,7 +30,12 @@ export type BridgesRegistryKind =
   | "grpc"
   | "service-mesh"
   | "a2a"
-  | "session-cookie";
+  | "session-cookie"
+  | "aws"
+  | "gcp"
+  | "azure"
+  | "vault"
+  | "doppler";
 
 const VALID_KINDS = new Set<BridgesRegistryKind>([
   "oauth",
@@ -49,6 +54,11 @@ const VALID_KINDS = new Set<BridgesRegistryKind>([
   "service-mesh",
   "a2a",
   "session-cookie",
+  "aws",
+  "gcp",
+  "azure",
+  "vault",
+  "doppler",
 ]);
 
 const TRUST_LEVEL_PATTERN = /^T[0-7]$/;

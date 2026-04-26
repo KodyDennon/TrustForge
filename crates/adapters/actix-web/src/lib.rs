@@ -5,7 +5,7 @@
 //! can inspect it. On deny / approval the middleware short-circuits without
 //! invoking the inner service.
 
-use std::future::{Future, Ready, ready};
+use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
@@ -14,7 +14,7 @@ use actix_service::{Service, Transform};
 use actix_web::body::{BoxBody, EitherBody};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::http::StatusCode;
-use actix_web::{Error, HttpResponse};
+use actix_web::{Error, HttpMessage, HttpResponse};
 
 use tf_decide_client::{DecideRequest, DecideResponse, TfDecideClient};
 

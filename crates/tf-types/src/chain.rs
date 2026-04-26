@@ -125,7 +125,8 @@ pub fn merkle_root(events: &[ProofEvent]) -> Result<String, ChainError> {
 pub fn chain_hash(events: &[ProofEvent]) -> Result<String, ChainError> {
     let mut state = vec![0u8; 32];
     for e in events {
-        let (_, event_bytes) = parse_hashref(&event_hash(e)?).map_err(|err| ChainError::BadHashRef(err.to_string()))?;
+        let (_, event_bytes) = parse_hashref(&event_hash(e)?)
+            .map_err(|err| ChainError::BadHashRef(err.to_string()))?;
         let mut hasher = Sha256::new();
         hasher.update(&state);
         hasher.update(&event_bytes);

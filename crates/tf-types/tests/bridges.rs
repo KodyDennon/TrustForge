@@ -28,7 +28,8 @@ fn load_vectors() -> VectorsFile {
         .join("..")
         .join("conformance")
         .join("bridge-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse bridge-vectors.yaml")
 }
 
@@ -79,7 +80,10 @@ fn spiffe_reverse_rejects_non_service_actors() {
 #[test]
 fn registry_finds_spiffe_bridge_by_kind() {
     let mut registry = BridgeRegistry::new();
-    registry.register(Arc::new(SpiffeBridge::new("tf-spiffe-bridge", "example.org")));
+    registry.register(Arc::new(SpiffeBridge::new(
+        "tf-spiffe-bridge",
+        "example.org",
+    )));
     let found = registry.get(BridgeKind::Spiffe).expect("found");
     assert_eq!(found.bridge_id(), "tf-spiffe-bridge");
     assert_eq!(found.trust_domain(), "example.org");

@@ -1,0 +1,83 @@
+# Example TrustForge policy for a Mikrotik (RouterOS) edge device.
+#
+# This policy is consumed by tf-daemon (running on a sidecar host on
+# the management LAN; RouterOS itself does not run tf-daemon — it
+# scripts against tf-daemon over HTTP). The router scripts in
+# `scripts/` POST (actor, action, target) to the daemon and apply the
+# resulting decisions to /ip firewall.
+#
+# Reference: TF-0001 (core architecture), TF-0006 (capabilities),
+# TF-0009 (network policy bridge — forthcoming).
+
+version: 1
+profile: tf-home-compatible
+
+# The router itself is the actor for management-plane actions; the
+# per-host actor URIs (`tf:actor:host:<ip>`) are dynamic and asserted
+# by the firewall script per flow.
+actor: tf:actor:device:mikrotik/edge-rtr-01
+
+capabilities:
+  grants:
+    # Trusted LAN hosts may dial out to anything on standard web ports.
+    - name: network.tcp.connect
+      to: tf:actor:host:192.168.1.0/24
+      conditions:
+        - dst_port_in: [80, 443]
+        - hours: business
+
+    # IoT VLAN may only reach its vendor's update domain.
+    - name: network.tcp.connect
+      to: tf:actor:host:192.168.40.0/24
+      conditions:
+        - dst_host_in:
+            - updates.example-iot.com
+            - ntp.example-iot.com
+
+  denies:
+    # Negative capability: nothing leaves the IoT VLAN to RFC1918 space.
+    - name: network.*.connect
+      from: tf:actor:host:192.168.40.0/24
+      where:
+        dst_address_in:
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
+        dst_address_not_in:
+          - 192.168.40.0/24
+
+    # Negative capability: management plane (SSH/Winbox/API) is
+    # admin-only regardless of any other grant.
+    - name: management.*
+      from: '*'
+      unless:
+        - role_in: [tf:actor:role:network-admin]
+        - mfa: webauthn
+
+bridges:
+  # The HTTP-over-binary bridge tf-daemon exposes; RouterOS scripts
+  # POST to it over the management LAN.
+  http:
+    enabled: true
+    listen: 0.0.0.0:8787
+    allow_from:
+      - 192.168.1.0/24   # admin workstations
+      - 10.10.0.5/32     # the RouterOS management address
+
+risk_mapping:
+  R0: log
+  R1: log
+  R2: ask
+  R3: deny
+  R4: deny
+  R5: deny
+
+proof:
+  default_level: L1
+  high_risk_actions:
+    - management.*
+    - network.*.connect
+  high_risk_level: L3
+  fanout:
+    - kind: file
+      path: /var/log/trustforge/router-edge-rtr-01.log

@@ -1,0 +1,80 @@
+# Example TrustForge policy for a UniFi-managed site.
+#
+# This policy is consumed by tf-daemon (running on a sidecar host
+# adjacent to the UniFi controller — typically the same Linux box, or
+# a small VM). Both the controller-plugin (in ../controller-plugin)
+# and the tf-unifi-sync reconciler (in ../cmd/tf-unifi-sync) call
+# /v1/decide against this daemon.
+#
+# Reference: TF-0001 (core architecture), TF-0006 (capabilities),
+# TF-0009 (network policy bridge — forthcoming).
+
+version: 1
+profile: tf-home-compatible
+
+# The site itself is the parent actor. Per-host actors are created by
+# tf-unifi-sync and emitted into .tf/clients/<mac>.yaml.
+actor: tf:actor:device:unifi/site-default
+
+capabilities:
+  grants:
+    # Trusted home VLAN: any client may join.
+    - name: unifi.client.connected
+      to: tf:actor:host:unifi/*
+      conditions:
+        - network: "trusted"
+
+    # Guest VLAN: only allow joins for a known voucher batch.
+    - name: unifi.guest.voucher.requested
+      to: tf:actor:host:unifi/*
+      conditions:
+        - voucher_batch_in: ["events-2026-04"]
+
+    # Network admins may add or remove firewall rules.
+    - name: unifi.firewall.rule.*
+      to: tf:actor:role:network-admin
+      conditions:
+        - mfa: webauthn
+
+  denies:
+    # IoT VLAN: clients on this network may join but must never be
+    # promoted to the trusted VLAN by the controller; this catches a
+    # misconfigured "client-override" event.
+    - name: unifi.client.authorized
+      from: tf:actor:host:unifi/*
+      where:
+        from_network: "iot"
+        to_network: "trusted"
+
+    # Negative capability: nobody disables firewall rules without
+    # explicit break-glass approval.
+    - name: unifi.firewall.rule.removed
+      from: '*'
+      unless:
+        - approval_ticket_present: true
+
+bridges:
+  http:
+    enabled: true
+    listen: 0.0.0.0:8787
+    allow_from:
+      - 127.0.0.1/32
+      - 10.0.0.0/24
+
+risk_mapping:
+  R0: log
+  R1: log
+  R2: ask
+  R3: deny
+  R4: deny
+  R5: deny
+
+proof:
+  default_level: L1
+  high_risk_actions:
+    - unifi.firewall.rule.*
+    - unifi.guest.voucher.requested
+  high_risk_level: L3
+  fanout:
+    - kind: file
+      path: /var/log/trustforge/unifi-site-default.log

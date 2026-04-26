@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Trustforge.Sdk</RootNamespace>
+    <AssemblyName>Trustforge.Sdk</AssemblyName>
+    <Description>TrustForge .NET SDK — shared HTTP client for tf-daemon /v1/decide.</Description>
+    <PackageId>Trustforge.Sdk</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>TrustForge Contributors</Authors>
+  </PropertyGroup>
+
+</Project>

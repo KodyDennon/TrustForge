@@ -44,20 +44,13 @@ fn cross_language_signature_vectors_round_trip() {
     for v in &file.vectors {
         // 1. Canonicalize MUST match the listed bytes.
         let actual = canonicalize(&v.payload).expect("canonicalize");
-        assert_eq!(
-            actual, v.canonical,
-            "{}: canonical mismatch", v.name
-        );
+        assert_eq!(actual, v.canonical, "{}: canonical mismatch", v.name);
 
         // 2. Derived public key from priv MUST match listed.
-        let priv_bytes: [u8; 32] = from_hex(&v.private_key_hex)
-            .try_into()
-            .expect("32 bytes");
+        let priv_bytes: [u8; 32] = from_hex(&v.private_key_hex).try_into().expect("32 bytes");
         let signing = SigningKey::from_bytes(&priv_bytes);
         let pub_bytes = signing.verifying_key().to_bytes();
-        let expected_pub: [u8; 32] = from_hex(&v.public_key_hex)
-            .try_into()
-            .expect("32 bytes");
+        let expected_pub: [u8; 32] = from_hex(&v.public_key_hex).try_into().expect("32 bytes");
         assert_eq!(pub_bytes, expected_pub, "{}: public key mismatch", v.name);
 
         // 3. Sign + verify the canonical bytes (ed25519 deterministic).

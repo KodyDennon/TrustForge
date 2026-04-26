@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 
-use tf_store_mysql::{
-    MysqlEvidenceArchive, MysqlProofLedger, MysqlRevocationCache, MysqlStore,
-};
+use tf_store_mysql::{MysqlEvidenceArchive, MysqlProofLedger, MysqlRevocationCache, MysqlStore};
 use tf_types::store::{EvidenceArchive, ProofLedger, RevocationCache};
 
 fn database_url() -> Option<String> {

@@ -1,0 +1,92 @@
+[package]
+name = "tf-rp2040-picow"
+version = "0.1.0"
+edition = "2021"
+description = "TrustForge K4 — Raspberry Pi Pico W (RP2040 + cyw43 WiFi) packet signer over WiFi."
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.embedded]
+chip = "RP2040"
+flash_size = "2M"
+ram_size = "264K"
+target_triple = "thumbv6m-none-eabi"
+profile = "constrained"
+spec = "TF-0011 packet-mode L0"
+wifi_chip = "Infineon CYW43439"
+
+[[bin]]
+name = "tf-rp2040-picow"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+# TrustForge embedded core.
+tf-core-no-std = { path = "../../tf-core-no-std", default-features = false }
+tf-embedded-hal = { path = "../../tf-embedded-hal", default-features = false }
+
+# Cortex-M0+ runtime + panic handler.
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+panic-halt = "0.2"
+# RP2040 (Cortex-M0+) lacks LDREX/STREX; portable-atomic falls back to
+# critical-section-based atomics which are safe on single-core MCUs.
+portable-atomic = { version = "1", default-features = false, features = ["critical-section"] }
+
+# Embassy ecosystem for the RP2040. The cyw43 WiFi chip is wired over
+# PIO/SPI; embassy-rp wraps the boilerplate. All gated behind the
+# `wifi` feature so the canonical sign/serialise path builds out of
+# the box without the cyw43 firmware blob.
+embassy-executor = { version = "0.6", features = ["arch-cortex-m", "executor-thread", "task-arena-size-32768"], optional = true }
+embassy-time     = { version = "0.3", features = ["tick-hz-1_000_000"], optional = true }
+embassy-rp       = { version = "0.2", features = ["unstable-pac", "time-driver", "rt"], optional = true }
+embassy-net      = { version = "0.5", features = ["tcp", "udp", "dhcpv4", "medium-ethernet"], optional = true }
+embassy-sync     = { version = "0.6", optional = true }
+embassy-futures  = { version = "0.1", optional = true }
+
+# CYW43439 WiFi driver (the chip used on the Pico W and Pico 2 W).
+# `cyw43` itself is published; it requires the firmware blob to be
+# embedded — see build.rs / README.md.
+cyw43      = { version = "0.2", features = ["firmware-logs"], optional = true }
+cyw43-pio  = { version = "0.2", optional = true }
+
+# ed25519 (no_std).
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+
+heapless = "0.8"
+static_cell = "2"
+
+# A tiny no_std logger over RTT.
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
+
+[features]
+default = []
+# Wire in embassy + cyw43 + embassy-net for real WiFi uplink.
+wifi = [
+    "dep:embassy-executor",
+    "dep:embassy-time",
+    "dep:embassy-rp",
+    "dep:embassy-net",
+    "dep:embassy-sync",
+    "dep:embassy-futures",
+    "dep:cyw43",
+    "dep:cyw43-pio",
+]
+defmt-rtt = ["dep:defmt", "dep:defmt-rtt"]
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = "fat"
+opt-level = "s"
+overflow-checks = false
+panic = "abort"
+
+[profile.dev]
+codegen-units = 1
+debug = true
+opt-level = 1
+overflow-checks = true
+panic = "abort"

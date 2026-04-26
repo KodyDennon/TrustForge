@@ -1,0 +1,65 @@
+# Sample TrustForge pledge/unveil policy for OpenBSD.
+#
+# Loaded by: tf-pledge-supervisor --policy=pledge-policy.yaml
+#
+# This describes a small static-content web server. The supervisor
+# will:
+#   1. ask the TrustForge daemon to approve start-up with the listed
+#      promises;
+#   2. issue an unveil(2) for each path / perm pair (after the daemon
+#      approves it);
+#   3. apply pledge(2) with the requested promises and exec /usr/sbin/httpd.
+#
+# Promise reference: pledge(2) on OpenBSD.
+# Unveil perms: r=read, w=write, x=execute, c=create.
+
+name: tf-static-httpd
+
+# argv[0] and arguments. The first element must be an absolute path
+# (no PATH lookup is performed inside the pledged child).
+exec:
+  - /usr/sbin/httpd
+  - -d
+  - -f
+  - /etc/httpd.conf
+
+# Promises that the child requests. The supervisor may shrink this
+# list if the daemon's policy says so.
+promises:
+  - stdio
+  - rpath
+  - inet
+  - dns
+  - unix
+
+# Promises retained across exec(2). Should be a strict subset of
+# `promises`. Leave empty to drop everything on exec.
+exec_promises:
+  - stdio
+  - rpath
+  - inet
+
+# Filesystem subtree the child is allowed to touch via unveil(2).
+# The daemon may downgrade r->{} or rw->r as policy dictates.
+unveil:
+  - path: /etc/httpd.conf
+    perm: r
+  - path: /etc/ssl
+    perm: r
+  - path: /var/www
+    perm: r
+  - path: /var/log/httpd
+    perm: rwc
+  - path: /usr/lib
+    perm: r
+  - path: /usr/libexec
+    perm: rx
+
+# Optional: working directory for the child.
+cwd: /var/www
+
+# Optional: explicit environment. If omitted, the child inherits the
+# supervisor's environment.
+env:
+  - PATH=/usr/bin:/usr/sbin
+  - HOME=/var/www

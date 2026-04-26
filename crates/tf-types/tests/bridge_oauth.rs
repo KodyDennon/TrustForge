@@ -31,7 +31,10 @@ struct Claims {
 }
 
 fn now() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
 
 fn b64u(bytes: &[u8]) -> String {
@@ -164,7 +167,10 @@ fn verifies_eddsa_token_and_projects_identity() {
         result.identity.authority_roots[0].kind,
         AuthorityRoot_Kind::Organization
     );
-    assert_eq!(result.identity.authority_roots[0].id, "https://idp.example.com");
+    assert_eq!(
+        result.identity.authority_roots[0].id,
+        "https://idp.example.com"
+    );
     assert_eq!(result.capabilities, vec!["files:read", "mail:send"]);
 }
 

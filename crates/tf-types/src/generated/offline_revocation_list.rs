@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Bounded-validity revocation list distributed for offline / constrained deployments (TF-0011 "offline revocation limits"). Verifiers refuse to honour packets whose authority appears in this list, but the list itself expires so a stale list cannot be used forever.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

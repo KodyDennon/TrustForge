@@ -20,6 +20,7 @@ futures-util = "0.3"
 tokio = { version = "1", features = ["rt", "macros"] }
 serde_json = "1"
 tracing = "0.1"
+tf-otel = { path = "../../tf-otel" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }

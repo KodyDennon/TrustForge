@@ -105,7 +105,8 @@ pub fn parse_hashref(s: &str) -> Result<(String, Vec<u8>), CryptoError> {
             return Err(CryptoError::BadBase64("odd hex length".into()));
         }
         let hi = from_hex(bytes[i]).ok_or_else(|| CryptoError::BadBase64("non-hex char".into()))?;
-        let lo = from_hex(bytes[i + 1]).ok_or_else(|| CryptoError::BadBase64("non-hex char".into()))?;
+        let lo =
+            from_hex(bytes[i + 1]).ok_or_else(|| CryptoError::BadBase64("non-hex char".into()))?;
         out.push((hi << 4) | lo);
         i += 2;
     }

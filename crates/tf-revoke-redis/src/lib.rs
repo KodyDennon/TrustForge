@@ -94,8 +94,7 @@ impl RevocationCache for RedisRevocationCache {
     fn list(&self) -> Result<Vec<(String, String, String)>, StoreError> {
         let mut conn = self.conn.lock().unwrap();
         let pattern = format!("{KEY_PREFIX}*");
-        let iter: redis::Iter<'_, String> =
-            conn.scan_match(&pattern).map_err(map_err)?;
+        let iter: redis::Iter<'_, String> = conn.scan_match(&pattern).map_err(map_err)?;
         let keys: Vec<String> = iter.collect();
 
         // Now fetch each value. We don't reuse `iter` past collect because

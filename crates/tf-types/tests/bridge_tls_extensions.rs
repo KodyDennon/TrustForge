@@ -10,8 +10,8 @@
 use std::collections::HashMap;
 
 use rcgen::{
-    BasicConstraints, CertificateParams, CertificateRevocationListParams, DnType, IsCa, KeyIdMethod,
-    KeyPair, KeyUsagePurpose, RevocationReason, RevokedCertParams, SerialNumber,
+    BasicConstraints, CertificateParams, CertificateRevocationListParams, DnType, IsCa,
+    KeyIdMethod, KeyPair, KeyUsagePurpose, RevocationReason, RevokedCertParams, SerialNumber,
 };
 use time::{Duration, OffsetDateTime};
 
@@ -52,7 +52,9 @@ fn make_leaf(parent: &CaMaterial, cn: &str, serial: u64) -> X509Cert {
     params.not_before = OffsetDateTime::now_utc() - Duration::minutes(1);
     params.not_after = OffsetDateTime::now_utc() + Duration::hours(1);
     let kp = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap();
-    let cert = params.signed_by(&kp, &parent.cert, &parent.key_pair).unwrap();
+    let cert = params
+        .signed_by(&kp, &parent.cert, &parent.key_pair)
+        .unwrap();
     X509Cert::from_der(cert.der()).unwrap()
 }
 
@@ -393,7 +395,11 @@ fn ocsp_stale_response_is_rejected() {
         "http://ocsp.example/",
         OffsetDateTime::now_utc().unix_timestamp(),
     );
-    assert!(matches!(res, Err(BridgeError::Rejected(_))), "got {:?}", res);
+    assert!(
+        matches!(res, Err(BridgeError::Rejected(_))),
+        "got {:?}",
+        res
+    );
 }
 
 // ---------------------------------------------------------------------------

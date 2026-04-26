@@ -1,0 +1,35 @@
+(lang dune 3.0)
+(name trustforge)
+
+(generate_opam_files true)
+
+(package
+ (name trustforge)
+ (synopsis "TrustForge HTTP client for the local tf-daemon /v1/decide endpoint")
+ (depends
+  (ocaml (>= 4.14))
+  dune
+  cohttp-lwt-unix
+  lwt
+  yojson
+  (alcotest :with-test)))
+
+(package
+ (name trustforge_dream)
+ (synopsis "Dream middleware for TrustForge")
+ (depends
+  (ocaml (>= 4.14))
+  dune
+  trustforge
+  dream
+  lwt))
+
+(package
+ (name trustforge_opium)
+ (synopsis "Opium middleware for TrustForge")
+ (depends
+  (ocaml (>= 4.14))
+  dune
+  trustforge
+  opium
+  lwt))

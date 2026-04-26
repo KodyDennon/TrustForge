@@ -10,9 +10,9 @@ use sha2::{Digest, Sha256};
 use crate::actor_id::derive_peer_actor;
 use crate::canonical::canonicalize;
 use crate::crypto::{
-    b64decode, b64encode, chacha20poly1305_decrypt, chacha20poly1305_encrypt,
-    ed25519_verify, hkdf_sha256, x25519_diffie_hellman, x25519_from_bytes, x25519_generate,
-    AeadError, CryptoError, Ed25519Signer, X25519KeyPair,
+    b64decode, b64encode, chacha20poly1305_decrypt, chacha20poly1305_encrypt, ed25519_verify,
+    hkdf_sha256, x25519_diffie_hellman, x25519_from_bytes, x25519_generate, AeadError, CryptoError,
+    Ed25519Signer, X25519KeyPair,
 };
 use crate::crypto_pq::{ml_dsa_65_sign, ml_dsa_65_verify};
 
@@ -26,10 +26,7 @@ pub const SESSION_SUITE_HYBRID_ED25519_MLDSA65: &str =
     "x25519-hkdf-sha256-chacha20poly1305-ed25519+ml-dsa-65";
 
 /// Suites this build of TrustForge knows how to honour. Order is preference.
-pub const KNOWN_SESSION_SUITES: &[&str] = &[
-    SESSION_SUITE,
-    SESSION_SUITE_HYBRID_ED25519_MLDSA65,
-];
+pub const KNOWN_SESSION_SUITES: &[&str] = &[SESSION_SUITE, SESSION_SUITE_HYBRID_ED25519_MLDSA65];
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SessionError {
@@ -254,7 +251,8 @@ impl Initiator {
         };
         let transcript = canonical_concat(&[
             &serde_json::to_value(&hello_i).map_err(|e| SessionError::Generic(e.to_string()))?,
-            &serde_json::to_value(&hello_r_unsigned).map_err(|e| SessionError::Generic(e.to_string()))?,
+            &serde_json::to_value(&hello_r_unsigned)
+                .map_err(|e| SessionError::Generic(e.to_string()))?,
         ])?;
         let transcript_hash = Sha256::digest(transcript.as_bytes());
 
@@ -307,7 +305,8 @@ impl Initiator {
         let full_transcript = canonical_concat(&[
             &serde_json::to_value(&hello_i).map_err(|e| SessionError::Generic(e.to_string()))?,
             &serde_json::to_value(&msg).map_err(|e| SessionError::Generic(e.to_string()))?,
-            &serde_json::to_value(&auth_unsigned).map_err(|e| SessionError::Generic(e.to_string()))?,
+            &serde_json::to_value(&auth_unsigned)
+                .map_err(|e| SessionError::Generic(e.to_string()))?,
         ])?;
         let full_hash = Sha256::digest(full_transcript.as_bytes());
 
@@ -320,8 +319,10 @@ impl Initiator {
                     negotiated_suite
                 ))
             })?;
-            Some(b64encode(&ml_dsa_65_sign(priv_bytes, full_hash.as_slice())
-                .map_err(|e| SessionError::Generic(e.to_string()))?))
+            Some(b64encode(
+                &ml_dsa_65_sign(priv_bytes, full_hash.as_slice())
+                    .map_err(|e| SessionError::Generic(e.to_string()))?,
+            ))
         } else {
             None
         };
@@ -336,10 +337,7 @@ impl Initiator {
         let peer_actor = derive_peer_actor(&ident_pub)
             .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
         // Responder's self-claimed actor URI travels in HelloR.self_hint.
-        let peer_claim = msg
-            .self_hint
-            .clone()
-            .filter(|s| !s.is_empty());
+        let peer_claim = msg.self_hint.clone().filter(|s| !s.is_empty());
         let session = SessionState::derive_with_claim(
             Role::Initiator,
             &shared,
@@ -391,7 +389,10 @@ impl Responder {
             return Err(SessionError::Generic("responder already engaged".into()));
         };
         if msg.version != SESSION_VERSION {
-            return Err(SessionError::Generic(format!("unsupported version {}", msg.version)));
+            return Err(SessionError::Generic(format!(
+                "unsupported version {}",
+                msg.version
+            )));
         }
         // Suite negotiation: pick the first entry of the initiator's
         // supported_suites that we know AND that we accept; fall back to
@@ -414,7 +415,10 @@ impl Responder {
                 })?,
             None => {
                 if !our_supported.iter().any(|s| s == &msg.suite) {
-                    return Err(SessionError::Generic(format!("unsupported suite {}", msg.suite)));
+                    return Err(SessionError::Generic(format!(
+                        "unsupported suite {}",
+                        msg.suite
+                    )));
                 }
                 msg.suite.clone()
             }
@@ -441,7 +445,8 @@ impl Responder {
         };
         let transcript = canonical_concat(&[
             &serde_json::to_value(&msg).map_err(|e| SessionError::Generic(e.to_string()))?,
-            &serde_json::to_value(&hello_r_unsigned).map_err(|e| SessionError::Generic(e.to_string()))?,
+            &serde_json::to_value(&hello_r_unsigned)
+                .map_err(|e| SessionError::Generic(e.to_string()))?,
         ])?;
         let transcript_hash = Sha256::digest(transcript.as_bytes());
 
@@ -454,8 +459,10 @@ impl Responder {
                     chosen
                 ))
             })?;
-            Some(b64encode(&ml_dsa_65_sign(priv_bytes, transcript_hash.as_slice())
-                .map_err(|e| SessionError::Generic(e.to_string()))?))
+            Some(b64encode(
+                &ml_dsa_65_sign(priv_bytes, transcript_hash.as_slice())
+                    .map_err(|e| SessionError::Generic(e.to_string()))?,
+            ))
         } else {
             None
         };
@@ -474,14 +481,15 @@ impl Responder {
     }
 
     pub fn process_auth(&mut self, msg: Auth) -> Result<SessionState, SessionError> {
-        let (hello_i, hello_r, shared) = match std::mem::replace(&mut self.state, ResponderState::Fresh) {
-            ResponderState::AwaitingAuth {
-                hello_i,
-                hello_r,
-                shared,
-            } => (hello_i, hello_r, shared),
-            _ => return Err(SessionError::Generic("not awaiting auth".into())),
-        };
+        let (hello_i, hello_r, shared) =
+            match std::mem::replace(&mut self.state, ResponderState::Fresh) {
+                ResponderState::AwaitingAuth {
+                    hello_i,
+                    hello_r,
+                    shared,
+                } => (hello_i, hello_r, shared),
+                _ => return Err(SessionError::Generic("not awaiting auth".into())),
+            };
 
         let auth_unsigned = Auth {
             signature: String::new(),
@@ -491,7 +499,8 @@ impl Responder {
         let full_transcript = canonical_concat(&[
             &serde_json::to_value(&hello_i).map_err(|e| SessionError::Generic(e.to_string()))?,
             &serde_json::to_value(&hello_r).map_err(|e| SessionError::Generic(e.to_string()))?,
-            &serde_json::to_value(&auth_unsigned).map_err(|e| SessionError::Generic(e.to_string()))?,
+            &serde_json::to_value(&auth_unsigned)
+                .map_err(|e| SessionError::Generic(e.to_string()))?,
         ])?;
         let full_hash = Sha256::digest(full_transcript.as_bytes());
 
@@ -530,10 +539,7 @@ impl Responder {
         let peer_actor = derive_peer_actor(&ident_pub)
             .map_err(|e| SessionError::Generic(format!("derive_peer_actor: {e}")))?;
         // Initiator's self-claimed actor URI travels in HelloI.self_hint.
-        let peer_claim = hello_i
-            .self_hint
-            .clone()
-            .filter(|s| !s.is_empty());
+        let peer_claim = hello_i.self_hint.clone().filter(|s| !s.is_empty());
         let session = SessionState::derive_with_claim(
             Role::Responder,
             &shared,

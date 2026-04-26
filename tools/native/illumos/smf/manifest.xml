@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<!--
+  SMF manifest for the TrustForge illumos DTrace bridge.
+
+  Install:
+      svccfg import manifest.xml
+      svcadm enable trustforge/illumos-bridge
+
+  Configuration knobs (set via `svccfg -s svc:/trustforge/illumos-bridge:default`
+  followed by `setprop config/key = astring:value` and `refresh`):
+
+      config/dtrace_path  - path to /usr/sbin/dtrace
+      config/script       - path to trustforge.d
+      config/daemon_url   - tf-daemon /v1/decide endpoint
+      config/audit_file   - optional JSONL audit log path
+      config/timeout_ms   - per-decision timeout (default 200)
+-->
+<service_bundle type="manifest" name="trustforge:illumos-bridge">
+  <service name="trustforge/illumos-bridge"
+           type="service"
+           version="1">
+
+    <create_default_instance enabled="false"/>
+    <single_instance/>
+
+    <dependency name="filesystem-local"
+                grouping="require_all"
+                restart_on="none"
+                type="service">
+      <service_fmri value="svc:/system/filesystem/local:default"/>
+    </dependency>
+
+    <dependency name="network"
+                grouping="require_any"
+                restart_on="none"
+                type="service">
+      <service_fmri value="svc:/milestone/network:default"/>
+    </dependency>
+
+    <exec_method type="method"
+                 name="start"
+                 exec="/usr/lib/trustforge/illumos-bridge-start.sh"
+                 timeout_seconds="60">
+      <method_context>
+        <method_credential user="root" group="root"/>
+      </method_context>
+    </exec_method>
+
+    <exec_method type="method"
+                 name="stop"
+                 exec=":kill"
+                 timeout_seconds="30"/>
+
+    <property_group name="config" type="application">
+      <propval name="dtrace_path" type="astring"
+               value="/usr/sbin/dtrace"/>
+      <propval name="script" type="astring"
+               value="/usr/lib/trustforge/trustforge.d"/>
+      <propval name="daemon_url" type="astring"
+               value="http://127.0.0.1:8787/v1/decide"/>
+      <propval name="audit_file" type="astring"
+               value="/var/log/trustforge/audit.jsonl"/>
+      <propval name="timeout_ms" type="count" value="200"/>
+      <propval name="verbose" type="boolean" value="false"/>
+    </property_group>
+
+    <property_group name="startd" type="framework">
+      <propval name="duration" type="astring" value="contract"/>
+      <propval name="ignore_error" type="astring" value="core,signal"/>
+    </property_group>
+
+    <stability value="Unstable"/>
+
+    <template>
+      <common_name>
+        <loctext xml:lang="C">TrustForge illumos DTrace bridge</loctext>
+      </common_name>
+      <description>
+        <loctext xml:lang="C">
+          Reads TrustForge DTrace probes (trustforge.d) and forwards
+          syscall events to the local TrustForge daemon for advisory
+          policy decisions. DTrace cannot block syscalls by default;
+          this service is monitoring + audit only. See
+          /usr/lib/trustforge/README.md for the enforcement caveats
+          and future-direction notes.
+        </loctext>
+      </description>
+    </template>
+  </service>
+</service_bundle>

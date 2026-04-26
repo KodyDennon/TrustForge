@@ -53,7 +53,8 @@ fn load_vectors() -> VectorFile {
         .join("..")
         .join("conformance")
         .join("negative-capability-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse negative-capability-vectors.yaml")
 }
 
@@ -119,7 +120,9 @@ fn e0_wraps_every_non_allow_as_log_only() {
     assert_eq!(approval.kind(), "log-only");
 
     let allow = apply_enforcement_level(
-        GuardDecision::Allow { danger_tags: vec![] },
+        GuardDecision::Allow {
+            danger_tags: vec![],
+        },
         EnforcementLevel::E0,
     );
     assert_eq!(allow.kind(), "allow");
@@ -142,10 +145,15 @@ fn e1_warn_mode_turns_deny_into_allow_with_tag() {
 #[test]
 fn e2_tags_proof_log_required() {
     let adjusted = apply_enforcement_level(
-        GuardDecision::Allow { danger_tags: vec![] },
+        GuardDecision::Allow {
+            danger_tags: vec![],
+        },
         EnforcementLevel::E2,
     );
-    assert!(adjusted.danger_tags().iter().any(|t| t == "proof-log-required"));
+    assert!(adjusted
+        .danger_tags()
+        .iter()
+        .any(|t| t == "proof-log-required"));
 }
 
 #[test]
@@ -162,7 +170,9 @@ fn e3_escalates_allow_with_danger_tags() {
 #[test]
 fn e4_is_identity() {
     let adjusted = apply_enforcement_level(
-        GuardDecision::Allow { danger_tags: vec![] },
+        GuardDecision::Allow {
+            danger_tags: vec![],
+        },
         EnforcementLevel::E4,
     );
     assert_eq!(adjusted.kind(), "allow");
@@ -205,7 +215,10 @@ fn check_window_inside_window_is_ok() {
         valid_until: Some("2026-12-31T23:59:59Z"),
         ..Window::default()
     };
-    assert!(matches!(check_window(&w, "2026-04-24T12:00:00Z"), ExpirationVerdict::Ok));
+    assert!(matches!(
+        check_window(&w, "2026-04-24T12:00:00Z"),
+        ExpirationVerdict::Ok
+    ));
 }
 
 #[test]

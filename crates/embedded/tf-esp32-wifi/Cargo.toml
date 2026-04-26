@@ -1,0 +1,66 @@
+[package]
+name = "tf-esp32-wifi"
+version = "0.1.0"
+edition = "2021"
+description = "TrustForge K3 — ESP32 (Xtensa) WiFi-uplink packet signer using std-on-ESP-IDF."
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.embedded]
+chip = "ESP32"
+flash_size = "4M"
+ram_size = "520K"
+target_triple = "xtensa-esp32-espidf"
+profile = "constrained"
+spec = "TF-0011 packet-mode L0"
+toolchain = "esp"
+
+[[bin]]
+name = "tf-esp32-wifi"
+path = "src/main.rs"
+
+[dependencies]
+# TrustForge core. We use the `std` feature here because esp-idf gives
+# us a real (newlib-based) std implementation.
+tf-core-no-std = { path = "../../tf-core-no-std", default-features = false, features = ["std"] }
+tf-embedded-hal = { path = "../../tf-embedded-hal", default-features = false }
+
+# ESP-IDF bindings + Espressif-flavoured std runtime.
+esp-idf-sys = { version = "0.34", features = ["binstart"] }
+esp-idf-svc = { version = "0.48", features = ["alloc"] }
+esp-idf-hal = "0.43"
+
+# Logging via the ESP-IDF log subsystem.
+log = "0.4"
+
+# HTTP client comes from esp-idf-svc (`http::client`); JSON encoding via
+# serde + serde_json which already lives in the workspace lockfile.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ed25519 over no_std (esp-idf has std but tf-core-no-std picks the
+# pure-Rust ed25519-compact path).
+ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
+
+heapless = "0.8"
+anyhow = { version = "1", default-features = false, features = ["std"] }
+itoa = "1"
+embedded-svc = "0.27"
+
+[build-dependencies]
+embuild = "0.32"
+
+# The official esp-idf build script lives behind embuild; toolchain
+# selection comes from `~/export-esp.sh` (sourced by `cargo +esp`).
+[package.metadata.espflash]
+partition_table = "partitions.csv"
+
+[profile.release]
+opt-level = "s"
+debug = false
+lto = "fat"
+codegen-units = 1
+
+[profile.dev]
+opt-level = "s"
+debug = true

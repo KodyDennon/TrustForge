@@ -164,7 +164,10 @@ fn store_verify_foreign_succeeds_with_matching_bundle_key() {
     );
     assert!(result.ok, "expected ok, got {:?}", result.reason);
     assert_eq!(result.matched_attestation_id.as_deref(), Some("fed-1"));
-    assert_eq!(result.trust_levels.as_deref(), Some(["T3".to_string()].as_slice()));
+    assert_eq!(
+        result.trust_levels.as_deref(),
+        Some(["T3".to_string()].as_slice())
+    );
 }
 
 #[test]

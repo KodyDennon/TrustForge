@@ -140,7 +140,7 @@ export function startMockDaemon(opts: MockDaemonOptions = {}): MockDaemonHandle 
     },
   });
 
-  const port = server.port;
+  const port = server.port ?? 0;
   return {
     url: `http://127.0.0.1:${port}`,
     port,

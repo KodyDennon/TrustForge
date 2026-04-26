@@ -27,7 +27,10 @@ impl<'a> ExpirationVerdict<'a> {
 
 pub fn check_window<'a>(window: &'a Window<'a>, now: &str) -> ExpirationVerdict<'a> {
     let start = window.valid_from.or(window.not_before);
-    let end = window.valid_until.or(window.expires_at).or(window.not_after);
+    let end = window
+        .valid_until
+        .or(window.expires_at)
+        .or(window.not_after);
     if let Some(s) = start {
         if now < s {
             return ExpirationVerdict::NotYetValid { threshold: s };

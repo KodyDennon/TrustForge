@@ -1,0 +1,24 @@
+{
+  "name": "trustforge-unifi-plugin",
+  "version": "0.1.0",
+  "description": "TrustForge controller plugin for UniFi Network. Calls the local tf-daemon /v1/decide endpoint on client-connect, port-block, and firewall-rule events.",
+  "license": "Apache-2.0 OR MIT",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {},
+  "trustforge": {
+    "spec": "TF-0001",
+    "phase": "0-prerelease",
+    "supported_controllers": [
+      "UniFi Network Application 8.0+",
+      "UniFi OS 4.0+ (UDM Pro / UDM SE / Cloud Key G2 Plus)"
+    ]
+  }
+}

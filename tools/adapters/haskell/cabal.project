@@ -1,0 +1,4 @@
+packages:
+  trustforge/
+  trustforge-wai/
+  trustforge-yesod/

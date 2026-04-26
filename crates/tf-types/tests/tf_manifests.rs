@@ -26,7 +26,10 @@ fn loads_present_manifests_and_skips_absent() {
         &root.join(".tf/conformance.json"),
         "{\"conformance_version\":\"1\",\"subject\":\"tf-svc-1\",\"claimed_profiles\":[\"tf-core-compatible\"],\"evidence\":[{\"kind\":\"test\",\"id\":\"t1\"}]}",
     );
-    write(&root.join(".tf/codegen.toml"), "ts_target = \"src/generated\"\n");
+    write(
+        &root.join(".tf/codegen.toml"),
+        "ts_target = \"src/generated\"\n",
+    );
     let m = load_tf_manifests(&TfManifestPaths {
         root_dir: root,
         ..Default::default()
@@ -63,7 +66,10 @@ fn build_feature_gate_composes_runtime_view() {
         ..Default::default()
     });
     let gate = build_feature_gate(&manifests);
-    assert!(gate.claimed_profiles.iter().any(|p| p == "tf-core-compatible"));
+    assert!(gate
+        .claimed_profiles
+        .iter()
+        .any(|p| p == "tf-core-compatible"));
     assert_eq!(gate.proof_level_for_action("payment.charge"), Some("L4"));
     assert_eq!(gate.default_proof_level.as_deref(), Some("L1"));
     assert!(gate.forbidden_actions.iter().any(|a| a == "shell.exec"));

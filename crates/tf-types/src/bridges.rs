@@ -46,7 +46,9 @@ pub struct BridgeRegistry {
 
 impl BridgeRegistry {
     pub fn new() -> Self {
-        BridgeRegistry { bridges: Vec::new() }
+        BridgeRegistry {
+            bridges: Vec::new(),
+        }
     }
 
     pub fn register(&mut self, bridge: Arc<dyn Bridge>) {

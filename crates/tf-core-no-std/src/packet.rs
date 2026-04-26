@@ -145,11 +145,7 @@ pub fn sign_packet(
 
 /// Verify a packet against a known `public_key`. Mirrors the
 /// validation order of `tf-types::packet::verify_packet`.
-pub fn verify_packet(
-    packet: &Packet,
-    public_key: &[u8; 32],
-    now: &str,
-) -> Result<(), VerifyError> {
+pub fn verify_packet(packet: &Packet, public_key: &[u8; 32], now: &str) -> Result<(), VerifyError> {
     if packet.packet_version.as_str() != "1" {
         return Err(VerifyError::UnsupportedVersion);
     }

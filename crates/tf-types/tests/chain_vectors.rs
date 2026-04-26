@@ -36,7 +36,8 @@ fn load_vectors() -> VectorsFile {
         .join("..")
         .join("conformance")
         .join("chain-vectors.yaml");
-    let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+    let raw =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
     serde_yaml::from_str(&raw).expect("parse chain-vectors.yaml")
 }
 
@@ -77,13 +78,28 @@ fn hashes_match_pinned_vectors() {
     for c in &load_vectors().cases {
         let events = realize_chain(&c.events);
         if let Some(expected) = &c.expect.first_event_hash {
-            assert_eq!(&event_hash(&events[0]).expect("hash"), expected, "{} first_event_hash", c.name);
+            assert_eq!(
+                &event_hash(&events[0]).expect("hash"),
+                expected,
+                "{} first_event_hash",
+                c.name
+            );
         }
         if let Some(expected) = &c.expect.merkle_root {
-            assert_eq!(&merkle_root(&events).expect("merkle"), expected, "{} merkle_root", c.name);
+            assert_eq!(
+                &merkle_root(&events).expect("merkle"),
+                expected,
+                "{} merkle_root",
+                c.name
+            );
         }
         if let Some(expected) = &c.expect.chain_hash {
-            assert_eq!(&chain_hash(&events).expect("chain_hash"), expected, "{} chain_hash", c.name);
+            assert_eq!(
+                &chain_hash(&events).expect("chain_hash"),
+                expected,
+                "{} chain_hash",
+                c.name
+            );
         }
     }
 }

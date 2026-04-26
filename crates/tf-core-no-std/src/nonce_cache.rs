@@ -185,7 +185,11 @@ mod tests {
     fn expired_rejected_alloc() {
         let mut rx = PacketReceiver::new(8);
         assert_eq!(
-            rx.observe("pkt-1", Some("2026-04-01T00:00:00Z"), "2026-04-25T00:00:00Z"),
+            rx.observe(
+                "pkt-1",
+                Some("2026-04-01T00:00:00Z"),
+                "2026-04-25T00:00:00Z"
+            ),
             ReceiverDecision::Reject(RejectReason::Expired)
         );
     }

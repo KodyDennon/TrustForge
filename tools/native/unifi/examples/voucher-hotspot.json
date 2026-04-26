@@ -1,0 +1,29 @@
+{
+  "_comment": "Example UniFi guest-network captive portal hook. The portal posts this object to the controller's /api/s/<site>/cmd/hotspot endpoint when a guest requests a voucher; before the controller actually issues one, the trustforge-unifi-plugin intercepts the request and POSTs a /v1/decide call to the local tf-daemon. If the daemon answers `decision: allow`, the controller proceeds; otherwise the voucher is rejected and the client is kept on the captive-portal VLAN.",
+
+  "cmd": "voucher-create",
+  "n": 1,
+  "expire": "1440",
+  "quota": "0",
+  "note": "TrustForge-mediated voucher",
+  "up": "1024",
+  "down": "10240",
+  "_trustforge_decide_request": {
+    "actor": "tf:actor:host:unifi/{client_mac}",
+    "action": "unifi.guest.voucher.requested",
+    "target": "tf:actor:device:unifi/{site_id}",
+    "context": {
+      "client_mac": "{client_mac}",
+      "ssid":       "{ssid}",
+      "ap_mac":     "{ap_mac}",
+      "user_agent": "{user_agent}",
+      "voucher_batch": "events-2026-04"
+    }
+  },
+  "_trustforge_decide_response_handling": {
+    "allow": "create voucher and redirect client to success page",
+    "deny":  "do NOT create voucher; redirect to /portal/declined.html",
+    "ask":   "queue request for operator review; show /portal/pending.html",
+    "error": "fail closed (do NOT create voucher) and log the daemon error"
+  }
+}

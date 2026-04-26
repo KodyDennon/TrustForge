@@ -56,11 +56,11 @@ impl WebhookBridge {
         WebhookBridge { cfg }
     }
 
-    pub fn verify(&self, args: VerifyWebhookArgs) -> Result<WebhookVerificationResult, BridgeError> {
-        let now_str = args
-            .received_at
-            .clone()
-            .unwrap_or_else(now_iso8601);
+    pub fn verify(
+        &self,
+        args: VerifyWebhookArgs,
+    ) -> Result<WebhookVerificationResult, BridgeError> {
+        let now_str = args.received_at.clone().unwrap_or_else(now_iso8601);
         let ok = match self.cfg.scheme {
             WebhookScheme::HmacSha256 => {
                 let mut mac = HmacSha256::new_from_slice(&self.cfg.secret)
@@ -89,24 +89,18 @@ impl WebhookBridge {
                 constant_time_eq_hex(&expected, &provided)
             }
             WebhookScheme::Ed25519 => {
-                let ts = args
-                    .timestamp_header
-                    .as_ref()
-                    .ok_or_else(|| {
-                        BridgeError::InvalidInput("ed25519 webhook requires timestamp header".into())
-                    })?;
+                let ts = args.timestamp_header.as_ref().ok_or_else(|| {
+                    BridgeError::InvalidInput("ed25519 webhook requires timestamp header".into())
+                })?;
                 let mut payload = Vec::with_capacity(ts.len() + 1 + args.body.len());
                 payload.extend_from_slice(ts.as_bytes());
                 payload.push(b'.');
                 payload.extend_from_slice(&args.body);
                 let sig_bytes = decode_hex(&args.signature_header)
                     .ok_or_else(|| BridgeError::InvalidInput("signature header not hex".into()))?;
-                let pk_arr: [u8; 32] = self
-                    .cfg
-                    .secret
-                    .as_slice()
-                    .try_into()
-                    .map_err(|_| BridgeError::InvalidInput("ed25519 public key must be 32 bytes".into()))?;
+                let pk_arr: [u8; 32] = self.cfg.secret.as_slice().try_into().map_err(|_| {
+                    BridgeError::InvalidInput("ed25519 public key must be 32 bytes".into())
+                })?;
                 let vk = VerifyingKey::from_bytes(&pk_arr)
                     .map_err(|e| BridgeError::InvalidInput(format!("ed25519 key: {}", e)))?;
                 let sig = Signature::from_slice(&sig_bytes)
@@ -146,7 +140,10 @@ impl WebhookBridge {
         let action = format!(
             "webhook.{}.{}",
             self.cfg.vendor,
-            args.event_type.replace(|c: char| !c.is_ascii_alphanumeric() && c != '.' && c != '_' && c != '-', "_")
+            args.event_type.replace(
+                |c: char| !c.is_ascii_alphanumeric() && c != '.' && c != '_' && c != '-',
+                "_"
+            )
         );
         let event = json!({
             "event_version": "1",
@@ -187,12 +184,10 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 fn decode_hex(s: &str) -> Option<Vec<u8>> {
-    let trimmed = s
-        .trim()
-        .to_lowercase()
-        .trim_start_matches("0x")
-        .to_string();
-    let trimmed = trimmed.trim_start_matches("sha256=").trim_start_matches("sha1=");
+    let trimmed = s.trim().to_lowercase().trim_start_matches("0x").to_string();
+    let trimmed = trimmed
+        .trim_start_matches("sha256=")
+        .trim_start_matches("sha1=");
     if trimmed.len() % 2 != 0 {
         return None;
     }
@@ -257,7 +252,11 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { (mp + 3) as u32 } else { (mp - 9) as u32 };
+    let m = if mp < 10 {
+        (mp + 3) as u32
+    } else {
+        (mp - 9) as u32
+    };
     let year = if m <= 2 { y + 1 } else { y };
     (year as i32, m, d, hour, minute, second)
 }

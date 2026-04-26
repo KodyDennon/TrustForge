@@ -18,7 +18,11 @@ pub struct McpTool {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub description: Option<String>,
-    #[serde(rename = "inputSchema", skip_serializing_if = "Option::is_none", default)]
+    #[serde(
+        rename = "inputSchema",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
     pub input_schema: Option<Value>,
 }
 
@@ -83,7 +87,10 @@ pub fn mcp_to_contract_actions(
     tool_list: &McpToolList,
     opts: &McpImportOptions,
 ) -> Result<Vec<McpAction>, BridgeError> {
-    let default_risk = opts.default_risk.clone().unwrap_or_else(|| "R2".to_string());
+    let default_risk = opts
+        .default_risk
+        .clone()
+        .unwrap_or_else(|| "R2".to_string());
     let default_approval = opts
         .default_approval
         .clone()
@@ -124,9 +131,13 @@ pub fn contract_to_mcp_tools(actions: &[McpAction]) -> McpToolList {
                 Some(tags) if !tags.is_empty() => format!("⚠️ {}. ", tags.join(", ")),
                 _ => String::new(),
             };
-            let description = format!("{}{}", warning, action.description.clone().unwrap_or_default())
-                .trim()
-                .to_string();
+            let description = format!(
+                "{}{}",
+                warning,
+                action.description.clone().unwrap_or_default()
+            )
+            .trim()
+            .to_string();
             McpTool {
                 name: action.name.clone(),
                 description: if description.is_empty() {

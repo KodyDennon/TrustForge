@@ -1,0 +1,54 @@
+[package]
+name = "tf-avr-atmega328"
+version = "0.1.0"
+edition = "2021"
+description = "TrustForge K7 — AVR ATmega328P signer (Arduino Uno) — minimal packet builder for the very-constrained profile."
+license = "Apache-2.0"
+publish = false
+
+[package.metadata.embedded]
+chip = "ATmega328P"
+flash_size = "32K"
+ram_size = "2K"
+target_triple = "avr-unknown-gnu-atmega328"
+profile = "very-constrained"
+spec = "TF-0011 packet-mode L0 (header-only)"
+
+[[bin]]
+name = "tf-avr-atmega328"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+# avr-hal lives outside crates.io; pull from the upstream git rev and
+# pin to the atmega328p board crate.
+arduino-hal = { git = "https://github.com/Rahix/avr-hal", rev = "3e362624547462928a219c40f9ea8e3a64f21e5f", features = ["arduino-uno"] }
+panic-halt = "0.2"
+ufmt = "0.2"
+
+# We deliberately do NOT depend on tf-core-no-std on the ATmega328P:
+# the full ed25519 sign path (sha256 + the 25519 group operation) is
+# multiple kilobytes of stack and program memory beyond what an Uno can
+# afford while leaving headroom for the application. K7 demonstrates
+# the *header* construction and on-wire framing for the very-constrained
+# profile; the secure element does the actual signing.
+heapless = "0.8"
+
+[features]
+default = []
+
+[profile.release]
+codegen-units = 1
+debug = false
+lto = "fat"
+opt-level = "s"
+overflow-checks = false
+panic = "abort"
+
+[profile.dev]
+codegen-units = 1
+debug = false
+opt-level = "s"
+overflow-checks = false
+panic = "abort"

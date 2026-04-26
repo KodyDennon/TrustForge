@@ -69,10 +69,7 @@ fn encode(v: &Value, out: &mut String) -> Result<(), CanonicalJsonError> {
         }
         Value::Object(map) => {
             out.push('{');
-            let mut entries: Vec<(String, &Value)> = map
-                .iter()
-                .map(|(k, v)| (nfc(k), v))
-                .collect();
+            let mut entries: Vec<(String, &Value)> = map.iter().map(|(k, v)| (nfc(k), v)).collect();
             entries.sort_by(|a, b| a.0.cmp(&b.0));
             for (i, (k, v)) in entries.iter().enumerate() {
                 if i > 0 {

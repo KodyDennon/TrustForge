@@ -1,0 +1,14 @@
+name: trustforge
+description: TrustForge HTTP client and Shelf/Conduit middleware for Dart.
+version: 0.1.0
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  http: ^1.1.0
+  shelf: ^1.4.0
+
+dev_dependencies:
+  test: ^1.24.0

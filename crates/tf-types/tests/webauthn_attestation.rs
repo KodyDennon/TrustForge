@@ -17,9 +17,8 @@ use sha2::{Digest, Sha256};
 
 use tf_types::bridges::BridgeError;
 use tf_types::webauthn_attestation::{
-    decode_attestation_object, parse_authenticator_data, parse_client_data,
-    parse_cose_public_key, verify_attestation, AttestationFormat, CoseAlgorithm,
-    VerifyAttestationOptions,
+    decode_attestation_object, parse_authenticator_data, parse_client_data, parse_cose_public_key,
+    verify_attestation, AttestationFormat, CoseAlgorithm, VerifyAttestationOptions,
 };
 
 const RP_ID: &str = "example.com";
@@ -92,7 +91,10 @@ fn build_attestation_object(fmt: &str, att_stmt: Value, auth_data: &[u8]) -> Vec
     let v = Value::Map(vec![
         (Value::Text("fmt".into()), Value::Text(fmt.into())),
         (Value::Text("attStmt".into()), att_stmt),
-        (Value::Text("authData".into()), Value::Bytes(auth_data.to_vec())),
+        (
+            Value::Text("authData".into()),
+            Value::Bytes(auth_data.to_vec()),
+        ),
     ]);
     cbor_encode(&v)
 }
@@ -291,7 +293,10 @@ fn rejects_forged_packed_signature() {
     let sig: P256Signature = signing_other.sign(&signed);
     let att_stmt = Value::Map(vec![
         (Value::Text("alg".into()), Value::Integer((-7).into())),
-        (Value::Text("sig".into()), Value::Bytes(sig.to_der().as_bytes().to_vec())),
+        (
+            Value::Text("sig".into()),
+            Value::Bytes(sig.to_der().as_bytes().to_vec()),
+        ),
     ]);
     let att = build_attestation_object("packed", att_stmt, &auth);
     let opts = VerifyAttestationOptions {

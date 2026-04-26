@@ -262,9 +262,21 @@ fn revocation_detects_after_effective_time() {
         },
     };
     let idx = RevocationIndex::from_slice(&[rev]);
-    assert!(idx.is_revoked("tok-1", &Revocation_TargetKind::Capability, "2026-04-24T16:00:00Z"));
-    assert!(!idx.is_revoked("tok-1", &Revocation_TargetKind::Capability, "2026-04-24T14:00:00Z"));
-    assert!(!idx.is_revoked("tok-1", &Revocation_TargetKind::Actor, "2026-04-24T16:00:00Z"));
+    assert!(idx.is_revoked(
+        "tok-1",
+        &Revocation_TargetKind::Capability,
+        "2026-04-24T16:00:00Z"
+    ));
+    assert!(!idx.is_revoked(
+        "tok-1",
+        &Revocation_TargetKind::Capability,
+        "2026-04-24T14:00:00Z"
+    ));
+    assert!(!idx.is_revoked(
+        "tok-1",
+        &Revocation_TargetKind::Actor,
+        "2026-04-24T16:00:00Z"
+    ));
 }
 
 #[test]
@@ -279,7 +291,10 @@ fn envelope_accepts_well_formed() {
     };
     let r = validate_envelope_shape(&e);
     assert!(r.ok);
-    assert!(r.issues.iter().all(|i| matches!(i, EnvelopeIssue::UnknownAlgorithm { .. } | EnvelopeIssue::UnknownAltAlgorithm { .. }) || r.ok));
+    assert!(r.issues.iter().all(|i| matches!(
+        i,
+        EnvelopeIssue::UnknownAlgorithm { .. } | EnvelopeIssue::UnknownAltAlgorithm { .. }
+    ) || r.ok));
 }
 
 #[test]

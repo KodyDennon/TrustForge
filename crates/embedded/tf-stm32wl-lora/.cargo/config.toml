@@ -1,0 +1,21 @@
+# Per-crate cargo config for the STM32WL55 LoRa node.
+#
+# We pin the default target so `cargo build` / `cargo run` does the
+# right thing, and we wire `cargo run` to `probe-rs` so flashing is a
+# one-command affair on a board with a connected ST-Link or built-in
+# DAP-Link.
+
+[build]
+target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+# `probe-rs run` flashes the ELF and (when defmt is enabled) streams
+# RTT logs back to the host. Override CHIP via env if you have a
+# different STM32WL part.
+runner = "probe-rs run --chip STM32WLE5JCIx"
+rustflags = [
+    # Use the linker script supplied by cortex-m-rt and our memory.x.
+    "-C", "link-arg=-Tlink.x",
+    # Optional: emit a defmt-friendly version when defmt-rtt is on.
+    # "-C", "link-arg=-Tdefmt.x",
+]

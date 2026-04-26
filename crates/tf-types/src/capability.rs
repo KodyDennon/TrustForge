@@ -35,7 +35,9 @@ fn satisfies(c: &Constraint, ctx: &EvalContext) -> bool {
         },
         Constraint::Quantity { .. } => true, // requires external counter
         Constraint::Rate { .. } => true,     // requires external counter
-        Constraint::Session { session_id } => ctx.session_id.as_deref() == Some(session_id.as_str()),
+        Constraint::Session { session_id } => {
+            ctx.session_id.as_deref() == Some(session_id.as_str())
+        }
         Constraint::Approval { approval } => matches!(
             approval,
             ApprovalRequirement::None | ApprovalRequirement::Conditional
@@ -123,16 +125,12 @@ fn intersect_same(a: &Constraint, b: &Constraint) -> Constraint {
             max_per_window: (*am).min(*bm),
             window_seconds: (*aw).min(*bw),
         },
-        (
+        (Constraint::Quorum { quorum: aq, of: ao }, Constraint::Quorum { quorum: bq, .. }) => {
             Constraint::Quorum {
-                quorum: aq,
-                of: ao,
-            },
-            Constraint::Quorum { quorum: bq, .. },
-        ) => Constraint::Quorum {
-            quorum: (*aq).max(*bq),
-            of: ao.clone(),
-        },
+                quorum: (*aq).max(*bq),
+                of: ao.clone(),
+            }
+        }
         _ => a.clone(),
     }
 }
@@ -185,5 +183,7 @@ fn matches_glob(pattern: &str, value: &str) -> bool {
         }
     }
     re.push('$');
-    regex::Regex::new(&re).map(|r| r.is_match(value)).unwrap_or(false)
+    regex::Regex::new(&re)
+        .map(|r| r.is_match(value))
+        .unwrap_or(false)
 }

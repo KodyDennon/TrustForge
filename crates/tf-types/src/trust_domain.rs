@@ -62,7 +62,9 @@ fn is_dns_like(s: &str) -> bool {
     if !is_alnum(first) || !is_alnum(last) {
         return false;
     }
-    bytes.iter().all(|b| is_alnum(*b) || *b == b'.' || *b == b'-')
+    bytes
+        .iter()
+        .all(|b| is_alnum(*b) || *b == b'.' || *b == b'-')
 }
 
 fn is_alnum(b: u8) -> bool {

@@ -140,7 +140,8 @@ pub fn open_bundle(
     let shared = recipient_secret.diffie_hellman(&X25519Public::from(eph_pub_arr));
     let hk = Hkdf::<Sha256>::new(None, shared.as_bytes());
     let mut wrap_key = [0u8; 32];
-    hk.expand(HKDF_INFO, &mut wrap_key).map_err(|e| e.to_string())?;
+    hk.expand(HKDF_INFO, &mut wrap_key)
+        .map_err(|e| e.to_string())?;
     let wrapped = STANDARD
         .decode(&wrap.wrapped)
         .map_err(|e| format!("wrapped base64: {}", e))?;
@@ -278,7 +279,9 @@ pub struct Rfc6962Anchor {
 #[cfg(feature = "http-anchors")]
 impl Rfc6962Anchor {
     pub fn new(log_url: impl Into<String>) -> Self {
-        Self { log_url: log_url.into() }
+        Self {
+            log_url: log_url.into(),
+        }
     }
 }
 
@@ -333,7 +336,9 @@ pub struct SigstoreAnchor {
 #[cfg(feature = "http-anchors")]
 impl SigstoreAnchor {
     pub fn new(rekor_url: impl Into<String>) -> Self {
-        Self { rekor_url: rekor_url.into() }
+        Self {
+            rekor_url: rekor_url.into(),
+        }
     }
 }
 
@@ -354,7 +359,10 @@ impl AnchorBackend for SigstoreAnchor {
                 "signature": { "format": "x509" },
             },
         });
-        let url = format!("{}/api/v1/log/entries", self.rekor_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/api/v1/log/entries",
+            self.rekor_url.trim_end_matches('/')
+        );
         let resp = ureq::post(&url)
             .set("content-type", "application/json")
             .send_json(body)

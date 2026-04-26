@@ -20,6 +20,7 @@ use tf_decide_client::{DecideRequest, DecideResponse, TfDecideClient};
 use tonic::{Request, Status};
 
 pub use tf_decide_client;
+pub use tf_otel;
 
 /// Interceptor configuration.
 #[derive(Clone, Debug)]
@@ -78,12 +79,24 @@ impl TrustForgeInterceptor {
     /// Async preflight: returns `Ok(req)` (with `TfDecision` attached) on
     /// allow, or a `Status` rejection otherwise.
     pub async fn check<T>(&self, mut req: Request<T>) -> Result<Request<T>, Status> {
+        // One `tf.daemon.decide` span per gRPC call. We populate
+        // tf.action up front (it's the gRPC method path) and fill in
+        // tf.decision / tf.actor_resolved once the daemon answers.
+        let span = tracing::info_span!(
+            "tf.daemon.decide",
+            otel.name = "tf.daemon.decide",
+            tf.action = tracing::field::Empty,
+            tf.decision = tracing::field::Empty,
+            tf.actor_resolved = tracing::field::Empty,
+        );
+        let _enter = span.enter();
         let action = req
             .metadata()
             .get(":path")
             .and_then(|v| v.to_str().ok())
             .unwrap_or("/")
             .to_string();
+        span.record("tf.action", action.as_str());
         let host_token = req
             .metadata()
             .get(self.inner.opts.host_token_metadata.as_str())
@@ -132,6 +145,12 @@ impl TrustForgeInterceptor {
             }
         };
 
+        // Record the decision attributes on the active span so traces
+        // capture allow/deny/approval branches uniformly.
+        span.record("tf.decision", decision.decision.as_str());
+        if let Some(ref actor) = decision.actor_resolved {
+            span.record("tf.actor_resolved", actor.as_str());
+        }
         match decision.decision.to_ascii_lowercase().as_str() {
             "allow" => {
                 req.extensions_mut().insert(TfDecision(decision));

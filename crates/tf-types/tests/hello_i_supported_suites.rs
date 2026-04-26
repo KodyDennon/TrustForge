@@ -86,8 +86,14 @@ fn responder_picks_first_mutually_supported_suite() {
         hello_r.selected_suite.as_deref(),
         Some(SESSION_SUITE_HYBRID_ED25519_MLDSA65)
     );
-    assert!(hello_r.signature_mldsa.is_some(), "hybrid responder must populate signature_mldsa");
-    assert!(hello_r.ident_pub_mldsa.is_some(), "hybrid responder must populate ident_pub_mldsa");
+    assert!(
+        hello_r.signature_mldsa.is_some(),
+        "hybrid responder must populate signature_mldsa"
+    );
+    assert!(
+        hello_r.ident_pub_mldsa.is_some(),
+        "hybrid responder must populate ident_pub_mldsa"
+    );
 }
 
 #[test]
