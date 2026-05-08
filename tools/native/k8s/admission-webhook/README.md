@@ -4,8 +4,9 @@ A Kubernetes `ValidatingAdmissionWebhook` that consults a local TrustForge
 daemon (`tf-daemon`) for an authorization decision before allowing API server
 operations.
 
-**Status:** Draft — Phase 0. Experimental, not production-ready. The
-reference `tf-daemon` is not yet shipped.
+**Status:** Draft — Phase 0. Experimental, not production-ready. This
+webhook is exercised against the working reference daemon, but remains
+mock-tested until a cluster smoke test is added.
 
 ## What it does
 

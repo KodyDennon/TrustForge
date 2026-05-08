@@ -2,10 +2,8 @@
  * libnss_trustforge — glibc NSS module that resolves TrustForge actors as
  * POSIX users and groups.
  *
- * Status: Draft (Phase 0). The TrustForge daemon and decide.sock contract are
- * still specified, not implemented; this module is written against the
- * planned `POST /v1/import-credential` endpoint described in TF-0001 / the
- * agent-contract schema.
+ * Status: Draft (Phase 0). The daemon and decide.sock contract exist as a
+ * working reference, but this module remains mock-tested and experimental.
  *
  * Design notes:
  *   - NSS modules are loaded into EVERY process that resolves a username
@@ -13,7 +11,7 @@
  *     therefore be tiny, allocation-disciplined, and fail closed-but-quiet:
  *     return NSS_STATUS_NOTFOUND on miss so other modules in the chain can
  *     answer.
- *   - We talk to the local user-scoped daemon at ~/.trustforge/decide.sock
+ *   - We talk to the system local daemon at /run/trustforge/decide.sock
  *     using a hand-rolled minimal HTTP/1.0 request — pulling in libcurl from
  *     an NSS module would be a footgun.
  *   - All output strings (pw_name, pw_dir, etc.) MUST live inside the
@@ -59,7 +57,7 @@
 #define TF_DEFAULT_SHELL  "/usr/sbin/nologin"
 #define TF_HOME_PREFIX    "/var/lib/trustforge/actors/"
 
-#define TF_SOCK_REL       ".trustforge/decide.sock"
+#define TF_SOCK_PATH      "/run/trustforge/decide.sock"
 #define TF_HTTP_HOST      "localhost"
 #define TF_MAX_RESP       8192
 #define TF_CONNECT_TO_MS  500   /* daemon must be snappy or we punt */
@@ -95,17 +93,12 @@ static uid_t tf_uid_for_actor(const char *actor_id)
     return (uid_t)(TF_UID_MIN + (h % span));
 }
 
-/* sock path = $HOME/.trustforge/decide.sock; falls back to /run/.../uid/. */
+/* Production path is the system local decision socket. */
 static int tf_socket_path(char *out, size_t outlen)
 {
-    const char *home = getenv("HOME");
-    if (home && *home) {
-        int n = snprintf(out, outlen, "%s/%s", home, TF_SOCK_REL);
-        if (n > 0 && (size_t)n < outlen) return 0;
-    }
-    /* Fallback: per-user XDG runtime dir. */
-    int n = snprintf(out, outlen, "/run/user/%u/trustforge/decide.sock",
-                     (unsigned)getuid());
+    const char *override = getenv("TRUSTFORGE_SOCKET");
+    const char *path = (override && *override) ? override : TF_SOCK_PATH;
+    int n = snprintf(out, outlen, "%s", path);
     if (n > 0 && (size_t)n < outlen) return 0;
     return -1;
 }

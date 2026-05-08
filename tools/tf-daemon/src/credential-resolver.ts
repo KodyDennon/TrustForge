@@ -183,6 +183,11 @@ const REGISTRY_KIND_TO_BRIDGE: Record<BridgesRegistryKind, CredentialBridgeKind>
   grpc: "unknown",
   "service-mesh": "unknown",
   a2a: "unknown",
+  aws: "unknown",
+  gcp: "unknown",
+  azure: "unknown",
+  vault: "unknown",
+  doppler: "unknown",
   "session-cookie": "session-cookie",
 };
 

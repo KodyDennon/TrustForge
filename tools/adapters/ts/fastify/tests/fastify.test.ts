@@ -77,6 +77,39 @@ describe("@trustforge/fastify", () => {
     expect(body.danger_tags).toEqual(["blocked"]);
   });
 
+  test("deny path is terminal and does not run the route handler", async () => {
+    daemon = startMockDaemon({
+      adminToken: "test-admin-token",
+      decide: () => ({
+        decision: "deny",
+        reason: "policy: blocked",
+        approval_id: null,
+        proof_id: "sha256:terminal-deny",
+        actor_resolved: "tf:actor:agent:example.com/x",
+        trust_level: "T1",
+        authority_mode: "layered",
+        danger_tags: [],
+      }),
+    });
+    let handlerRan = false;
+    app = Fastify({ logger: false });
+    await app.register(fastifyTrustForge, {
+      daemonUrl: daemon.url,
+      adminToken: "test-admin-token",
+      mode: "enforce",
+    });
+    app.get("/terminal", async () => {
+      handlerRan = true;
+      return { ok: true };
+    });
+    await app.ready();
+
+    const res = await app.inject({ method: "GET", url: "/terminal" });
+
+    expect(res.statusCode).toBe(403);
+    expect(handlerRan).toBe(false);
+  });
+
   test("observe-only forwards even on deny", async () => {
     daemon = startMockDaemon({
       adminToken: "test-admin-token",
@@ -115,6 +148,39 @@ describe("@trustforge/fastify", () => {
     const res = await app.inject({ method: "GET", url: "/public" });
     expect(res.statusCode).toBe(202);
     expect(res.headers["location"]).toBe("/approvals/approval-1");
+  });
+
+  test("approval-required is terminal and does not run the route handler", async () => {
+    daemon = startMockDaemon({
+      adminToken: "test-admin-token",
+      decide: () => ({
+        decision: "approval-required",
+        reason: "needs human",
+        approval_id: "approval-terminal",
+        proof_id: "sha256:terminal-approval",
+        actor_resolved: "tf:actor:agent:example.com/x",
+        trust_level: "T2",
+        authority_mode: "layered",
+        danger_tags: [],
+      }),
+    });
+    let handlerRan = false;
+    app = Fastify({ logger: false });
+    await app.register(fastifyTrustForge, {
+      daemonUrl: daemon.url,
+      adminToken: "test-admin-token",
+      mode: "enforce",
+    });
+    app.get("/needs-approval", async () => {
+      handlerRan = true;
+      return { ok: true };
+    });
+    await app.ready();
+
+    const res = await app.inject({ method: "GET", url: "/needs-approval" });
+
+    expect(res.statusCode).toBe(202);
+    expect(handlerRan).toBe(false);
   });
 
   test("tfRequire(action) pins the action sent to daemon (route-only mode)", async () => {

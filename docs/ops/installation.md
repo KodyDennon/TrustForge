@@ -6,17 +6,17 @@ operators install both because the conformance suite uses both;
 production deployments typically run one or the other and pin the
 other for testing.
 
-This page does not ship pre-built binaries — 0.1.0 is "build from
-source". Pre-built binaries arrive when 0.x stabilises.
+This page documents the source-first install path. Pre-built binaries,
+deb/rpm packages, and signed OS installers are v0.2+ release work.
 
 ## Supported targets
 
 | Target | Daemon | CLI | Embedded crates |
 |---|---|---|---|
-| Linux x86_64 / aarch64 | yes (Bun + Rust) | yes | n/a |
-| macOS x86_64 / aarch64 | yes (Bun + Rust) | yes | n/a |
-| Windows x86_64 | yes (Bun + Rust, native), WSL2 recommended | yes | n/a |
-| Linux container | yes | yes | n/a |
+| Linux x86_64 / aarch64 | working reference (Bun) | working reference | n/a |
+| macOS x86_64 / aarch64 | working reference (Bun) | working reference | n/a |
+| Windows x86_64 | experimental; WSL2 recommended | working reference | n/a |
+| Linux container | planned image path | yes | n/a |
 | Cortex-M / RISC-V (Rust no_std) | n/a | n/a | yes |
 
 ## Prerequisites
@@ -59,14 +59,13 @@ Recommended layout for a real install:
 
 ```
 /opt/trustforge/
-  bin/                   # symlinks or installed binaries
+  bin/                   # symlinks or locally built binaries
   etc/
     daemon.yaml
     policy.yaml
     profile.yaml
   var/
     vault.tfvault
-    ledger.db
     log/
 ```
 
@@ -98,10 +97,8 @@ The `EnvironmentFile` should hold `TF_VAULT_PASS` and
 
 Same as Linux native. Pay attention to:
 
-- `launchd` instead of `systemd` for the supervisor. A working
-  `LaunchDaemon` example lives in `tools/native/launchd-example/`
-  (planned; not yet shipped in 0.1.0 — drop a `plist` modeled on
-  the systemd unit above).
+- `launchd` instead of `systemd` for the supervisor. A draft
+  `LaunchDaemon` example lives in `tools/native/macos/`.
 - macOS 14+ flags TCP listeners as needing approval; bind the
   admin endpoint to loopback or a UDS to avoid the firewall
   prompt.
@@ -124,9 +121,8 @@ not prompt unless you change that.
 
 ## Container
 
-A reference Dockerfile lives at `tools/tf-daemon/Dockerfile` (or
-will once 0.1.0 ships its container image — the spec is fixed
-even if the file is not). Minimum content:
+The container path is not a published release artifact yet. Minimum
+source-build shape:
 
 ```dockerfile
 FROM oven/bun:1.1 AS bunbuild
@@ -149,9 +145,9 @@ ENTRYPOINT ["/usr/local/bin/tf-daemon", "run"]
 Mount the vault, ledger, and config as volumes; never bake the
 vault into the image.
 
-A Helm chart and a Kustomize overlay are on the v0.2 roadmap.
-Today, write a `Deployment` plus `Secret` (vault passphrase) plus
-`PersistentVolumeClaim` (vault and ledger) by hand.
+A Helm chart and a Kustomize overlay are on the v0.2 roadmap. Today,
+write a `Deployment` plus `Secret` (vault passphrase) plus
+`PersistentVolumeClaim` (vault) by hand.
 
 ## Embedded
 
@@ -185,16 +181,21 @@ TF_VAULT_PASS=dev-pw \
 TF_VAULT_PASS=dev-pw TF_ADMIN_TOKEN=$(openssl rand -hex 16) \
     bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml &
 
-# 3. Hit the health endpoint.
-curl -s http://127.0.0.1:8787/v1/health \
-    -H "Authorization: Bearer $TF_ADMIN_TOKEN" | jq .
+# 3. Validate the config in CI or before restarts.
+bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml --dry-run
 
-# 4. Run the conformance suite.
+# 4. Make a local decision over TCP with bearer auth.
+curl -s http://127.0.0.1:8642/v1/decide \
+    -H "Authorization: Bearer $TF_ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"actor":"tf:actor:agent:example.com/demo","action":"fs.read","target":null,"context":{},"trace_id":"install-check"}' | jq .
+
+# 5. Run the conformance suite.
 bun run tools/tf-conformance/src/cli.ts run
 ```
 
-A green health endpoint plus a green `tf-conformance run`
-indicates the install is healthy.
+A successful dry run, a local decision response, and a green
+`tf-conformance run` indicate the source install is healthy.
 
 ## Uninstall
 

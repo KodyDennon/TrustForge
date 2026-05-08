@@ -4,7 +4,7 @@ A sudo **policy plugin** that delegates every `sudo <command>` decision to
 the local TrustForge daemon. The plugin is a pure transport shim: it
 extracts the wrapped command and argv, calls
 `POST /v1/decide` over the daemon's UNIX socket
-(`~/.trustforge/decide.sock`), and allows the command iff the daemon
+(`/run/trustforge/decide.sock` by default), and allows the command iff the daemon
 returns `decision: "allow"`. Anything else -- denial, malformed JSON,
 unreachable daemon -- is treated as deny. **Fail-closed.**
 
@@ -83,15 +83,11 @@ removes your ability to escalate.
   ownership or group/world write permissions will cause sudo to refuse
   to load the plugin and fall back to its compiled-in default (which is
   almost certainly `sudoers`, not this plugin).
-- **`sudo` strips most of the environment by default.** The plugin
-  reads `HOME` to locate the daemon socket and `SUDO_USER` to populate
-  the `host_token` field. Modern sudo preserves `SUDO_USER`; `HOME`
-  must be in `env_keep` (or the operator must set
-  `TRUSTFORGE_SOCKET=/path/to/decide.sock` somewhere the plugin can
-  see). The plugin reads the override env var first.
-- **The daemon runs in the user's session, not as root.** TrustForge
-  decisions are made by the user-context daemon. If the daemon is not
-  running, every sudo call is denied. This is by design.
+- **Socket path.** Production Linux uses `/run/trustforge/decide.sock`.
+  Set `TRUSTFORGE_SOCKET=/path/to/decide.sock` only for tests or
+  non-standard deployments.
+- **The daemon runs as the local system decision service.** If the daemon
+  or socket is not available, every sudo call is denied. This is by design.
 - **No I/O logging is performed by this plugin.** Pair it with
   `sudoers_io` (or another I/O plugin) if you want sudo's standard
   audit trail; the TrustForge daemon emits its own append-only proof

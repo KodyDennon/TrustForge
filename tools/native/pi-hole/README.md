@@ -18,7 +18,7 @@ through the sidecar.
 ## Status
 
 **Phase 0 / pre-release.** Not production-ready. The reference
-`tf-daemon` is not yet shipped; the sidecar and gravity hook are
+`tf-daemon` exists as a working reference; the sidecar and gravity hook are
 useful primarily for conformance testing against a mock daemon.
 
 ## Pi-hole compatibility

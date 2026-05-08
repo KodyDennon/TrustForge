@@ -1,9 +1,11 @@
 # TrustForge Roadmap
 
-## Status snapshot (v0.1.0 candidate)
+## Status snapshot (v0.1.0 experimental, v0.2 hardening in progress)
 
 The phases below describe the design programme. The current codebase
-implements substantial portions of phases 0 through 10:
+implements substantial portions of phases 0 through 10, but the
+implementation is not uniform across every language, bridge, native OS,
+or package target:
 
 - **Phase 0–4** (seed, types, proofs, sessions, RPC) — implemented in
   both `tools/tf-types-ts/` and `crates/tf-types/`. ProofRPC has all
@@ -12,8 +14,8 @@ implements substantial portions of phases 0 through 10:
 - **Phase 5** (agent contract) — schema + validator shipped; `.tf/`
   conventions in use repo-internally.
 - **Phase 6** (daemon + CLI) — `tools/tf-daemon` and `tools/tf-cli`
-  reach the home-profile feature set; production deployment still
-  requires v0.2 hardening.
+  are working references. v0.2 hardening is focused on installability,
+  local socket contracts, and truthful release artifacts.
 - **Phase 7** (plugins) — child-process sandbox (sandbox-exec on macOS,
   seccomp on Linux) plus `wasmtime` host integration on Rust.
 - **Phase 8** (bridges) — WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS
@@ -25,9 +27,23 @@ implements substantial portions of phases 0 through 10:
   signature vectors, AI-implementation suite, compatibility-label
   runner, CI gate, cargo-deny supply-chain audit.
 
-Anything not listed above is still a v0.2+ concern. This file remains
-authoritative for the design programme; the README and CHANGELOG track
-shipped state.
+Anything not listed above is still a v0.2+ concern. The native status
+source is [`docs/native-support-matrix.md`](docs/native-support-matrix.md);
+the README and CHANGELOG track shipped state.
+
+## v0.2 hardening priorities
+
+- Keep the full local gate green: Bun tests, workspace typecheck,
+  conformance runner, Cargo tests, and Cargo all-target checks.
+- Lock the local auth contract: TCP `/v1/*` uses bearer auth; Unix
+  `/run/trustforge/decide.sock` uses filesystem/group/peer trust for
+  local decision callers; privileged mutation endpoints stay bearer
+  gated.
+- Prefer Linux source + systemd install first, then container and
+  Kubernetes wiring, then binary tarballs and deb/rpm-style packages.
+- Keep native integration docs honest: every surface must state status,
+  tested environment, daemon dependency, install method, rollback, and
+  known gaps.
 
 ## Phase 0: Repository seed
 

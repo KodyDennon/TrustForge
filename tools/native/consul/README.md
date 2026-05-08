@@ -4,8 +4,9 @@ A small HTTP service that fronts Consul Connect's intention-check
 endpoint and delegates each verdict to the local TrustForge daemon
 (`tf-daemon`).
 
-**Status:** Draft — Phase 0. Experimental, not production-ready. The
-reference `tf-daemon` is not yet shipped.
+**Status:** Draft — Phase 0. Experimental, not production-ready. This
+integration is exercised against the working reference daemon, but remains
+mock-tested.
 
 ## How it works
 

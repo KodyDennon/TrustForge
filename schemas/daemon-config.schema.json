@@ -61,6 +61,59 @@
       "minLength": 1,
       "description": "Path to the .tflog file the daemon appends to."
     },
+    "http": {
+      "type": "object",
+      "description": "v1 local HTTP endpoint exposure. TCP listeners require bearer auth; Unix-domain sockets are local-decision sockets guarded by filesystem/group/peer trust.",
+      "additionalProperties": false,
+      "properties": {
+        "tcp": {
+          "type": "object",
+          "description": "TCP exposure for /v1/* endpoints. This surface is bearer-token protected.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When true, expose /v1/* over TCP."
+            },
+            "bind": {
+              "type": "string",
+              "minLength": 1,
+              "description": "TCP bind host for /v1/*; default 127.0.0.1."
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535,
+              "description": "TCP port for /v1/*; default 8642. 0 asks the OS to pick one."
+            },
+            "auth": {
+              "enum": ["bearer"],
+              "description": "TCP /v1/* endpoints require the admin bearer token."
+            }
+          }
+        },
+        "unix": {
+          "type": "object",
+          "description": "Unix-domain socket exposure for local decision callers. /v1/decide uses local-peer trust; privileged routes stay bearer-gated.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When true, expose local decision endpoints over a Unix-domain socket."
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Unix-domain socket path for local decision callers; production Linux default is /run/trustforge/decide.sock."
+            },
+            "auth": {
+              "enum": ["local-peer"],
+              "description": "Unix-socket /v1/decide and /v1/decide-batch trust filesystem/group/peer controls; privileged mutation endpoints still require bearer auth."
+            }
+          }
+        }
+      }
+    },
     "approval_queue": {
       "type": "object",
       "description": "Approval-queue tuning.",
@@ -104,6 +157,15 @@
         "revocation_path": {
           "type": "string",
           "description": "Path of the JSON revocation list the admin endpoint appends to."
+        },
+        "bind": {
+          "type": "string",
+          "description": "Expected Host header and listener bind for admin routes. Defaults to 127.0.0.1."
+        },
+        "max_body_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum accepted JSON body size for admin and v1 routes. Defaults to 65536."
         }
       }
     }

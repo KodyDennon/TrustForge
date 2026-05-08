@@ -1842,6 +1842,7 @@ register({
       kind,
       url,
       submit: async (_bytes: Uint8Array) => ({ inclusion_proof: { stub: true, kind, at: new Date().toISOString() } }),
+      verifyInclusion: async () => true,
     } as Parameters<typeof anchorEvidenceBundle>[0]["anchors"][number];
     const anchored = await anchorEvidenceBundle({ bundle, anchors: [stubAnchor] });
     const out = flagOne(args, "out");
@@ -2143,8 +2144,8 @@ register({
     emitJson(args, {
       decision: decision.decision,
       reason: decision.reason,
-      matched_rule: (decision as Record<string, unknown>).matched_rule ?? null,
-      trace: (decision as Record<string, unknown>).trace ?? [],
+      matched_rule: (decision as unknown as Record<string, unknown>).matched_rule ?? null,
+      trace: (decision as unknown as Record<string, unknown>).trace ?? [],
     });
     return 0;
   },

@@ -20,8 +20,8 @@
 // Consul HTTP API contract); anything else is `{"Allowed": false}`
 // with the daemon's reason in `Reason`. Daemon errors fail closed.
 //
-// Status: Draft (Phase 0). Not production-ready. The reference
-// tf-daemon is not yet shipped.
+// Status: Draft (Phase 0). Not production-ready. This binary is
+// exercised against the working reference daemon, but remains mock-tested.
 package main
 
 import (

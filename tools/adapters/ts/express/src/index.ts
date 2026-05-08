@@ -19,11 +19,13 @@ import {
   type HostTokenKind,
 } from "@trustforge/sdk";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    tfActor?: string;
-    tfDecision?: DecideResponse;
-    tfProofId?: string;
+declare global {
+  namespace Express {
+    interface Request {
+      tfActor?: string;
+      tfDecision?: DecideResponse;
+      tfProofId?: string;
+    }
   }
 }
 

@@ -9,7 +9,7 @@
  *   1. Receives the polkit action.id as argv[1] and the subject user as
  *      argv[2] (passed by the rule file, see 49-trustforge.rules).
  *   2. Connects to the TrustForge daemon socket
- *      (~/.trustforge/decide.sock by default; overridable via
+ *      (/run/trustforge/decide.sock by default; overridable via
  *      $TRUSTFORGE_SOCKET).
  *   3. POSTs to /v1/decide with body
  *        { "actor": "<subject user>", "host_token": "<subject user>",
@@ -70,9 +70,7 @@ resolve_socket(char *out, size_t cap)
         snprintf(out, cap, "%s", override);
         return 0;
     }
-    const char *home = getenv("HOME");
-    if (home == NULL || home[0] == '\0') return -1;
-    snprintf(out, cap, "%s/.trustforge/decide.sock", home);
+    snprintf(out, cap, "/run/trustforge/decide.sock");
     return 0;
 }
 
@@ -164,7 +162,7 @@ main(int argc, char **argv)
     char sock_path[512];
     if (resolve_socket(sock_path, sizeof(sock_path)) != 0) {
         fprintf(stderr, "cannot resolve TrustForge socket path "
-                        "(set HOME or TRUSTFORGE_SOCKET)\n");
+                        "(check /run/trustforge/decide.sock or TRUSTFORGE_SOCKET)\n");
         printf("no\n");
         return 3;
     }

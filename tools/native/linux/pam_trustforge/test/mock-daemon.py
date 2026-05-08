@@ -2,7 +2,7 @@
 """
 mock-daemon.py — minimal stand-in for the TrustForge decide daemon.
 
-Listens on a Unix socket (default ~/.trustforge/decide.sock) and answers
+Listens on a Unix socket (default /run/trustforge/decide.sock) and answers
 POST /v1/decide with a configurable allow/deny decision. Sufficient for
 testing pam_trustforge.so without the real daemon.
 
@@ -115,14 +115,13 @@ def handle_client(conn: socket.socket, decision: str, reason: str) -> None:
 
 
 def default_socket_path() -> str:
-    home = os.environ.get("HOME") or os.path.expanduser("~")
-    return os.path.join(home, ".trustforge", "decide.sock")
+    return os.environ.get("TRUSTFORGE_SOCKET", "/run/trustforge/decide.sock")
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Mock TrustForge decide daemon.")
     p.add_argument("--socket", default=default_socket_path(),
-                   help="path to the AF_UNIX socket (default: ~/.trustforge/decide.sock)")
+                   help="path to the AF_UNIX socket (default: /run/trustforge/decide.sock or TRUSTFORGE_SOCKET)")
     p.add_argument("--decision", choices=("allow", "deny"), default="allow",
                    help="decision to return for every request")
     p.add_argument("--reason", default="mock-daemon",

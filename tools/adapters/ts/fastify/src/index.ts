@@ -107,74 +107,84 @@ function resolveConfig(opts: TfFastifyOptions): ResolvedConfig {
 
 function makeHook(cfg: ResolvedConfig): preHandlerHookHandler {
   const { client, mode, profile, defaultAction, extract } = cfg;
-  return async function tfPreHandler(
+  return function tfPreHandler(
     req: FastifyRequest,
     reply: FastifyReply,
-  ): Promise<void> {
-    const { token, kind } = extract(req);
-    const trace_id = newTraceId();
-    let decision: DecideResponse;
-    try {
-      decision = await client.decide({
-        actor: null,
-        host_token: token,
-        host_token_kind: kind ?? "auto",
-        action: defaultAction,
-        target: req.url,
-        context: {
-          method: req.method,
-          ip: req.ip,
-          ...(profile ? { profile } : {}),
-        },
-        trace_id,
-      });
-    } catch (err) {
-      if (mode === "observe-only") return;
-      reply.code(502).send({
-        error: "tf-daemon unreachable",
-        detail: (err as Error).message,
-      });
-      return;
-    }
-
-    req.tfActor = decision.actor_resolved;
-    req.tfDecision = decision;
-    req.tfProofId = decision.proof_id;
-    reply.header("x-tf-proof-id", decision.proof_id);
-
-    if (mode === "observe-only") return;
-
-    switch (decision.decision) {
-      case "allow":
-      case "log-only":
-        return;
-      case "deny":
-      case "escalate":
-        reply.code(403).send({
-          error: "forbidden",
-          decision: decision.decision,
-          reason: decision.reason,
-          proof_id: decision.proof_id,
-          danger_tags: decision.danger_tags,
+    done,
+  ) {
+    void (async () => {
+      const { token, kind } = extract(req);
+      const trace_id = newTraceId();
+      let decision: DecideResponse;
+      try {
+        decision = await client.decide({
+          actor: null,
+          host_token: token,
+          host_token_kind: kind ?? "auto",
+          action: defaultAction,
+          target: req.url,
+          context: {
+            method: req.method,
+            ip: req.ip,
+            ...(profile ? { profile } : {}),
+          },
+          trace_id,
         });
-        return;
-      case "approval-required":
-        if (decision.approval_id) {
-          reply.header("location", `/approvals/${decision.approval_id}`);
+      } catch (err) {
+        if (mode === "observe-only") {
+          done();
+          return;
         }
-        reply.code(202).send({
-          decision: "approval-required",
-          approval_id: decision.approval_id,
-          reason: decision.reason,
-          proof_id: decision.proof_id,
+        reply.code(502).send({
+          error: "tf-daemon unreachable",
+          detail: (err as Error).message,
         });
         return;
-      default:
-        reply.code(500).send({
-          error: "unknown-decision",
-          decision: decision.decision,
-        });
-    }
+      }
+
+      req.tfActor = decision.actor_resolved;
+      req.tfDecision = decision;
+      req.tfProofId = decision.proof_id;
+      reply.header("x-tf-proof-id", decision.proof_id);
+
+      if (mode === "observe-only") {
+        done();
+        return;
+      }
+
+      switch (decision.decision) {
+        case "allow":
+        case "log-only":
+          done();
+          return;
+        case "deny":
+        case "escalate":
+          reply.code(403).send({
+            error: "forbidden",
+            decision: decision.decision,
+            reason: decision.reason,
+            proof_id: decision.proof_id,
+            danger_tags: decision.danger_tags,
+          });
+          return;
+        case "approval-required":
+          if (decision.approval_id) {
+            reply.header("location", `/approvals/${decision.approval_id}`);
+          }
+          reply.code(202).send({
+            decision: "approval-required",
+            approval_id: decision.approval_id,
+            reason: decision.reason,
+            proof_id: decision.proof_id,
+          });
+          return;
+        default:
+          reply.code(500).send({
+            error: "unknown-decision",
+            decision: decision.decision,
+          });
+      }
+    })().catch((err) => done(err));
   };
 }
 

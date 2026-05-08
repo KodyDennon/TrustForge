@@ -31,7 +31,7 @@ describe("AEAD negatives — ChaCha20-Poly1305", () => {
     const nonce = new Uint8Array(12);
     crypto.getRandomValues(nonce);
     const ct = chacha20poly1305Encrypt(key, nonce, new Uint8Array(0), new TextEncoder().encode("hi"));
-    ct[0] ^= 0xff;
+    ct[0]! ^= 0xff;
     expect(() => chacha20poly1305Decrypt(key, nonce, new Uint8Array(0), ct)).toThrow(AeadError);
   });
 
@@ -113,7 +113,7 @@ describe("ed25519 malleability + key-length checks", () => {
     const sig = await ed25519Sign(msg, pair.privateKey);
     expect(await ed25519Verify(pair.publicKey, msg, sig)).toBe(true);
     const tampered = new Uint8Array(sig);
-    tampered[63] ^= 0x01;
+    tampered[63]! ^= 0x01;
     expect(await ed25519Verify(pair.publicKey, msg, tampered)).toBe(false);
   });
 
@@ -188,7 +188,7 @@ describe("Packet replay + tamper", () => {
     // bytes really changed (changing a base64 char alone can sometimes
     // be a no-op on padding boundaries).
     const sigBytes = new Uint8Array(Buffer.from(p.signature.signature, "base64"));
-    sigBytes[0] ^= 0x01;
+    sigBytes[0]! ^= 0x01;
     const tamperedSig = Buffer.from(sigBytes).toString("base64");
     const tampered = { ...p, signature: { ...p.signature, signature: tamperedSig } };
     const v = await verifyPacket(tampered, pair.publicKey, "2026-04-24T12:30:00Z");

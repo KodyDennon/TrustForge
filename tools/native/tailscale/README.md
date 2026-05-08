@@ -8,7 +8,7 @@ a Tailscale-ACL → TrustForge-policy translation.
 ## Status
 
 **Phase 0 / pre-release.** Not production-ready. The reference
-`tf-daemon` is not yet shipped; the sidecar is useful primarily for
+`tf-daemon` exists as a working reference; this sidecar remains useful primarily for
 conformance testing against a mock daemon.
 
 ## What it does

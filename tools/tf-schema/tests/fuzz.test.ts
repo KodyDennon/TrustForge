@@ -16,4 +16,14 @@ describe("fuzz", () => {
       expect(r.accepted + r.rejected).toBe(r.iterations);
     }
   });
+
+  test("fixtureless schemas are reported as intentionally skipped", async () => {
+    const results = await fuzzAll(50);
+    const bridgeRegistry = results.find((r) => r.schema === "bridges-registry");
+    expect(bridgeRegistry).toBeDefined();
+    expect(bridgeRegistry!.seeded).toBe(0);
+    expect(bridgeRegistry!.iterations).toBe(0);
+    expect(bridgeRegistry!.accepted + bridgeRegistry!.rejected).toBe(0);
+    expect(bridgeRegistry!.panics).toEqual([]);
+  });
 });

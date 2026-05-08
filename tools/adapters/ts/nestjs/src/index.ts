@@ -218,7 +218,7 @@ export class TrustForgeGuardImpl {
     const extraCtx = this.opts.resolveContext?.(req) ?? {};
 
     const decision = await this.service.decide({
-      actor: cred.actor ?? null,
+      actor: "actor" in cred ? cred.actor ?? null : null,
       host_token: cred.host_token ?? null,
       host_token_kind: cred.host_token_kind ?? null,
       action,

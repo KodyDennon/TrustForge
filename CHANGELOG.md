@@ -4,12 +4,40 @@ All notable changes to TrustForge are recorded here. Versions follow
 [Semantic Versioning](https://semver.org/) once we hit 1.0; before then
 the API is explicitly experimental.
 
+## 0.2.0 — Unreleased
+
+### Changed
+
+* Clarified the daemon/local decision contract: TCP `/v1/*` endpoints
+  remain bearer-token protected, while the Unix-domain decision socket
+  is the local trust boundary for `/v1/decide` and `/v1/decide-batch`.
+  Privileged import, proof-signing, admin, and mutation routes remain
+  bearer-gated.
+* Native Linux integration defaults now point at
+  `/run/trustforge/decide.sock`, with per-user sockets treated as test
+  or explicit override paths.
+* Documentation now separates working references, mock-tested native
+  shims, hardware-untested packages, docs-only surfaces, and planned
+  release artifacts.
+
+### Fixed
+
+* `tf-schema` fuzzing now marks fixtureless schemas as intentionally
+  skipped instead of reporting zero accepted/rejected cases against a
+  non-zero iteration count.
+* `@trustforge/fastify` now stops request flow after terminal deny,
+  approval-required, unknown-decision, or daemon-unreachable replies.
+* `tf-daemon run --config <path> --dry-run` and `--print-config` provide
+  config preflight and redacted effective-config output without booting
+  listeners.
+
 ## 0.1.0 — 2026-04-25
 
-First public cut of TrustForge. Every spec, profile, bridge, and
-DECISIONS.md cross-cutting requirement has a working reference
-implementation in both TypeScript (Bun) and Rust, gated behind a
-conformance suite.
+First public experimental cut of TrustForge. Core schemas, generated
+types, conformance vectors, the Bun daemon, CLI surfaces, and selected
+TS/Rust protocol paths are working references. The broader profile,
+bridge, native OS, network-device, and release-packaging surface is not
+uniformly implemented or production-reviewed.
 
 ### Added
 

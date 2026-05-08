@@ -5,9 +5,9 @@ TrustForge daemon for an authorization decision before serializing a credential
 to LogonUI. Composes alongside the built-in password provider rather than
 replacing it.
 
-**Status:** Draft — Phase 0. Experimental, not production-ready. The reference
-TrustForge daemon is not yet shipped; until it is, this provider is useful only
-for integration testing against the included mock daemon.
+**Status:** Draft — Phase 0. Experimental, not production-ready. The
+TrustForge daemon exists as a working reference, but this provider remains
+useful only for integration testing against the included mock daemon.
 
 ## What it does
 

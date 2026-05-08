@@ -21,7 +21,7 @@
 // config in ../../lighttpd/external.conf is the canonical wiring.
 //
 // Status: Draft (Phase 0). Not production-ready. The reference
-// tf-daemon is not yet shipped; this binary is useful primarily for
+// tf-daemon exists as a working reference; this binary remains useful primarily for
 // conformance testing against a mock daemon.
 package main
 

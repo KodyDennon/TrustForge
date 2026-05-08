@@ -115,8 +115,9 @@ export function trustforgeCallbacks(
     async signIn({ user, account }) {
       // Best-effort early import so that even routes that read directly from
       // the DB session see a TF actor on the very first authenticated request.
+      const accountToken = (account as { access_token?: string } | null | undefined)?.access_token;
       const credential =
-        account?.access_token ?? (user?.id ? `user:${user.id}` : undefined);
+        accountToken ?? (user?.id ? `user:${user.id}` : undefined);
       if (!credential) return true;
       try {
         await tf.importCredential({

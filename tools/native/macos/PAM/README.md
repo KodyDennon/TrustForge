@@ -7,7 +7,7 @@ against Apple's OpenPAM (the BSD-derived PAM that ships with every macOS
 install).
 
 **Status:** Draft - Phase 0. Experimental, not production-ready. The
-reference TrustForge daemon is not yet shipped; until it is, this module is
+the reference TrustForge daemon exists, but this module remains
 useful primarily for integration testing against a mock daemon listening on
 `/var/run/trustforge/decide.sock`.
 
@@ -47,7 +47,7 @@ of the stack (`pam_opendirectory`, `pam_smartcard`, etc.).
 | PAM flavour | Linux-PAM | OpenPAM |
 | User lookup | `pam_modutil_getpwnam` | `getpwnam_r(3)` directly |
 | Logging | `pam_vsyslog` | `vsyslog` (OpenPAM's `openpam_log` is a `__func__` macro) |
-| Socket path | `~/.trustforge/decide.sock` (per-user) | `/var/run/trustforge/decide.sock` (system, owned by `_trustforge`) |
+| Socket path | `/run/trustforge/decide.sock` (system) | `/var/run/trustforge/decide.sock` (system, owned by `_trustforge`) |
 | Module path | `/lib/security/` | `/usr/local/lib/pam/` (SIP — see below) |
 
 ## Build

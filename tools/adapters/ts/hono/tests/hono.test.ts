@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
-import { trustforgeMiddleware, tfRequire } from "../src/index.ts";
+import { trustforgeMiddleware, tfRequire, type DecideResponse } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
 
@@ -10,7 +10,13 @@ afterEach(async () => {
 });
 
 function makeApp(daemonUrl: string, mode: "enforce" | "observe-only" = "enforce") {
-  const app = new Hono();
+  const app = new Hono<{
+    Variables: {
+      tfActor?: string;
+      tfDecision?: DecideResponse;
+      tfProofId?: string;
+    };
+  }>();
   app.use(
     "*",
     trustforgeMiddleware({

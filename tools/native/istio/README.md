@@ -12,7 +12,7 @@ Two pieces that sit alongside Istio:
 
 **Status:** Draft — Phase 0. Experimental, not production-ready. The
 reference `tf-daemon` and the companion `tf-sidecar-injector` deployment
-are not yet shipped.
+are not published release artifacts yet.
 
 ## Install
 

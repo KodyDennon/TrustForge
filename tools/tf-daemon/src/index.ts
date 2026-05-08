@@ -11,7 +11,6 @@
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { dirname, resolve as resolvePath, join as joinPath } from "node:path";
-import { homedir } from "node:os";
 import { parse as parseYAML } from "yaml";
 import { BridgesRegistry } from "tf-types";
 import {
@@ -85,7 +84,7 @@ export interface DaemonRuntimeOptions {
   /** Hostname for the v1 HTTP listener. Default 127.0.0.1. */
   daemonHttpHost?: string;
   /** Unix socket path for the v1 HTTP endpoint suite. Default
-   *  `~/.trustforge/decide.sock`. Pass an empty string to disable
+   *  `/run/trustforge/decide.sock`. Pass an empty string to disable
    *  Unix-socket binding (tests do this to avoid sharing the
    *  per-user socket across runs). */
   daemonHttpSocket?: string;
@@ -961,8 +960,16 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     };
   }
 
-  async function handleV1Decide(req: Request): Promise<Response> {
-    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+  interface V1AuthContext {
+    localDecisionTrust: boolean;
+  }
+
+  function v1DecisionAuth(req: Request, ctx: V1AuthContext): boolean {
+    return ctx.localDecisionTrust || v1AdminAuth(req);
+  }
+
+  async function handleV1Decide(req: Request, ctx: V1AuthContext): Promise<Response> {
+    if (!v1DecisionAuth(req, ctx)) return jsonResponse({ error: "unauthorized" }, 401);
     const body = await readV1JsonBody(req);
     if (!body.ok) return jsonResponse({ error: body.error }, body.status);
     const validated = validateDecideRequest(body.value);
@@ -971,8 +978,8 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     return jsonResponse(result);
   }
 
-  async function handleV1DecideBatch(req: Request): Promise<Response> {
-    if (!v1AdminAuth(req)) return jsonResponse({ error: "unauthorized" }, 401);
+  async function handleV1DecideBatch(req: Request, ctx: V1AuthContext): Promise<Response> {
+    if (!v1DecisionAuth(req, ctx)) return jsonResponse({ error: "unauthorized" }, 401);
     const body = await readV1JsonBody(req);
     if (!body.ok) return jsonResponse({ error: body.error }, body.status);
     if (!Array.isArray(body.value)) {
@@ -1105,15 +1112,15 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
 
   /** Top-level v1 router. Returns `undefined` when the request isn't a
    *  v1 path, letting the WebSocket / admin handler take over. */
-  async function handleV1(req: Request): Promise<Response | undefined> {
+  async function handleV1(req: Request, ctx: V1AuthContext): Promise<Response | undefined> {
     const url = new URL(req.url);
     if (!url.pathname.startsWith("/v1/")) return undefined;
     if (req.method !== "POST") return jsonResponse({ error: "method not allowed" }, 405);
     switch (url.pathname) {
       case "/v1/decide":
-        return handleV1Decide(req);
+        return handleV1Decide(req, ctx);
       case "/v1/decide-batch":
-        return handleV1DecideBatch(req);
+        return handleV1DecideBatch(req, ctx);
       case "/v1/import-credential":
         return handleV1ImportCredential(req);
       case "/v1/proof/sign":
@@ -1128,21 +1135,22 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   // -------------------------------------------------------------------------
   // The HTTP listener that serves v1 routes is bound separately from the
   // admin/WebSocket listener so the operator can firewall it without
-  // disabling the dashboard. The default port is 8642 + a per-user Unix
-  // socket at ~/.trustforge/decide.sock.
+  // disabling the dashboard. TCP remains bearer-token protected. The
+  // Unix socket is for local decision callers and relies on filesystem /
+  // service-manager controls instead of bearer tokens for /v1/decide.
   // -------------------------------------------------------------------------
   const httpListeners: Array<{ stop: () => void; port: number | null; socket: string | null }> = [];
   const httpPortRequested = opts.daemonHttpPort ?? 8642;
   const httpHost = opts.daemonHttpHost ?? "127.0.0.1";
   const httpSocketRequested = opts.daemonHttpSocket
-    ?? joinPath(homedir(), ".trustforge", "decide.sock");
+    ?? joinPath("/run", "trustforge", "decide.sock");
 
   if (httpPortRequested >= 0) {
     const tcpServer = Bun.serve({
       port: httpPortRequested,
       hostname: httpHost,
       async fetch(req) {
-        return (await handleV1(req)) ?? new Response("not found", { status: 404 });
+        return (await handleV1(req, { localDecisionTrust: false })) ?? new Response("not found", { status: 404 });
       },
     });
     httpListeners.push({
@@ -1173,7 +1181,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       const unixServer = Bun.serve({
         unix: httpSocketRequested,
         async fetch(req: Request) {
-          return (await handleV1(req)) ?? new Response("not found", { status: 404 });
+          return (await handleV1(req, { localDecisionTrust: true })) ?? new Response("not found", { status: 404 });
         },
       } as unknown as Parameters<typeof Bun.serve>[0]);
       httpListeners.push({
@@ -1240,7 +1248,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       },
     });
     server = {
-      port: bunServer.port,
+      port: bunServer.port ?? 0,
       stop: (closeActive) => {
         bunServer.stop(closeActive);
       },
@@ -1282,8 +1290,8 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       tls: listen.kind === "tls" ? {
         // For v0.1.0 we expect the vault to hold the daemon's TLS cert.
         // If missing, Bun.listen will throw.
-        cert: vault.read("daemon-tls-cert")?.value,
-        key: vault.read("daemon-tls-key")?.value,
+        cert: Buffer.from(vault.read("daemon-tls-cert")?.key_bytes ?? new Uint8Array()).toString("utf8"),
+        key: Buffer.from(vault.read("daemon-tls-key")?.key_bytes ?? new Uint8Array()).toString("utf8"),
       } : undefined,
     });
     server = {

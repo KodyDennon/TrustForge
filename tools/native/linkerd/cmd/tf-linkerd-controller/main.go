@@ -8,8 +8,8 @@
 // `unstructured.Unstructured` so we don't have to vendor the heavyweight
 // Linkerd Go module just to read a few fields.
 //
-// Status: Draft (Phase 0). Not production-ready. The reference tf-daemon
-// is not yet shipped.
+// Status: Draft (Phase 0). Not production-ready. This binary is exercised
+// against the working reference daemon, but remains mock-tested.
 package main
 
 import (

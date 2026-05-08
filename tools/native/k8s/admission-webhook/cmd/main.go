@@ -14,9 +14,8 @@
 // and returns AdmissionResponse{Allowed:true} on `decision:"allow"`,
 // or Allowed:false + Result.Reason on `deny`. Anything else fails CLOSED.
 //
-// Status: Draft (Phase 0). Not production-ready. The reference tf-daemon
-// is not yet shipped; this binary is useful primarily for conformance
-// testing against a mock daemon.
+// Status: Draft (Phase 0). Not production-ready. This binary is exercised
+// against the working reference daemon, but remains mock-tested.
 package main
 
 import (

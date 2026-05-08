@@ -539,7 +539,7 @@ export function startDashboard(opts: DashboardOptions): DashboardHandle {
           send: (msg: string) => ws.send(msg),
           close: () => ws.close(),
         };
-        (ws.data as { client?: typeof client }).client = client;
+        (ws.data as unknown as { client?: typeof client }).client = client;
         wsClients.add(client);
         ws.send(JSON.stringify({ type: "hello", refreshMs, streamPollMs }));
       },
@@ -547,7 +547,7 @@ export function startDashboard(opts: DashboardOptions): DashboardHandle {
         // The browser never sends to us — ignore.
       },
       close(ws) {
-        const c = (ws.data as { client?: { send: (m: string) => void; close: () => void } }).client;
+        const c = (ws.data as unknown as { client?: { send: (m: string) => void; close: () => void } }).client;
         if (c) wsClients.delete(c);
       },
     },

@@ -18,7 +18,7 @@ networks on TrustForge verdicts:
 ## Status
 
 **Phase 0 / pre-release.** Not production-ready. The reference
-`tf-daemon` is not yet shipped; both the plugin and the reconciler
+`tf-daemon` exists as a working reference; both the plugin and the reconciler
 are useful primarily for conformance testing against a mock daemon.
 
 ## Compatibility

@@ -93,12 +93,12 @@ if (!existsSync(wasmPath)) {
 
       // Tamper one byte of the message.
       const tampered = new Uint8Array(message);
-      tampered[0] ^= 0x01;
+      tampered[0]! ^= 0x01;
       expect(wasm.ed25519_verify(pkB64, tampered, sigB64)).toBe(false);
 
       // Tamper one byte of the signature.
       const badSig = new Uint8Array(sig);
-      badSig[0] ^= 0x01;
+      badSig[0]! ^= 0x01;
       expect(
         wasm.ed25519_verify(
           pkB64,

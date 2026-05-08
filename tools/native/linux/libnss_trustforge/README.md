@@ -4,10 +4,10 @@ A glibc Name Service Switch (NSS) module that resolves TrustForge actors as
 POSIX users and groups so that tools like `ssh`, `sudo`, `ls -l`, `id`, and
 `getent` can see actor names alongside `/etc/passwd` entries.
 
-> **Status: Phase 0 / Draft.** The TrustForge daemon and the
-> `/v1/import-credential` endpoint are still specified, not shipped. This
-> module compiles and is wired correctly into NSS; lookups will fall back
-> to `NOTFOUND` until a daemon is running on `~/.trustforge/decide.sock`.
+> **Status: Phase 0 / Draft.** The TrustForge daemon exists as a working
+> reference and `/v1/import-credential` is bearer-gated. This module is
+> mock-tested and still fails closed to `NOTFOUND` when
+> `/run/trustforge/decide.sock` is unavailable.
 
 ## What it does
 
@@ -108,10 +108,9 @@ that in mind:
 
 - The module deliberately uses **no third-party libraries** — only POSIX
   syscalls and stdlib. No libcurl, no JSON parser, no TLS stack.
-- Connection to the daemon is short, unauthenticated, over a user-scoped
-  AF_UNIX socket. Permission on the socket file (`mode 0600`) is the
-  trust boundary. The daemon must enforce that itself; the NSS module
-  does not perform any authorisation.
+- Connection to the daemon is short, over the system local AF_UNIX
+  socket. Filesystem ownership, group membership, service-manager policy,
+  and daemon endpoint auth form the trust boundary.
 - The module **fails closed-but-quiet**: any error returns
   `NSS_STATUS_NOTFOUND` (or `TRYAGAIN` on transient socket failure). It
   must never crash, hang indefinitely, or grant access on its own.
@@ -140,7 +139,7 @@ daemon resolves the collision authoritatively.
 A mock daemon is provided under `test/`:
 
 ```sh
-python3 test/mock-daemon.py &           # listens on ~/.trustforge/decide.sock
+python3 test/mock-daemon.py &           # listens on a test Unix socket
 make
 sudo make install
 test/test-nss.sh                        # runs `getent passwd ...` checks

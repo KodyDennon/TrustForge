@@ -84,7 +84,7 @@ async function buildDecideRequest(
   const extraCtx = opts.resolveContext ? await opts.resolveContext(event) : {};
 
   return {
-    actor: cred.actor ?? null,
+    actor: "actor" in cred ? cred.actor ?? null : null,
     host_token: cred.host_token ?? null,
     host_token_kind: cred.host_token_kind ?? null,
     action,

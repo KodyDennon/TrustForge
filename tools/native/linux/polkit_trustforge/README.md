@@ -9,7 +9,7 @@ polkit authorization decision to the local TrustForge daemon.
 |  (mozjs)  |  <----- "yes" -------- |   POST /v1/decide        |
 +-----------+                        +-------------|------------+
                                                    v
-                                       ~/.trustforge/decide.sock
+                                       /run/trustforge/decide.sock
                                             (TrustForge daemon)
 ```
 
@@ -100,16 +100,9 @@ polkitd picks up rule changes automatically on most distros; if not,
   on the helper's round trip to the daemon. Keep the daemon's
   /v1/decide endpoint fast; consider a hard timeout in a future
   revision (the current helper does not impose one).
-- **HOME inside polkitd is not the user's HOME.** The default socket
-  path `~/.trustforge/decide.sock` resolves against polkitd's HOME,
-  which is typically empty or `/var/lib/polkit-1`. To make the helper
-  reach the user-context daemon you must either:
-    1. Set `TRUSTFORGE_SOCKET` system-wide (e.g. via a polkitd
-       systemd drop-in), or
-    2. Run a TrustForge system-level socket bridge that forwards into
-       the appropriate user session.
-  This README documents the constraint; the daemon-side bridge is
-  out of scope.
+- **Socket path.** Production Linux uses `/run/trustforge/decide.sock`.
+  Set `TRUSTFORGE_SOCKET` system-wide only for tests or non-standard
+  deployments.
 - **The helper fails closed: any error -> "no" on stdout.** The JS
   rule, however, returns `NOT_HANDLED` on spawn failure so that other
   polkit rules can still run. If you want strict fail-closed at the

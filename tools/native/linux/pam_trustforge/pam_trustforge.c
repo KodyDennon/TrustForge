@@ -4,7 +4,7 @@
  * Status: Draft (Phase 0). Experimental — not production-ready.
  *
  * On authenticate / acct_mgmt / open_session, this module asks the local
- * TrustForge daemon (Unix socket at $HOME/.trustforge/decide.sock) whether
+ * TrustForge daemon (Unix socket at /run/trustforge/decide.sock by default) whether
  * the requested action should be allowed. The decision is made by sending
  * a small JSON body to POST /v1/decide and inspecting the "decision" field
  * of the JSON response.
@@ -51,7 +51,7 @@
 
 #define TF_DECIDE_TIMEOUT_MS  2000
 #define TF_BUF_SIZE           8192
-#define TF_SOCK_RELATIVE_PATH ".trustforge/decide.sock"
+#define TF_DEFAULT_SOCK_PATH  "/run/trustforge/decide.sock"
 #define TF_HTTP_PATH          "/v1/decide"
 
 /* ---------- logging helpers ---------- */
@@ -203,21 +203,14 @@ skip:
 static int
 tf_resolve_sock_path(pam_handle_t *pamh, const char *user, char *out, size_t outsz)
 {
-	struct passwd *pw = pam_modutil_getpwnam(pamh, user);
-	const char *home = NULL;
-	if (pw && pw->pw_dir && pw->pw_dir[0])
-		home = pw->pw_dir;
-	else
-		home = getenv("HOME");
-	if (!home || !home[0]) {
-		tf_log(pamh, LOG_ERR, "trustforge: cannot resolve home directory for user '%s'", user);
-		return -1;
-	}
-	int n = snprintf(out, outsz, "%s/%s", home, TF_SOCK_RELATIVE_PATH);
+	const char *override = getenv("TRUSTFORGE_SOCKET");
+	const char *path = (override && override[0]) ? override : TF_DEFAULT_SOCK_PATH;
+	int n = snprintf(out, outsz, "%s", path);
 	if (n < 0 || (size_t)n >= outsz) {
 		tf_log(pamh, LOG_ERR, "trustforge: socket path overflow");
 		return -1;
 	}
+	(void)user;
 	return 0;
 }
 

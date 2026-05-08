@@ -58,7 +58,7 @@ export function trustforgeForIronSession<
     });
 
   return async (req, res, sessionOptions) => {
-    const session = await getIronSession<T>(
+    const session = await getIronSession(
       req,
       res,
       sessionOptions ?? opts.sessionOptions,

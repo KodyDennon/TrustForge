@@ -3,7 +3,7 @@
 mock-daemon.py — minimal stand-in for the TrustForge decide daemon, used
 only to exercise libnss_trustforge.so.2 end-to-end on a developer box.
 
-Listens on $HOME/.trustforge/decide.sock and answers three endpoints:
+Listens on TRUSTFORGE_SOCKET or /run/trustforge/decide.sock and answers three endpoints:
 
   POST /v1/import-credential   {"credential": "<name>", "hint": "..."}
   POST /v1/lookup-uid          {"uid": <int>}
@@ -184,10 +184,8 @@ def serve_one(conn: socket.socket) -> None:
 
 
 def main() -> int:
-    home = pathlib.Path(os.environ.get("HOME", "/tmp"))
-    sock_dir = home / ".trustforge"
-    sock_dir.mkdir(parents=True, exist_ok=True)
-    sock_path = sock_dir / "decide.sock"
+    sock_path = pathlib.Path(os.environ.get("TRUSTFORGE_SOCKET", "/run/trustforge/decide.sock"))
+    sock_path.parent.mkdir(parents=True, exist_ok=True)
     if sock_path.exists():
         sock_path.unlink()
 

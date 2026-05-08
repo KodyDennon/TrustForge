@@ -5,7 +5,7 @@
 #   1. Module built and installed:    make && sudo make install
 #   2. nsswitch.conf has `trustforge` on the passwd: line (see
 #      nsswitch.conf.example).
-#   3. Mock daemon running:           python3 test/mock-daemon.py &
+#   3. Mock daemon running:           TRUSTFORGE_SOCKET=/tmp/tf-nss.sock python3 test/mock-daemon.py &
 #
 # What it checks:
 #   - getent passwd alice    -> succeeds, uid is in TF range (>=100000)
@@ -63,9 +63,10 @@ if ! ldconfig -p 2>/dev/null | grep -q libnss_trustforge.so.2; then
 fi
 
 note "Sanity: confirm the mock daemon socket exists..."
-if [[ ! -S "${HOME}/.trustforge/decide.sock" ]]; then
-    red   "FAIL: ${HOME}/.trustforge/decide.sock not present"
-    note  "      start it with:  python3 test/mock-daemon.py &"
+SOCK_PATH="${TRUSTFORGE_SOCKET:-/run/trustforge/decide.sock}"
+if [[ ! -S "$SOCK_PATH" ]]; then
+    red   "FAIL: $SOCK_PATH not present"
+    note  "      start it with:  TRUSTFORGE_SOCKET=$SOCK_PATH python3 test/mock-daemon.py &"
     exit 1
 fi
 

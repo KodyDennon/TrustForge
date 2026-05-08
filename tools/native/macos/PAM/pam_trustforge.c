@@ -14,9 +14,7 @@
  *     fall back to syslog otherwise.
  *   - The decision socket is system-scoped: /var/run/trustforge/decide.sock,
  *     created by the launchd job in
- *     ../com.trustforge.daemon.plist. (The Linux module uses
- *     ~/.trustforge/decide.sock; here the daemon runs as a system service
- *     under the _trustforge user, so the per-user path doesn't apply.)
+ *     ../com.trustforge.daemon.plist. (The Linux module now also defaults to a system socket.)
  *
  * Same fail-closed semantics as the Linux module: any error -> PAM_AUTH_ERR.
  */

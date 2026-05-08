@@ -5,7 +5,7 @@
  * `sudo <command>` invocation, asks the local TrustForge daemon whether
  * the action is permitted, and accepts or rejects accordingly.
  *
- * Wire contract: a single POST to ~/.trustforge/decide.sock at /v1/decide
+ * Wire contract: a single POST to /run/trustforge/decide.sock at /v1/decide
  * with body:
  *
  *   {
@@ -71,11 +71,9 @@ tf_logf(int level, const char *fmt, ...)
     tf_log(level, "sudo_trustforge: %s\n", buf);
 }
 
-/* Resolve the daemon socket path. We default to ~/.trustforge/decide.sock
+/* Resolve the daemon socket path. We default to /run/trustforge/decide.sock
  * but allow override via the TRUSTFORGE_SOCKET environment variable for
- * tests. Users running sudo retain HOME of the *invoking* user for the
- * purposes of locating the daemon socket: TrustForge runs in the user's
- * session, not as root. */
+ * tests and non-standard deployments. */
 static int
 tf_resolve_socket(void)
 {
@@ -84,16 +82,8 @@ tf_resolve_socket(void)
         snprintf(tf_socket_path, sizeof(tf_socket_path), "%s", override);
         return 0;
     }
-    const char *home = getenv("HOME");
-    if (home == NULL || home[0] == '\0') {
-        /* sudo scrubs HOME by default; fall back to SUDO_USER's homedir
-         * via a conservative path. The README documents that operators
-         * who run with `Defaults env_reset` must add HOME to env_keep or
-         * set TRUSTFORGE_SOCKET in sudo.conf-side configuration. */
-        return -1;
-    }
     snprintf(tf_socket_path, sizeof(tf_socket_path),
-             "%s/.trustforge/decide.sock", home);
+             "/run/trustforge/decide.sock");
     return 0;
 }
 
@@ -337,7 +327,7 @@ policy_show_version(int verbose)
     tf_log(SUDO_CONV_INFO_MSG, "TrustForge sudo policy plugin 0.1.0\n");
     if (verbose) {
         tf_log(SUDO_CONV_INFO_MSG,
-               "  fail-closed; daemon socket: $HOME/.trustforge/decide.sock\n");
+               "  fail-closed; daemon socket: /run/trustforge/decide.sock\n");
     }
     return 1;
 }

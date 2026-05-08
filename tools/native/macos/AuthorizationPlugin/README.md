@@ -6,7 +6,7 @@ authorization rights (sudo via GUI, `task_for_pid`, System Settings panes,
 etc.).
 
 **Status:** Draft - Phase 0. Experimental, not production-ready. The
-reference TrustForge daemon is not yet shipped; until it is, this bundle is
+the reference TrustForge daemon exists, but this bundle remains
 useful primarily for integration testing against a mock daemon listening on
 `/var/run/trustforge/decide.sock`.
 

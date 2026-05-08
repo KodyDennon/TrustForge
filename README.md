@@ -6,28 +6,23 @@
 
 TrustForge's core thesis: the next era of security is not login; it is **verifiable action by cryptographic actors over authenticated channels**.
 
-The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are alive, tested, and cross-checked against each other.
+The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are active, but coverage is uneven across the broad native and bridge surface.
 
-This is the **0.1.0** release. Every documented profile, bridge, and protocol surface has a working reference implementation in both languages, gated behind a conformance suite. Nothing is production-ready — this is a 0.1.0 cut intended for spec review, interop experiments, and contributors.
+This is the **0.1.0 experimental** line with v0.2 hardening underway. Core schemas, type bindings, conformance vectors, the Bun daemon, the CLI, and several adapters are working references. Many native integrations are mock-tested, hardware-untested, docs-only, or planned. Nothing is production-ready; use this repo for spec review, local interop experiments, and contributor development.
 
 ---
 
 ## What ships in 0.1.0
 
-| Sprint | Surface |
+| Surface | Status |
 |---|---|
-| Phase 0 — Schemas + types | 36 JSON Schemas with valid/invalid fixtures, TS + Rust codegen, schema linter, fuzz harness, cross-language parity |
-| Phase 2 — Proof format | ed25519 (RFC 8032), SHA-256 / BLAKE3, hash-chained events, Merkle roots, `.tflog` + `.tfproof` framing |
-| Phase 3 — Session protocol | X25519 + HKDF-SHA256 + ChaCha20-Poly1305 + ed25519, AEAD frames, in-band rekey, WebSocket carrier |
-| Phase 4 — ProofRPC | Unary + server-streaming + client-streaming + bidi RPC, `.tfrpc.yaml` codegen for TS + Rust |
-| Phase 5 — Agent Contract | `.tf/agent-contract.yaml`, dangerous-actions catalog, AgentGuard (TS + Rust), AI integration workflow |
-| Phase 6 — Daemon + CLI | Argon2id + ChaCha20-Poly1305 vault, ApprovalQueue, runnable daemon, unified `tf` command, signed plugin manifests, sandboxed plugin host |
-| Phase 7 — Plugins | Native (Worker-isolated) + WASM plugin runtime, capability-bound dispatch, revocation index |
-| Sprint 4 (this release) — Constrained + offline | Packet-mode signing, fragmentation, reassembly, LoRa simulator, offline revocation list, emergency authority |
-| Sprint 4 (this release) — Compliance evidence | L4 encrypted bundle (multi-recipient ChaCha20-Poly1305 + X25519 wrap), L5 RFC 3161 anchoring, redaction, replay timeline |
-| Sprint 5 (this release) — Bridges | WebAuthn, SPIFFE, OAuth/GNAP + DPoP, MCP, TLS, DID, Matrix, Webhook (HMAC + ed25519), gRPC + service mesh (Envoy XFCC, Istio, Linkerd) |
-| Sprint 6 (this release) — Profile gating + admin | profile-spec + four built-in profiles, admin HTTP endpoint, full `tf` CLI, viewer-only dashboard |
-| Sprint 7 (this release) — Conformance gate | Vector format spec, [`tf-conformance`](tools/tf-conformance/) runner, profile + interop + fuzz + security + AI-implementation suites, compatibility-label runner |
+| Schemas + generated types | Working reference with fixtures, linting, fuzzing, TS/Rust generated bindings, and parity checks. |
+| Proof/session/RPC core | Working reference for the implemented TS/Rust paths; some advanced parity remains v0.2 work. |
+| Agent Contract + policy guard | Working reference in TS/Rust for core allow/deny/approval behavior. |
+| `tf-daemon` + `tf-cli` | Working reference. TCP `/v1/*` remains bearer-protected; Unix `/run/trustforge/decide.sock` is the local decision socket. |
+| Web adapters | Several working reference adapters; each adapter README is the source for its tested surface. |
+| Native OS/network integrations | Mixed status. See [`docs/native-support-matrix.md`](docs/native-support-matrix.md) before assuming anything is installable. |
+| Release artifacts | Source install path exists. Container/Kubernetes and binary/package distribution are v0.2+ hardening work. |
 
 ## Repository layout
 
@@ -90,12 +85,7 @@ bun run tools/tf-conformance/src/cli.ts run
 cargo test --workspace
 ```
 
-Today this passes with:
-
-- **510 TS tests** across 66 files
-- **232 Rust tests** across `tf-types` + `tf-code-helper-example`
-- **36 schemas** with valid + invalid fixtures, **0 lint issues**, **120+ parity vectors**
-- **`tf-conformance run`** green across schema / signature / guard / trust-overlay / bridge / interop / fuzz / profile / security / AI-implementation / label
+The required local gates for this line are `bun test`, `bun run --filter '*' typecheck`, `bun run tools/tf-conformance/src/cli.ts run`, `cargo test --workspace`, and `cargo check --workspace --all-targets`.
 
 ### Run the daemon
 
@@ -107,6 +97,9 @@ TF_VAULT_PASS=dev-pw bun run tools/tf-cli/src/cli.ts actor create \
 # 2. Boot the daemon with admin HTTP enabled.
 TF_VAULT_PASS=dev-pw TF_ADMIN_TOKEN=$(openssl rand -hex 16) \
   bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml
+
+# Optional preflight without booting listeners.
+bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml --dry-run
 
 # 3. Browse the dashboard (read-only).
 TF_ADMIN_TOKEN=$TF_ADMIN_TOKEN \

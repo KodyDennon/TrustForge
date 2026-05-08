@@ -4,15 +4,15 @@ A Linux PAM module that consults the local TrustForge daemon for an authorizatio
 decision before allowing authentication, account access, or session opening.
 
 **Status:** Draft — Phase 0. Experimental, not production-ready. The reference
-TrustForge daemon is not yet shipped; until it is, this module is useful primarily
-for integration testing against the included mock daemon.
+TrustForge daemon exists, but this module remains mock-tested and not
+host-hardened.
 
 ## What it does
 
 For the `auth`, `account`, and `session` (open) PAM phases, the module:
 
-1. Resolves the target user's home directory.
-2. Connects to `~/.trustforge/decide.sock` (a `AF_UNIX` socket).
+1. Uses the production default socket path, or `TRUSTFORGE_SOCKET` when set.
+2. Connects to `/run/trustforge/decide.sock` (a `AF_UNIX` socket).
 3. Sends `POST /v1/decide` with a small JSON body:
 
    ```json
@@ -108,7 +108,7 @@ distros).
 
 | Symptom | Likely cause |
 |---|---|
-| `connect(...): No such file or directory` | Daemon not running, or wrong user's home dir. Check `~/.trustforge/decide.sock`. |
+| `connect(...): No such file or directory` | Daemon not running, or wrong socket path. Check `/run/trustforge/decide.sock` or `TRUSTFORGE_SOCKET`. |
 | `connect timeout` / `recv timeout` | Daemon hung. Module fails closed after 2s. |
 | `malformed HTTP response` | Daemon spoke something other than HTTP/1.1 — check daemon version. |
 | `response missing 'decision' field` | Daemon returned 200 but no JSON `decision`. |
@@ -127,11 +127,9 @@ authorizes.
   (systemd, runit) and consider `auth sufficient` rather than `required`
   during rollout. (`sufficient` is *not* recommended long-term — it lets
   attackers bypass the policy if they can DoS the daemon.)
-- **Per-user socket path.** The module connects to the *target* user's
-  home directory. A user cannot make decisions for another user's logins
-  unless the daemon is running for that user. For system-wide enforcement,
-  point the daemon at a shared socket and patch `TF_SOCK_RELATIVE_PATH` /
-  resolution logic; this is intentional Phase 0 simplicity.
+- **System socket path.** The module connects to
+  `/run/trustforge/decide.sock` by default. Per-user sockets are test or
+  explicit override paths via `TRUSTFORGE_SOCKET`.
 - **No replay protection in this bridge.** The host_token is forwarded
   opaquely to the daemon. Replay protection, nonce checks, and Trust-level
   enforcement live in the daemon, not here. See

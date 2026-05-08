@@ -28,7 +28,7 @@ MOD_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SO_PATH="$MOD_DIR/pam_trustforge.so"
 SERVICE="trustforge-test"
 PAMD_FILE="/etc/pam.d/$SERVICE"
-SOCK_PATH="${HOME}/.trustforge/decide.sock"
+SOCK_PATH="${TRUSTFORGE_SOCKET:-/tmp/trustforge-pam-test.sock}"
 MOCK="$SCRIPT_DIR/mock-daemon.py"
 
 err() { printf 'error: %s\n' "$*" >&2; }
@@ -106,7 +106,7 @@ FAIL=0
 assert_allow() {
     info "case: decision=allow — expecting authenticate to SUCCEED"
     start_mock allow
-    if pamtester "$SERVICE" "$USER" authenticate </dev/null >/tmp/tf-pamtester.log 2>&1; then
+    if TRUSTFORGE_SOCKET="$SOCK_PATH" pamtester "$SERVICE" "$USER" authenticate </dev/null >/tmp/tf-pamtester.log 2>&1; then
         info "  PASS"
         PASS=$((PASS + 1))
     else
@@ -120,7 +120,7 @@ assert_allow() {
 assert_deny() {
     info "case: decision=deny — expecting authenticate to FAIL"
     start_mock deny
-    if pamtester "$SERVICE" "$USER" authenticate </dev/null >/tmp/tf-pamtester.log 2>&1; then
+    if TRUSTFORGE_SOCKET="$SOCK_PATH" pamtester "$SERVICE" "$USER" authenticate </dev/null >/tmp/tf-pamtester.log 2>&1; then
         err "  FAIL — pamtester returned success on deny"
         FAIL=$((FAIL + 1))
     else

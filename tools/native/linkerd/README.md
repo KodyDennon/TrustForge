@@ -3,8 +3,9 @@
 A Linkerd policy integration that delegates per-Server authorization to a
 TrustForge daemon (`tf-daemon`).
 
-**Status:** Draft — Phase 0. Experimental, not production-ready. The
-reference `tf-daemon` is not yet shipped.
+**Status:** Draft — Phase 0. Experimental, not production-ready. This
+controller is exercised against the working reference daemon, but remains
+mock-tested until a cluster smoke test is added.
 
 ## How it works
 

@@ -4,8 +4,9 @@ A `proxy-wasm` HTTP filter for [Envoy](https://www.envoyproxy.io/) that
 asks a TrustForge daemon (`tf-daemon`) whether each request should be
 allowed.
 
-**Status:** Draft — Phase 0. Experimental, not production-ready. The
-reference `tf-daemon` is not yet shipped.
+**Status:** Draft — Phase 0. Experimental, not production-ready. This
+filter is exercised against the working reference daemon, but remains
+mock-tested.
 
 ## How it works
 

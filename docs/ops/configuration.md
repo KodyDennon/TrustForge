@@ -24,19 +24,7 @@ effective configuration at startup with secret values redacted.
 |---|---|---|---|
 | `TF_VAULT_PASS` | Yes for any command that touches the vault | none | Argon2id input; do not log. Prefer secret-store integration in production. |
 | `TF_ADMIN_TOKEN` | Yes for the daemon | none | Bearer token for the admin HTTP endpoint. Generate with `openssl rand -hex 16`. |
-| `TF_CONFIG` | No | `.tf/daemon.yaml` | Path to the YAML config. Same as `--config`. |
-| `TF_PROFILE` | No | value from `daemon.yaml` | Override the asserted profile. |
-| `TF_LOG` | No | `info` | One of `error`, `warn`, `info`, `debug`, `trace`. |
-| `TF_LOG_FORMAT` | No | `text` | `text` or `json`. |
-| `TF_LISTEN_ADMIN` | No | `127.0.0.1:8787` | Override the admin listener. |
-| `TF_LISTEN_SESSION` | No | `127.0.0.1:8788` | Override the session listener. |
-| `TF_LISTEN_BINARY_PATH` | No | (unset) | TF-0013 binary-path listener bind address. Unset = disabled. |
-| `TF_LISTEN_METRICS` | No | `127.0.0.1:9090` | Prometheus listener. |
-| `TF_LEDGER_URL` | No | from YAML | Override the ledger backend URL. |
-| `TF_REVOCATION_URL` | No | from YAML | Override the Redis revocation URL. |
-| `TF_ANCHOR_URL` | No | from YAML | RFC 6962 / RFC 3161 anchor service. |
 | `TF_OTLP_ENDPOINT` | No | (unset) | Outbound OTLP traces endpoint. |
-| `TF_NETWORK_ALLOW` | No | (loopback) | Comma-separated CIDRs the admin endpoint will accept. |
 
 Secrets that should never be set on the command line:
 `TF_VAULT_PASS`, `TF_ADMIN_TOKEN`. Use `EnvironmentFile=` with
@@ -44,20 +32,10 @@ mode `0600`, or a secret-store integration.
 
 ## CLI flags (daemon)
 
-`tf-daemon run` accepts:
+`tf-daemon run` currently accepts:
 
 ```
 --config <PATH>             Path to daemon.yaml.
---profile <ID>              Override asserted profile.
---listen-admin <ADDR>       Bind admin endpoint.
---listen-session <ADDR>     Bind session listener.
---listen-binary-path <ADDR> Bind TF-0013 binary path listener.
---listen-metrics <ADDR>     Bind Prometheus listener.
---ledger-url <URL>          sqlite:..., postgres://..., mysql://...
---revocation-url <URL>      redis://...
---otlp <URL>                Outbound OTLP endpoint.
---log <LEVEL>               error|warn|info|debug|trace
---log-format <FMT>          text|json
 --dry-run                   Validate config and exit.
 --print-config              Print effective config (secrets redacted) and exit.
 ```
@@ -83,62 +61,36 @@ tf generate <policy|mcp-tool-wrapper|audit-viewer|bridge|proofrpc-service>
 
 ## `.tf/daemon.yaml`
 
-The full schema is `schemas/daemon-config.schema.json` (planned name;
-the runtime parser is in `tools/tf-daemon/src/config/`). A
-fully-populated example:
+The schema is [`../../schemas/daemon-config.schema.json`](../../schemas/daemon-config.schema.json).
+A practical Linux v0.2-style example:
 
 ```yaml
+daemon_version: "1"
+self_actor: "tf:actor:service:example.com/tf-daemon"
 listen:
-  admin: "127.0.0.1:8787"
-  session: "127.0.0.1:8788"
-  binary_path:
-    bind: "0.0.0.0:8443"
-    tls:
-      cert: "/etc/trustforge/certs/site.crt"
-      key:  "/etc/trustforge/certs/site.key"
-  metrics: "127.0.0.1:9090"
-
-profile: "tf-enterprise-compatible"
-
+  kind: websocket
+  bind: "127.0.0.1"
+  port: 8788
 vault:
   path: "/var/lib/trustforge/vault.tfvault"
-  argon2:
-    memory_kib: 65536
-    iterations: 3
-    parallelism: 1
-
-ledger:
-  backend: "postgres"        # or "sqlite", "mysql"
-  url: "postgres://tf:…@db/tf_ledger"
-
-revocation:
-  backend: "redis"           # or "in-memory"
-  url: "redis://redis:6379/0"
-
-federation:
-  peers:
-    - bundle: "/etc/trustforge/peer-bundles/b.example.bundle"
-
-anchors:
-  rfc6962:
+contract_path: "/etc/trustforge/agent-contract.yaml"
+proof_log_path: "/var/lib/trustforge/proof.tflog"
+profile: "tf-home-compatible"
+http:
+  tcp:
     enabled: true
-    log_url: "https://ct.example.com"
-  rfc3161:
-    enabled: false
-    tsa_url: "https://tsa.example.com"
-
-policy:
-  engine: "cedar"            # or "rego"
-  bundle: ".tf/policy.yaml"
-
-agent_contract: ".tf/agent-contract.yaml"
-
-logging:
-  level: "info"
-  format: "json"
-
-tracing:
-  otlp_endpoint: "https://tempo.internal:4318"
+    bind: "127.0.0.1"
+    port: 8642
+    auth: bearer
+  unix:
+    enabled: true
+    path: "/run/trustforge/decide.sock"
+    auth: local-peer
+admin:
+  enabled: true
+  token_env: TF_ADMIN_TOKEN
+  bind: "127.0.0.1"
+  revocation_path: "/var/lib/trustforge/revocations.json"
 ```
 
 ## `.tf/policy.yaml`
@@ -208,17 +160,16 @@ unsatisfied, it logs the failing feature and exits non-zero.
 
 ## Listener defaults and what they mean
 
-| Listener | Default bind | Defaults to public? |
+| Listener | Default bind | Auth mode |
 |---|---|---|
-| Admin HTTP | `127.0.0.1:8787` | No. |
-| Session WS / TCP | `127.0.0.1:8788` | No. |
-| Binary path (TF-0013) | (disabled unless configured) | When configured, typically `0.0.0.0:8443`. |
-| Metrics | `127.0.0.1:9090` | No. |
+| Session WS / TCP | `listen.bind` + `listen.port` | Session handshake. |
+| v1 TCP HTTP | `127.0.0.1:8642` | Bearer token. |
+| v1 Unix socket | `/run/trustforge/decide.sock` | Local peer/filesystem trust for `/v1/decide`; bearer for privileged routes. |
+| Admin HTTP | Same Bun listener as session HTTP upgrade path | Bearer token + Host check. |
 
-Bind any "yes" listener to `0.0.0.0` only when your topology
-requires it. The admin endpoint should never be public; the
-session listener may be public for federation; the binary path is
-public-by-design (it is your WAN listener).
+Bind any listener to `0.0.0.0` only when your topology requires it.
+The admin endpoint should never be public. TCP `/v1/*` stays bearer
+protected; Linux local integrations should use the Unix socket.
 
 ## Secret-store integrations
 
@@ -243,8 +194,9 @@ trust boundary).
 tf-daemon run --config .tf/daemon.yaml --dry-run
 ```
 
-Validates schema, asserts profile MUST features, exits non-zero on
-failure with a descriptive error. Use this in CI before a deploy.
+Validates the daemon config shape, referenced paths, and asserted
+profile name, then exits without opening listeners or unlocking the
+vault. Use this in CI before a deploy.
 
 ## Printing the effective config
 
@@ -252,7 +204,7 @@ failure with a descriptive error. Use this in CI before a deploy.
 tf-daemon run --config .tf/daemon.yaml --print-config
 ```
 
-Prints the merged config with secrets redacted (`***`). Useful
+Prints the effective config with secrets redacted. Useful
 when debugging precedence (was that env var actually picked up?).
 
 ## Reload behaviour

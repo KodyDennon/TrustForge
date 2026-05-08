@@ -2,9 +2,9 @@
 //
 // Declarations for the TrustForge ICredentialProvider implementation.
 //
-// Status: Draft — Phase 0. Experimental, not production-ready. The reference
-// TrustForge daemon is not yet shipped; until it is, this provider is only
-// useful for integration testing against the included mock daemon.
+// Status: Draft — Phase 0. Experimental, not production-ready. The
+// TrustForge daemon exists as a working reference, but this provider remains
+// useful only for integration testing against the included mock daemon.
 //
 // COM identity:
 //   CLSID_TrustForgeCredentialProvider = {8B0F8F3D-9E4C-4F2A-B7E1-2C6A5D9F1E03}
