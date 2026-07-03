@@ -14,13 +14,6 @@ export const metadata: Metadata = {
     description: "The next era of security is verifiable action. Build secure, AI-native software.",
     url: "https://trustforge.dev",
     siteName: "TrustForge",
-    images: [
-      {
-        url: "https://trustforge.dev/og-image.png",
-        width: 1200,
-        height: 630,
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
@@ -36,8 +29,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: "TrustForge",
+    description: "Open-Source Trust Fabric for AI-Native Software and zero-trust cryptographic protocols.",
+    url: "https://trustforge.dev",
+    programmingLanguage: ["TypeScript", "Rust"],
+    license: "https://opensource.org/licenses/Apache-2.0",
+    publisher: {
+      "@type": "Organization",
+      name: "TrustForge Protocol",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://trustforge.dev/icon.jpg"
+      }
+    }
+  };
+
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );
