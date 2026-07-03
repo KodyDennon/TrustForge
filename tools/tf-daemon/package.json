@@ -8,9 +8,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "tf-session": "workspace:*",
-    "tf-types": "workspace:*",
-    "yaml": "^2.6.0"
+    "yaml": "^2.6.0",
+    "@trustforge-protocol/session": "workspace:*",
+    "@trustforge-protocol/types": "workspace:*"
   },
   "optionalDependencies": {
     "@opentelemetry/api": "^1.9.0",
