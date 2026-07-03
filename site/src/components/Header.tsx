@@ -17,7 +17,6 @@ export const Header = () => {
         <nav className="nav-links">
           <Link href="/docs" className={pathname === '/docs' ? 'active' : ''}>Documentation</Link>
           <Link href="/architecture" className={pathname === '/architecture' ? 'active' : ''}>Architecture</Link>
-          <Link href="/playground" className={pathname === '/playground' ? 'active' : ''}>Playground</Link>
           <Link href="/agents" className={pathname === '/agents' ? 'active' : ''}>AI Agents</Link>
           <a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer">GitHub</a>
         </nav>
