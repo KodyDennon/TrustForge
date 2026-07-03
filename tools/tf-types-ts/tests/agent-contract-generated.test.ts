@@ -21,7 +21,7 @@ describe("generated agent-contract bindings", () => {
   });
 
   test("per-action metadata exports danger_tags and approval", () => {
-    expect(FILE_READ_META.danger_tags).toEqual([]);
+    expect(FILE_READ_META.danger_tags).toEqual(["privacy"]);
     expect(SHELL_EXEC_META.danger_tags).toContain("destructive");
     expect(SHELL_EXEC_META.approval).toBe("required");
   });
