@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Definition of a single named action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

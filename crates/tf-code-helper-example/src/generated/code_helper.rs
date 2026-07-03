@@ -8,6 +8,7 @@ use tokio::sync::mpsc;
 
 use tf_types::rpc::{RpcClient, RpcContext, RpcError, RpcServer, RpcTransport};
 
+
 /// Example code-helper service used by Phase 4 tests and demos.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FetchFileRequest {
@@ -52,6 +53,7 @@ pub enum StreamDirectoryResponse_Kind {
     Dir,
 }
 
+
 pub struct CodeHelperClient<T: RpcTransport + 'static> {
     inner: Arc<RpcClient<T>>,
 }
@@ -61,52 +63,25 @@ impl<T: RpcTransport + 'static> CodeHelperClient<T> {
         CodeHelperClient { inner }
     }
     /// Return the contents of a file in the project working tree.
-    pub async fn fetch_file(
-        &self,
-        req: &FetchFileRequest,
-    ) -> Result<FetchFileResponse, tf_types::rpc::RpcCallError> {
-        let value = self
-            .inner
-            .call_raw(
-                "fetchFile",
-                serde_json::to_value(req).map_err(|e| tf_types::rpc::RpcCallError {
-                    code: tf_types::rpc::RpcErrorCode::InvalidArgument,
-                    message: e.to_string(),
-                })?,
-            )
-            .await?;
-        serde_json::from_value(value).map_err(|e| tf_types::rpc::RpcCallError {
-            code: tf_types::rpc::RpcErrorCode::Internal,
-            message: e.to_string(),
-        })
+    pub async fn fetch_file(&self, req: &FetchFileRequest) -> Result<FetchFileResponse, tf_types::rpc::RpcCallError> {
+        let value = self.inner.call_raw("fetchFile", serde_json::to_value(req).map_err(|e| tf_types::rpc::RpcCallError { code: tf_types::rpc::RpcErrorCode::InvalidArgument, message: e.to_string() })?).await?;
+        serde_json::from_value(value).map_err(|e| tf_types::rpc::RpcCallError { code: tf_types::rpc::RpcErrorCode::Internal, message: e.to_string() })
     }
     /// Stream directory entries one at a time.
-    pub fn stream_directory(
-        &self,
-        req: &StreamDirectoryRequest,
-    ) -> mpsc::UnboundedReceiver<Result<StreamDirectoryResponse, RpcError>> {
+    pub fn stream_directory(&self, req: &StreamDirectoryRequest) -> mpsc::UnboundedReceiver<Result<StreamDirectoryResponse, RpcError>> {
         let value = serde_json::to_value(req).expect("serialize request");
         let mut raw = self.inner.server_stream_raw("streamDirectory", value);
         let (tx, rx) = mpsc::unbounded_channel();
         tokio::spawn(async move {
             while let Some(item) = raw.recv().await {
                 match item {
-                    Ok(v) => match serde_json::from_value::<StreamDirectoryResponse>(v) {
-                        Ok(parsed) => {
-                            let _ = tx.send(Ok(parsed));
+                    Ok(v) => {
+                        match serde_json::from_value::<StreamDirectoryResponse>(v) {
+                            Ok(parsed) => { let _ = tx.send(Ok(parsed)); },
+                            Err(e) => { let _ = tx.send(Err(RpcError { code: tf_types::rpc::RpcErrorCode::Internal, message: e.to_string() })); return; },
                         }
-                        Err(e) => {
-                            let _ = tx.send(Err(RpcError {
-                                code: tf_types::rpc::RpcErrorCode::Internal,
-                                message: e.to_string(),
-                            }));
-                            return;
-                        }
-                    },
-                    Err(e) => {
-                        let _ = tx.send(Err(e));
-                        return;
                     }
+                    Err(e) => { let _ = tx.send(Err(e)); return; },
                 }
             }
         });
@@ -117,18 +92,9 @@ impl<T: RpcTransport + 'static> CodeHelperClient<T> {
 #[async_trait::async_trait]
 pub trait CodeHelperServer: Send + Sync + 'static {
     /// Return the contents of a file in the project working tree.
-    async fn fetch_file(
-        &self,
-        req: FetchFileRequest,
-        ctx: RpcContext,
-    ) -> Result<FetchFileResponse, RpcError>;
+    async fn fetch_file(&self, req: FetchFileRequest, ctx: RpcContext) -> Result<FetchFileResponse, RpcError>;
     /// Stream directory entries one at a time.
-    async fn stream_directory(
-        &self,
-        req: StreamDirectoryRequest,
-        ctx: RpcContext,
-        tx: mpsc::UnboundedSender<Result<StreamDirectoryResponse, RpcError>>,
-    );
+    async fn stream_directory(&self, req: StreamDirectoryRequest, ctx: RpcContext, tx: mpsc::UnboundedSender<Result<StreamDirectoryResponse, RpcError>>);
 }
 
 pub fn register_code_helper<T: RpcTransport + 'static>(
@@ -143,16 +109,10 @@ pub fn register_code_helper<T: RpcTransport + 'static>(
             Arc::new(move |req_value, ctx| {
                 let handler = handler.clone();
                 Box::pin(async move {
-                    let req: FetchFileRequest =
-                        serde_json::from_value(req_value).map_err(|e| RpcError {
-                            code: tf_types::rpc::RpcErrorCode::InvalidArgument,
-                            message: e.to_string(),
-                        })?;
+                    let req: FetchFileRequest = serde_json::from_value(req_value)
+                        .map_err(|e| RpcError { code: tf_types::rpc::RpcErrorCode::InvalidArgument, message: e.to_string() })?;
                     let resp = handler.fetch_file(req, ctx).await?;
-                    serde_json::to_value(resp).map_err(|e| RpcError {
-                        code: tf_types::rpc::RpcErrorCode::Internal,
-                        message: e.to_string(),
-                    })
+                    serde_json::to_value(resp).map_err(|e| RpcError { code: tf_types::rpc::RpcErrorCode::Internal, message: e.to_string() })
                 })
             }),
         );
@@ -167,30 +127,14 @@ pub fn register_code_helper<T: RpcTransport + 'static>(
                 Box::pin(async move {
                     let req: StreamDirectoryRequest = match serde_json::from_value(req_value) {
                         Ok(r) => r,
-                        Err(e) => {
-                            let _ = tx_value.send(Err(RpcError {
-                                code: tf_types::rpc::RpcErrorCode::InvalidArgument,
-                                message: e.to_string(),
-                            }));
-                            return;
-                        }
+                        Err(e) => { let _ = tx_value.send(Err(RpcError { code: tf_types::rpc::RpcErrorCode::InvalidArgument, message: e.to_string() })); return; },
                     };
-                    let (inner_tx, mut inner_rx) =
-                        mpsc::unbounded_channel::<Result<StreamDirectoryResponse, RpcError>>();
+                    let (inner_tx, mut inner_rx) = mpsc::unbounded_channel::<Result<StreamDirectoryResponse, RpcError>>();
                     let h = handler.clone();
-                    tokio::spawn(async move {
-                        h.stream_directory(req, ctx, inner_tx).await;
-                    });
+                    tokio::spawn(async move { h.stream_directory(req, ctx, inner_tx).await; });
                     while let Some(item) = inner_rx.recv().await {
-                        let mapped = item.and_then(|v| {
-                            serde_json::to_value(v).map_err(|e| RpcError {
-                                code: tf_types::rpc::RpcErrorCode::Internal,
-                                message: e.to_string(),
-                            })
-                        });
-                        if tx_value.send(mapped).is_err() {
-                            return;
-                        }
+                        let mapped = item.and_then(|v| serde_json::to_value(v).map_err(|e| RpcError { code: tf_types::rpc::RpcErrorCode::Internal, message: e.to_string() }));
+                        if tx_value.send(mapped).is_err() { return; }
                     }
                 })
             }),

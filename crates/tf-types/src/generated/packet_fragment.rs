@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Fragmentation header attached to a Packet when its payload is too large for the underlying transport (LoRa MTU, BLE characteristic size, etc.). Fragments are reassembled by their destination using `fragment_id` + `index` + `count`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

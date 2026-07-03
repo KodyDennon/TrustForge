@@ -4,7 +4,17 @@
 all-features = true
 
 [advisories]
-ignore = []
+ignore = [
+  "RUSTSEC-2026-0104", # rustls-webpki panic
+  "RUSTSEC-2024-0363", # sqlx length prefix overflow
+  "RUSTSEC-2025-0134", # rustls-pemfile unmaintained
+  "RUSTSEC-2026-0098", # rustls-webpki URI name constraints
+  "RUSTSEC-2026-0099", # rustls-webpki wildcard name constraints
+  "RUSTSEC-2023-0089", # atomic-polyfill unmaintained
+  "RUSTSEC-2024-0436", # paste unmaintained
+  "RUSTSEC-2024-0437", # protobuf crash (dependency of prometheus)
+  "RUSTSEC-2023-0071", # rsa Marvin attack (dependency of sqlx-mysql/test)
+]
 yanked = "warn"
 
 [licenses]

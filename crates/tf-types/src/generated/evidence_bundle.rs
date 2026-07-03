@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Compliance / legal evidence bundle (TF-0012). Captures who acted, what authority they had, what policy allowed/denied the action, what approval was given, whether quorum was met, what proof was generated, when it happened, and whether the event chain is tamper-evident.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

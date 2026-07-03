@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Discriminated record describing how an approval was (or must be) collected. TF-0004 calls for first-class ceremony types so audit logs say not just "approved" but how (passkey tap, YubiKey touch, mobile push, quorum, offline-signed packet, biometric, physical-presence attestation, time-delay).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

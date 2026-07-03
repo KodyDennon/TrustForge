@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Signed record of an important event (TF-0005). Hash-chain verification lives in Phase 2.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
