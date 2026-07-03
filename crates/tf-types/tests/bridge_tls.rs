@@ -1,3 +1,4 @@
+#![allow(clippy::cloned_ref_to_slice_refs)]
 //! Rust TLS / mTLS bridge tests. We use `rcgen` to mint real certificate
 //! chains (root → intermediate → leaf) signed with ECDSA P-256, then drive
 //! them through `TlsBridge::verify_chain`. Cross-language parity is

@@ -1,3 +1,4 @@
+#![allow(clippy::cloned_ref_to_slice_refs)]
 //! Rust semantics tests mirroring `tools/tf-types-ts/tests/authority.test.ts`.
 //! Shares `conformance/semantics-vectors.yaml` as a parity layer.
 

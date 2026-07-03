@@ -1,3 +1,4 @@
+#![allow(clippy::err_expect, clippy::expect_fun_call)]
 //! Rust relay-forwarding parity tests over relay-forwarding-vectors.yaml.
 
 use std::fs;

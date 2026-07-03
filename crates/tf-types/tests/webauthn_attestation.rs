@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! Rust WebAuthn full-attestation tests. We mint synthetic attestations
 //! (CBOR-encoded attestationObject + clientDataJSON) signed with real
 //! noble-equivalent primitives (p256 / ed25519-dalek) and round-trip them
