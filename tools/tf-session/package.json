@@ -1,5 +1,5 @@
 {
-  "name": "tf-session",
+  "name": "@trustforge-protocol/session",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge session protocol over WebSocket.",

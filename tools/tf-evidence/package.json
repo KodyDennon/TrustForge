@@ -1,5 +1,5 @@
 {
-  "name": "tf-evidence",
+  "name": "@trustforge-protocol/evidence",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge compliance evidence CLI: assemble / verify / seal / open / anchor / replay / redact.",

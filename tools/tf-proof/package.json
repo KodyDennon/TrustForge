@@ -1,5 +1,5 @@
 {
-  "name": "tf-proof",
+  "name": "@trustforge-protocol/proof",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge proof CLI: keygen, sign, verify, inspect.",

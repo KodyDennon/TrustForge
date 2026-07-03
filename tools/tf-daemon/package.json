@@ -1,5 +1,5 @@
 {
-  "name": "tf-daemon",
+  "name": "@trustforge-protocol/daemon",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge daemon: WebSocket-carried session + guarded RPC + vault + approvals.",

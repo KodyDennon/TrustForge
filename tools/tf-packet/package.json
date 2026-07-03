@@ -1,5 +1,5 @@
 {
-  "name": "tf-packet",
+  "name": "@trustforge-protocol/packet",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge packet-mode CLI: sign / verify / inspect / fragment / reassemble / simulate-lora.",

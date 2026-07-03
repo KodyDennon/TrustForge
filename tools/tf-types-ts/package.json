@@ -1,5 +1,5 @@
 {
-  "name": "tf-types",
+  "name": "@trustforge-protocol/types",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge typed schema bindings and semantic core.",

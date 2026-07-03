@@ -1,5 +1,5 @@
 {
-  "name": "tf-conformance",
+  "name": "@trustforge-protocol/conformance",
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
