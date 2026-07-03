@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/sdk",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge core SDK: thin TypeScript client for tf-daemon HTTP endpoints (decide, credentials, proofs).",
   "main": "./src/index.ts",

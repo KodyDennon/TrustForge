@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/firebase-auth",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Firebase Auth — verifies Firebase ID tokens via firebase-admin and projects uid into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "firebase-admin": ">=11.0.0"
   },
   "peerDependenciesMeta": {
-    "firebase-admin": { "optional": true }
+    "firebase-admin": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

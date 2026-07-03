@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/test-utils",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Shared test utilities for TrustForge TS adapters (mock daemon, fixtures).",
   "main": "./src/index.ts",

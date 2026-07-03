@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/kinde",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Kinde — verifies Kinde JWTs via @kinde-oss/kinde-typescript-sdk and projects sub into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "@kinde-oss/kinde-typescript-sdk": ">=2.0.0"
   },
   "peerDependenciesMeta": {
-    "@kinde-oss/kinde-typescript-sdk": { "optional": true }
+    "@kinde-oss/kinde-typescript-sdk": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

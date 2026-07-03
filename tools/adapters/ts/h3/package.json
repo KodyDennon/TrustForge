@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/h3",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge h3 (Nitro/Nuxt) event handler middleware: gates every request through tf-daemon /v1/decide.",
   "main": "./src/index.ts",

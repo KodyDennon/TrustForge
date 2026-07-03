@@ -1,7 +1,6 @@
 {
   "name": "tf-packet",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge packet-mode CLI: sign / verify / inspect / fragment / reassemble / simulate-lora.",
   "main": "./src/cli.ts",

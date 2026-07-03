@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/supabase-auth",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Supabase Auth — verifies Supabase JWTs via @supabase/supabase-js admin client and projects user.id into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "@supabase/supabase-js": ">=2.0.0"
   },
   "peerDependenciesMeta": {
-    "@supabase/supabase-js": { "optional": true }
+    "@supabase/supabase-js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

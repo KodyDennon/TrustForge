@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/lucia",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Lucia v3 — projects validated sessions into TrustForge actors.",
   "main": "./src/index.ts",
@@ -19,7 +18,9 @@
     "lucia": ">=3.0.0"
   },
   "peerDependenciesMeta": {
-    "lucia": { "optional": true }
+    "lucia": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/remix",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge adapter for Remix (entry.server handle + loader/action wrappers).",
   "main": "./src/index.ts",
@@ -23,6 +22,8 @@
     "@remix-run/server-runtime": ">=1.0.0"
   },
   "peerDependenciesMeta": {
-    "@remix-run/server-runtime": { "optional": false }
+    "@remix-run/server-runtime": {
+      "optional": false
+    }
   }
 }

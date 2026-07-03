@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/logto",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Logto — verifies Logto JWTs via JWKS (jose) and projects sub into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -21,8 +20,12 @@
     "@logto/node": ">=2.0.0"
   },
   "peerDependenciesMeta": {
-    "jose": { "optional": true },
-    "@logto/node": { "optional": true }
+    "jose": {
+      "optional": true
+    },
+    "@logto/node": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

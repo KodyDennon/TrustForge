@@ -1,7 +1,6 @@
 {
   "name": "tf-dashboard",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Viewer-only Bun.serve dashboard for an active tf-daemon (sessions, approvals, plugins, recent proofs).",
   "scripts": {

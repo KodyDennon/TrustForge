@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/nestjs",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge adapter for NestJS (guard + module + decorator).",
   "main": "./src/index.ts",
@@ -25,8 +24,14 @@
     "reflect-metadata": ">=0.1.13"
   },
   "peerDependenciesMeta": {
-    "@nestjs/common": { "optional": false },
-    "@nestjs/core": { "optional": false },
-    "reflect-metadata": { "optional": false }
+    "@nestjs/common": {
+      "optional": false
+    },
+    "@nestjs/core": {
+      "optional": false
+    },
+    "reflect-metadata": {
+      "optional": false
+    }
   }
 }

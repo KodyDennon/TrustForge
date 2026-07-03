@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/workos",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for WorkOS — verifies WorkOS access tokens via @workos-inc/node and projects user.id into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "@workos-inc/node": ">=7.0.0"
   },
   "peerDependenciesMeta": {
-    "@workos-inc/node": { "optional": true }
+    "@workos-inc/node": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

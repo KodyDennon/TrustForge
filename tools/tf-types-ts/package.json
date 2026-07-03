@@ -1,7 +1,6 @@
 {
   "name": "tf-types",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge typed schema bindings and semantic core.",
   "main": "./src/index.ts",

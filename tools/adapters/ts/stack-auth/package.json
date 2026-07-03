@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/stack-auth",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Stack Auth — verifies stack-auth session tokens via @stackframe/stack and projects user.id into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "@stackframe/stack": ">=2.0.0"
   },
   "peerDependenciesMeta": {
-    "@stackframe/stack": { "optional": true }
+    "@stackframe/stack": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/next",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge adapter for Next.js (App Router + Pages Router, Edge + Node runtimes).",
   "main": "./src/index.ts",
@@ -25,6 +24,8 @@
     "next": ">=13"
   },
   "peerDependenciesMeta": {
-    "next": { "optional": false }
+    "next": {
+      "optional": false
+    }
   }
 }

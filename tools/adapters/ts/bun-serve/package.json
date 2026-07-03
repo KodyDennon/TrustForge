@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/bun-serve",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge wrapper for Bun.serve({ fetch }) — gates requests through tf-daemon /v1/decide before the user handler runs.",
   "main": "./src/index.ts",

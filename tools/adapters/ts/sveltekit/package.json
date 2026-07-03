@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/sveltekit",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge adapter for SvelteKit (server hooks).",
   "main": "./src/index.ts",
@@ -23,6 +22,8 @@
     "@sveltejs/kit": ">=1.0.0"
   },
   "peerDependenciesMeta": {
-    "@sveltejs/kit": { "optional": false }
+    "@sveltejs/kit": {
+      "optional": false
+    }
   }
 }

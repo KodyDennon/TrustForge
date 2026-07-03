@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/clerk",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Clerk — Next.js middleware wrapper and Express middleware that project Clerk sessions into TrustForge actors.",
   "main": "./src/index.ts",
@@ -20,8 +19,12 @@
     "@clerk/nextjs": ">=4.0.0"
   },
   "peerDependenciesMeta": {
-    "@clerk/clerk-sdk-node": { "optional": true },
-    "@clerk/nextjs": { "optional": true }
+    "@clerk/clerk-sdk-node": {
+      "optional": true
+    },
+    "@clerk/nextjs": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

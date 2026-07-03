@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/auth0",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for Auth0 — verifies Auth0 JWTs (RS256, JWKS) via jose and projects sub into a TrustForge actor.",
   "main": "./src/index.ts",
@@ -20,7 +19,9 @@
     "jose": "^5.0.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {
-    "jose": { "optional": true }
+    "jose": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

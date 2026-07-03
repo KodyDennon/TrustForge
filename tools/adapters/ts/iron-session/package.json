@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/iron-session",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge integration for iron-session — projects iron-session reads into TrustForge actors.",
   "main": "./src/index.ts",
@@ -19,7 +18,9 @@
     "iron-session": ">=8.0.0"
   },
   "peerDependenciesMeta": {
-    "iron-session": { "optional": true }
+    "iron-session": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

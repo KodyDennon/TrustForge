@@ -1,7 +1,6 @@
 {
   "name": "@trustforge/next-auth",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "TrustForge callbacks for NextAuth / Auth.js — projects JWTs and sessions into TrustForge actors.",
   "main": "./src/index.ts",
@@ -19,7 +18,9 @@
     "next-auth": ">=4.0.0"
   },
   "peerDependenciesMeta": {
-    "next-auth": { "optional": true }
+    "next-auth": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@trustforge/test-utils": "workspace:*",

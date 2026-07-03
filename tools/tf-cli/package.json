@@ -1,7 +1,6 @@
 {
   "name": "tf-cli",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Unified tf command — wraps schema/proof/daemon/session/policy/actor/approval operations.",
   "scripts": {
