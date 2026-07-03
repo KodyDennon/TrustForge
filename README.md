@@ -14,11 +14,11 @@ TrustForge's core thesis: the next era of security is not login; it is **verifia
 
 The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are active, but coverage is uneven across the broad native and bridge surface.
 
-This is the **0.1.0 experimental** line with v0.2 hardening underway. Core schemas, type bindings, conformance vectors, the Bun daemon, the CLI, and several adapters are working references. Many native integrations are mock-tested, hardware-untested, docs-only, or planned. Nothing is production-ready; use this repo for spec review, local interop experiments, and contributor development.
+This is the **0.1.1 experimental** line with v0.2 hardening underway. Core schemas, type bindings, conformance vectors, the Bun daemon, the CLI, and several adapters are working references. Many native integrations are mock-tested, hardware-untested, docs-only, or planned. Nothing is production-ready; use this repo for spec review, local interop experiments, and contributor development.
 
 ---
 
-## What ships in 0.1.0
+## What ships in 0.1.1
 
 | Surface | Status |
 |---|---|
