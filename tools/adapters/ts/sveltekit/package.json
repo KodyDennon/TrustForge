@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/sveltekit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Sveltekit. Seamlessly integrate zero-trust verifiable actions into your Sveltekit application.",
   "main": "./src/index.ts",

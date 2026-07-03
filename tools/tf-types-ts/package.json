@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/types",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Core semantic types, traits, and schemas powering the TrustForge protocol.",
   "main": "./src/index.ts",

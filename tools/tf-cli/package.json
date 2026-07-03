@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Official Command Line Interface for TrustForge. Manage schemas, generate cryptographic proofs, configure policies, and control the local daemon.",
   "scripts": {

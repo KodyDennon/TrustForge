@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/better-auth",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Better auth. Seamlessly integrate zero-trust verifiable actions into your Better auth application.",
   "main": "./src/index.ts",

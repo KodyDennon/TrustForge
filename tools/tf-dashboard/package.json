@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/dashboard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "TrustForge web dashboard. A visual interface for monitoring active sessions, auditing the proof ledger, and managing cryptographic policies.",
   "scripts": {

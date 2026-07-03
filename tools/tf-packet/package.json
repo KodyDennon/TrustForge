@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/packet",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "TrustForge cryptographic packet constructor. Build, serialize, and verify secure, tamper-proof packets for the protocol.",
   "main": "./src/cli.ts",
