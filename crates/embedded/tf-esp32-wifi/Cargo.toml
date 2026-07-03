@@ -1,6 +1,7 @@
 [package]
+readme.workspace = true
 name = "tf-esp32-wifi"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "TrustForge K3 — ESP32 (Xtensa) WiFi-uplink packet signer using std-on-ESP-IDF."
 license = "Apache-2.0"
@@ -22,8 +23,8 @@ path = "src/main.rs"
 [dependencies]
 # TrustForge core. We use the `std` feature here because esp-idf gives
 # us a real (newlib-based) std implementation.
-tf-core-no-std = { version = "0.1.0", path = "../../tf-core-no-std", default-features = false, features = ["std"] }
-tf-embedded-hal = { version = "0.1.0", path = "../../tf-embedded-hal", default-features = false }
+tf-core-no-std = { version = "0.1.1", path = "../../tf-core-no-std", default-features = false, features = ["std"] }
+tf-embedded-hal = { version = "0.1.1", path = "../../tf-embedded-hal", default-features = false }
 
 # ESP-IDF bindings + Espressif-flavoured std runtime.
 esp-idf-sys = { version = "0.34", features = ["binstart"] }

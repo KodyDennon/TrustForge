@@ -1,13 +1,14 @@
 [package]
+readme.workspace = true
 name = "tf-code-helper-example"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Downstream consumer that compiles the generated ProofRPC Rust output for code-helper.tfrpc.yaml."
 
 [dependencies]
-tf-types = { version = "0.1.0", path = "../tf-types" }
+tf-types = { version = "0.1.1", path = "../tf-types" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["rt", "sync", "macros"] }

@@ -1,6 +1,7 @@
 [package]
+readme.workspace = true
 name = "tf-embedded-hal"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
@@ -12,7 +13,7 @@ alloc = ["tf-core-no-std/alloc"]
 std = ["alloc", "tf-core-no-std/std"]
 
 [dependencies]
-tf-core-no-std = { version = "0.1.0", path = "../tf-core-no-std", default-features = false }
+tf-core-no-std = { version = "0.1.1", path = "../tf-core-no-std", default-features = false }
 heapless = "0.8"
 ed25519-compact = { version = "2", default-features = false, features = ["self-verify"] }
 sha2 = { version = "0.10", default-features = false }

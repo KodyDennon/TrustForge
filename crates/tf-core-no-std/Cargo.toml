@@ -1,6 +1,7 @@
 [package]
+readme.workspace = true
 name = "tf-core-no-std"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true

@@ -50,6 +50,8 @@ exclude = [
 ]
 
 [workspace.package]
+readme = "README.md"
+description = "TrustForge: open-source trust fabric for AI-native software, devices, and verifiable action."
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/KodyDennon/TrustForge"

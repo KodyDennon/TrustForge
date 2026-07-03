@@ -1,6 +1,7 @@
 [package]
+readme.workspace = true
 name = "tf-bootloader-example"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "TrustForge K9 — reference verify-then-boot bootloader fragment for Cortex-M4."
 license = "Apache-2.0"
@@ -26,7 +27,7 @@ name = "tf_bootloader_example"
 path = "src/lib.rs"
 
 [dependencies]
-tf-core-no-std = { version = "0.1.0", path = "../../tf-core-no-std", default-features = false }
+tf-core-no-std = { version = "0.1.1", path = "../../tf-core-no-std", default-features = false }
 
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"

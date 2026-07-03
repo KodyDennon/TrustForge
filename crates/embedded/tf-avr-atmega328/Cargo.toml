@@ -1,6 +1,7 @@
 [package]
+readme.workspace = true
 name = "tf-avr-atmega328"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "TrustForge K7 — AVR ATmega328P signer (Arduino Uno) — minimal packet builder for the very-constrained profile."
 license = "Apache-2.0"

@@ -1,13 +1,14 @@
 [package]
+readme.workspace = true
 name = "tf-actix-web"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
 description = "TrustForge actix-web middleware that consults tf-daemon /v1/decide."
 
 [dependencies]
-tf-decide-client = { version = "0.1.0", path = "../tf-decide-client" }
+tf-decide-client = { version = "0.1.1", path = "../tf-decide-client" }
 actix-web = { version = "4", default-features = false, features = ["macros"] }
 actix-service = "2"
 futures-util = "0.3"

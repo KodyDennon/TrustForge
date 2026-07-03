@@ -1,13 +1,14 @@
 [package]
+readme.workspace = true
 name = "tf-bridge-doppler"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge bridge for Doppler — translates Doppler service tokens (project/config scoped) into TrustForge actors and capabilities."
 
 [dependencies]
-tf-types = { version = "0.1.0", path = "../../tf-types" }
+tf-types = { version = "0.1.1", path = "../../tf-types" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
 serde = { workspace = true }

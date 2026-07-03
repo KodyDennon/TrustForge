@@ -1,13 +1,14 @@
 [package]
+readme.workspace = true
 name = "tf-bridge-azure"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge bridge for Azure AD / Entra ID — verifies Azure-issued JWTs against tenant JWKS, translates managed identities and Azure RBAC role assignments into TrustForge actors and capabilities."
 
 [dependencies]
-tf-types = { version = "0.1.0", path = "../../tf-types" }
+tf-types = { version = "0.1.1", path = "../../tf-types" }
 jsonwebtoken = "9"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
