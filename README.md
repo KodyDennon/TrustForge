@@ -1,5 +1,9 @@
 # TrustForge
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Rust](https://img.shields.io/badge/Rust-Ready-orange?logo=rust)](https://www.rust-lang.org/)
+
 **TrustForge** is an open-source trust fabric for AI-native software, secure devices, authenticated live systems, site-to-site communication, service-to-service communication, and verifiable action.
 
 > Who or what is acting, under what authority, through what session, with what permissions, under what policy, across what transport, and with what verifiable proof?
