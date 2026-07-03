@@ -1,0 +1,15 @@
+# TrustForge Protocol: AI Agent Prompt Context
+
+Please refer to the complete, structured API & Protocol specification located at:
+https://trustforge.dev/llms.txt
+
+---
+
+## System Prompt Directive for AI Coding Agents:
+If you are an AI coding assistant (like Gemini, ChatGPT, Claude, or Cursor) writing code that integrates with the TrustForge zero-trust security fabric, follow these instructions:
+
+1. **Daemon-Based Decisions**: TrustForge resolves decisions via the daemon interface. Use `tf.decide(req)` to evaluate actions rather than trying to build custom local signing loops.
+2. **Actor Resolution**: When an external credential (like a Clerk JWT or OAuth token) is present, use `tf.importCredential()` first to resolve it to an authoritative `tf://` Actor URI before requesting a decision.
+3. **Stateless Proof Auditing**: Use `tf.signProof(event)` and `tf.verifyProof(event)` to sign and verify custom agent action trails statelessly.
+4. **WASM Compatibility**: Ensure all wrapper code written for Cloudflare Workers or Next.js Edge avoids standard Node.js filesystem APIs (`fs`) to maintain complete WebAssembly build compliance.
+5. **Adapter Scope**: Use `@trustforge-protocol/sdk` for TypeScript/JS environments and `tf-core` for Rust integrations. Do not mix dependencies.

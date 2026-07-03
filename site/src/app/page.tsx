@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Fingerprint, Zap, Key, Code2, Server, Check, ArrowRight } from 'lucide-react';
+import { Shield, Fingerprint, Zap, Key, Code2, Server, Check, ArrowRight, Cpu } from 'lucide-react';
 
 const GithubIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -93,18 +93,24 @@ export default function Home() {
       file: 'app/api/secure-action/route.ts',
       code: (
         <>
-          <span className="token-keyword">import</span> {'{'} TrustForge {'}'} <span className="token-keyword">from</span> <span className="token-string">'@trustforge-protocol/core'</span>;<br/>
+          <span className="token-keyword">import</span> {'{'} TrustForge {'}'} <span className="token-keyword">from</span> <span className="token-string">'@trustforge-protocol/sdk'</span>;<br/>
           <span className="token-keyword">import</span> {'{'} NextResponse {'}'} <span className="token-keyword">from</span> <span className="token-string">'next/server'</span>;<br/><br/>
 
           <span className="token-keyword">export async function</span> <span className="token-function">POST</span>(req: Request) {'{'}<br/>
-          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">tf</span> = <span className="token-keyword">new</span> <span className="token-function">TrustForge</span>({'{'} profile: <span className="token-string">'edge-api'</span> {'}'});<br/>
-          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">body</span> = <span className="token-keyword">await</span> req.json();<br/><br/>
+          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">tf</span> = <span className="token-keyword">new</span> <span className="token-function">TrustForge</span>({'{'} daemonUrl: <span className="token-string">'http://127.0.0.1:7616'</span> {'}'});<br/>
+          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">body</span> = <span className="token-keyword">await req.json();</span><br/><br/>
 
-          &nbsp;&nbsp;<span className="token-comment">// Verify the cryptographic payload stateless on the edge</span><br/>
-          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">verification</span> = <span className="token-keyword">await</span> tf.<span className="token-function">verify</span>(body.signedPacket);<br/><br/>
+          &nbsp;&nbsp;<span className="token-comment">// Evaluate action against policies statelessly on the edge</span><br/>
+          &nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">response</span> = <span className="token-keyword">await</span> tf.<span className="token-function">decide</span>({'{'}<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;actor: body.actorURI,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;action: <span className="token-string">'db:write'</span>,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;target: body.targetResource,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;context: body.contextBag,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;trace_id: body.traceID<br/>
+          &nbsp;&nbsp;{'});'}<br/><br/>
 
-          &nbsp;&nbsp;<span className="token-keyword">if</span> (!verification.valid) {'{'}<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">return</span> NextResponse.<span className="token-function">json</span>({'{'} error: <span className="token-string">'Unauthorized Signature'</span> {'}'}, {'{'} status: <span className="token-string">401</span> {'}'});<br/>
+          &nbsp;&nbsp;<span className="token-keyword">if</span> (response.decision !== <span className="token-string">'allow'</span>) {'{'}<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">return</span> NextResponse.<span className="token-function">json</span>({'{'} error: response.reason {'}'}, {'{'} status: <span className="token-string">403</span> {'}'});<br/>
           &nbsp;&nbsp;{'}'}<br/><br/>
 
           &nbsp;&nbsp;<span className="token-keyword">return</span> NextResponse.<span className="token-function">json</span>({'{'} data: <span className="token-string">'Action Authorized'</span> {'}'});<br/>
@@ -116,17 +122,23 @@ export default function Home() {
       file: 'src/index.ts',
       code: (
         <>
-          <span className="token-keyword">import</span> {'{'} TrustForge {'}'} <span className="token-keyword">from</span> <span className="token-string">'@trustforge-protocol/core'</span>;<br/><br/>
+          <span className="token-keyword">import</span> {'{'} TrustForge {'}'} <span className="token-keyword">from</span> <span className="token-string">'@trustforge-protocol/sdk'</span>;<br/><br/>
 
           <span className="token-keyword">export default</span> {'{'}<br/>
           &nbsp;&nbsp;<span className="token-keyword">async</span> <span className="token-function">fetch</span>(request, env) {'{'}<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">tf</span> = <span className="token-keyword">new</span> <span className="token-function">TrustForge</span>({'{'} compatibilityMode: <span className="token-string">'cloudflare'</span> {'}'});<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">tf</span> = <span className="token-keyword">new</span> <span className="token-function">TrustForge</span>({'{'} daemonUrl: env.TRUSTFORGE_DAEMON_URL {'}'});<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">payload</span> = <span className="token-keyword">await</span> request.json();<br/><br/>
 
-          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-comment">// Fast stateless check without external calls</span><br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">authorized</span> = <span className="token-keyword">await</span> tf.<span className="token-function">checkCapability</span>(payload, <span className="token-string">'api:read'</span>);<br/><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-comment">// Fast stateless check without external DB roundtrips</span><br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">const</span> <span className="token-variable">res</span> = <span className="token-keyword">await</span> tf.<span className="token-function">decide</span>({'{'}<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;actor: payload.actor,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: <span className="token-string">'api:read'</span>,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: request.url,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context: {'{}'},<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;trace_id: payload.traceId<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;{'});'}<br/><br/>
 
-          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">if</span> (!authorized) {'{'}<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">if</span> (res.decision !== <span className="token-string">'allow'</span>) {'{'}<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="token-keyword">return new</span> <span className="token-function">Response</span>(<span className="token-string">'Forbidden'</span>, {'{'} status: <span className="token-string">403</span> {'}'});<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;{'}'}<br/><br/>
 
@@ -170,9 +182,10 @@ export default function Home() {
             TrustForge
           </a>
           <nav className="nav-links">
-            <a href="#protocol">Protocol</a>
+            <a href="#protocol">Protocol Core</a>
+            <a href="#hardware">Embedded Targets</a>
             <a href="#integration">Integration</a>
-            <a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="/llms.txt" target="_blank" rel="noopener noreferrer">AI Docs</a>
           </nav>
         </div>
       </header>
@@ -182,7 +195,7 @@ export default function Home() {
           <div className="hero-content">
             <div className="badge">
               <div className="badge-dot" />
-              v0.1.1 Production Alpha
+              v0.1.2 Production Alpha
             </div>
             <h1>
               The Next Era of Security is <br />
@@ -286,37 +299,114 @@ export default function Home() {
       </section>
 
       <section id="protocol" className="container section-padding">
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Engineered for zero trust.</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto 4rem auto' }}>
-          Eliminate complex authorization architectures. TrustForge wraps session negotiation into stateless verification structures.
-        </p>
+        <div className="section-title-wrapper">
+          <h2>Stateless Zero-Trust Architecture</h2>
+          <p>
+            TrustForge replaces legacy session databases and dynamic token validation queries with stateless, cryptographically secure capability envelopes.
+          </p>
+        </div>
 
         <div className="cards-grid">
           <div className="glow-card">
             <div className="icon-container"><Shield size={24} /></div>
-            <h3>Stateless Assertions</h3>
-            <p>Skip round-trips to key databases. Cryptographic capability boundaries are decoded and authenticated directly at edge layers within microseconds.</p>
+            <h3>Self-Contained Envelopes</h3>
+            <p>Skip round-trips to central key vaults. Capabilities are wrapped inside stateless envelopes that downstream services decode and verify directly in memory.</p>
           </div>
           
           <div className="glow-card">
             <div className="icon-container"><Fingerprint size={24} /></div>
-            <h3>Dynamic Keystores</h3>
-            <p>Rotate verification certificates statelessly. Supports automatic configuration pulling with native fallback paths to cached local buffers.</p>
+            <h3>Cryptographic Handshakes</h3>
+            <p>Session layers are negotiated using ECDH key exchanges (X25519), authenticated via Ed25519 signatures, and encrypted with symmetric ChaCha20-Poly1305 blocks.</p>
           </div>
 
           <div className="glow-card">
             <div className="icon-container"><Zap size={24} /></div>
-            <h3>Quantum Immunity</h3>
-            <p>Future-proof envelope formats designed to host hybrid post-quantum cryptography payloads (PQ-MLDSA) alongside production-ready elliptic curves.</p>
+            <h3>Unified Daemon (tf-daemon)</h3>
+            <p>A single lightweight background daemon manages active configurations, resolves third-party credentials (like Clerk, Supabase, or Firebase JWTs), and enforces Rego policies.</p>
           </div>
         </div>
       </section>
 
-      <section id="integration" className="container section-padding">
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Integrate in seconds.</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
-          Deploy native adapters onto your framework of choice with single-line imports.
-        </p>
+      <section id="hardware" className="container section-padding" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+        <div className="section-title-wrapper">
+          <h2>Bare-Metal Hardware Trust Anchors</h2>
+          <p>
+            Unlike standard web protocols, TrustForge compiled libraries compile directly to embedded hardware targets, bringing zero-trust capabilities to physical microcontrollers.
+          </p>
+        </div>
+
+        <div className="hardware-targets-grid">
+          <div className="hardware-card">
+            <div className="hardware-chip-badge">tf-esp32-wifi</div>
+            <h3>ESP32</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Full Wi-Fi packet signing & hardware validation wrappers.</p>
+          </div>
+          <div className="hardware-card">
+            <div className="hardware-chip-badge">tf-rp2040-picow</div>
+            <h3>RP2040</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Secure communication layers for Raspberry Pi Pico W microcontrollers.</p>
+          </div>
+          <div className="hardware-card">
+            <div className="hardware-chip-badge">tf-nrf52-ble</div>
+            <h3>nRF52</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Bluetooth Low Energy secure transport signing adapters.</p>
+          </div>
+          <div className="hardware-card">
+            <div className="hardware-chip-badge">tf-stm32wl-lora</div>
+            <h3>STM32WL</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Stateless LoraWAN packet authentication overlays.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="container section-padding" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+        <div className="section-title-wrapper">
+          <h2>How TrustForge Compares</h2>
+          <p>Analyzing key architectural features against traditional token authorization frameworks.</p>
+        </div>
+
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Standard JWTs / OAuth</th>
+                <th>TrustForge Protocol</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>**Verification Latency**</td>
+                <td>Requires database read or JWKS network round-trip</td>
+                <td>Stateless, in-memory cryptographic verification (&lt;1ms)</td>
+              </tr>
+              <tr>
+                <td>**Policy Enforcement**</td>
+                <td>Hardcoded inside application code</td>
+                <td>Stateless Rego query evaluation inside tf-daemon</td>
+              </tr>
+              <tr>
+                <td>**Bare-Metal IoT Compatibility**</td>
+                <td>Impossible (requires complex libraries and OS support)</td>
+                <td>Native embedded integrations (crates/embedded targets)</td>
+              </tr>
+              <tr>
+                <td>**Revocation Pattern**</td>
+                <td>Requires stateful blacklist storage</td>
+                <td>Self-contained epoch boundaries with key rotation</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="integration" className="container section-padding" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+        <div className="section-title-wrapper">
+          <h2>Integrate in seconds.</h2>
+          <p>
+            Deploy native adapters onto your framework of choice with single-line imports.
+          </p>
+        </div>
         
         <div className="code-panel">
           <div className="code-header">
@@ -351,12 +441,35 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        <div className="container footer-content">
-          <div className="logo">
-            <div className="logo-symbol" />
-            TrustForge
+        <div className="container footer-grid">
+          <div className="footer-col">
+            <div className="logo" style={{ marginBottom: '1.2rem' }}>
+              <div className="logo-symbol" />
+              TrustForge
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>
+              The open-source trust fabric securing distributed services, AI agents, and embedded microcontrollers.
+            </p>
           </div>
-          <p>© 2026 TrustForge Protocol. Released under Apache-2.0.</p>
+          <div className="footer-col">
+            <h4>Ecosystem</h4>
+            <ul>
+              <li><a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer">GitHub Monorepo</a></li>
+              <li><a href="https://www.npmjs.com/package/@trustforge-protocol/sdk" target="_blank" rel="noopener noreferrer">NPM Package</a></li>
+              <li><a href="https://crates.io/crates/tf-core" target="_blank" rel="noopener noreferrer">Crates.io Registry</a></li>
+            </ul>
+          </div>
+          <div className="footer-col">
+            <h4>Developer Docs</h4>
+            <ul>
+              <li><a href="/llms.txt" target="_blank" rel="noopener noreferrer">AI Agent Docs (llms.txt)</a></li>
+              <li><a href="/ai.txt" target="_blank" rel="noopener noreferrer">AI Context Manifest</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="container footer-bottom">
+          <p>© 2026 TrustForge Protocol. All libraries released under Apache-2.0.</p>
+          <p>Created by Kody Dennon</p>
         </div>
       </footer>
     </main>
