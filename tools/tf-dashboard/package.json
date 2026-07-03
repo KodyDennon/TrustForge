@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/dashboard",
   "version": "0.1.0",
   "type": "module",
-  "description": "Viewer-only Bun.serve dashboard for an active tf-daemon (sessions, approvals, plugins, recent proofs).",
+  "description": "TrustForge web dashboard. A visual interface for monitoring active sessions, auditing the proof ledger, and managing cryptographic policies.",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"

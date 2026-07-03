@@ -8,7 +8,7 @@ name = "tf-envoy-filter"
 version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"
-description = "TrustForge Envoy proxy-wasm HTTP filter (Phase 0 draft)"
+description = "TrustForge module for envoy-filter. Part of the open-source trust fabric for AI-native software."
 repository = "https://github.com/KodyDennon/TrustForge"
 publish = false
 

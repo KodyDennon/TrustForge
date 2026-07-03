@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge bridge for Azure AD / Entra ID — verifies Azure-issued JWTs against tenant JWKS, translates managed identities and Azure RBAC role assignments into TrustForge actors and capabilities."
+description = "TrustForge identity bridge for AZURE. Translate AZURE credentials, roles, and policies into cryptographic TrustForge actors and capabilities."
 
 [dependencies]
 tf-types = { version = "0.1.1", path = "../../tf-types" }

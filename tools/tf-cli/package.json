@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/cli",
   "version": "0.1.0",
   "type": "module",
-  "description": "Unified tf command — wraps schema/proof/daemon/session/policy/actor/approval operations.",
+  "description": "Official Command Line Interface for TrustForge. Manage schemas, generate cryptographic proofs, configure policies, and control the local daemon.",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"

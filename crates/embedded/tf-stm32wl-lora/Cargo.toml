@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-stm32wl-lora"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K2 — STM32WL55 (Cortex-M4F + sub-GHz radio) LoRa packet signer/transmitter."
+description = "TrustForge embedded firmware for STM32WL-LORA. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

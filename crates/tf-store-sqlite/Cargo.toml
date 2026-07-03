@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge SQLite backend (proof ledger, revocation cache, evidence archive)."
+description = "TrustForge database backend for Sqlite. High-performance storage driver for the TrustForge proof ledger, revocation cache, and evidence archive."
 
 [dependencies]
 rusqlite = { version = "0.31", features = ["bundled"] }

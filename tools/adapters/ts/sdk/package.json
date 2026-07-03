@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/sdk",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge core SDK: thin TypeScript client for tf-daemon HTTP endpoints (decide, credentials, proofs).",
+  "description": "TrustForge authentication and policy enforcement adapter for Sdk. Seamlessly integrate zero-trust verifiable actions into your Sdk application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

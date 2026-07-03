@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/express",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge Express middleware: gates every request through tf-daemon /v1/decide.",
+  "description": "TrustForge authentication and policy enforcement adapter for Express. Seamlessly integrate zero-trust verifiable actions into your Express application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

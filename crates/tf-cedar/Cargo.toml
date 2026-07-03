@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge Cedar policy engine adapter."
+description = "TrustForge policy engine adapter for AWS Cedar. Evaluate complex authorization policies locally against TrustForge capabilities."
 
 [dependencies]
 cedar-policy = "4"

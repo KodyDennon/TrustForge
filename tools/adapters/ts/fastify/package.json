@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/fastify",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge Fastify plugin: gates every request through tf-daemon /v1/decide.",
+  "description": "TrustForge authentication and policy enforcement adapter for Fastify. Seamlessly integrate zero-trust verifiable actions into your Fastify application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

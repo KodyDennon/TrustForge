@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/nestjs",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge adapter for NestJS (guard + module + decorator).",
+  "description": "TrustForge authentication and policy enforcement adapter for Nestjs. Seamlessly integrate zero-trust verifiable actions into your Nestjs application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

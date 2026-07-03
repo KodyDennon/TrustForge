@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/supabase-auth",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for Supabase Auth — verifies Supabase JWTs via @supabase/supabase-js admin client and projects user.id into a TrustForge actor.",
+  "description": "TrustForge authentication and policy enforcement adapter for Supabase auth. Seamlessly integrate zero-trust verifiable actions into your Supabase auth application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

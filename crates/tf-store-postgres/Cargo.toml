@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge PostgreSQL backend (proof ledger, revocation cache, evidence archive)."
+description = "TrustForge database backend for Postgres. High-performance storage driver for the TrustForge proof ledger, revocation cache, and evidence archive."
 
 [dependencies]
 sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros", "any"] }

@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/kinde",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for Kinde — verifies Kinde JWTs via @kinde-oss/kinde-typescript-sdk and projects sub into a TrustForge actor.",
+  "description": "TrustForge authentication and policy enforcement adapter for Kinde. Seamlessly integrate zero-trust verifiable actions into your Kinde application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

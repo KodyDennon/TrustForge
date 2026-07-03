@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge bridge for GCP IAM — verifies Google ID tokens via Google's JWKS, translates service accounts and IAM roles into TrustForge actors and capabilities."
+description = "TrustForge identity bridge for GCP. Translate GCP credentials, roles, and policies into cryptographic TrustForge actors and capabilities."
 
 [dependencies]
 tf-types = { version = "0.1.1", path = "../../tf-types" }

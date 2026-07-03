@@ -1,7 +1,7 @@
 {
   "name": "@trustforge-protocol/core",
   "version": "0.1.0",
-  "description": "TrustForge: open-source trust fabric for AI-native software, devices, and verifiable action.",
+  "description": "TrustForge: The open-source trust fabric for AI-native software, secure devices, and verifiable action.",
   "license": "Apache-2.0",
   "workspaces": [
     "tools/*",

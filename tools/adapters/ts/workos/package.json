@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/workos",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for WorkOS — verifies WorkOS access tokens via @workos-inc/node and projects user.id into a TrustForge actor.",
+  "description": "TrustForge authentication and policy enforcement adapter for Workos. Seamlessly integrate zero-trust verifiable actions into your Workos application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

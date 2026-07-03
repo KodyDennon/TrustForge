@@ -1,7 +1,7 @@
 {
   "name": "@trustforge-protocol/trustforge-unifi-plugin",
   "version": "0.1.0",
-  "description": "TrustForge controller plugin for UniFi Network. Calls the local tf-daemon /v1/decide endpoint on client-connect, port-block, and firewall-rule events.",
+  "description": "TrustForge module for trustforge-unifi-plugin. Part of the open-source trust fabric for AI-native software.",
   "license": "Apache-2.0 OR MIT",
   "main": "src/index.js",
   "type": "commonjs",

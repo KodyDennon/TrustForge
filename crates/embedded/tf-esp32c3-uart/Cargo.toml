@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-esp32c3-uart"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K6 — RISC-V ESP32-C3 packet signer that prints signed packets over UART (no_std)."
+description = "TrustForge embedded firmware for ESP32C3-UART. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

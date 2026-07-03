@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/types",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge typed schema bindings and semantic core.",
+  "description": "Core semantic types, traits, and schemas powering the TrustForge protocol.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

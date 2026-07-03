@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/bun-serve",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge wrapper for Bun.serve({ fetch }) — gates requests through tf-daemon /v1/decide before the user handler runs.",
+  "description": "TrustForge authentication and policy enforcement adapter for Bun serve. Seamlessly integrate zero-trust verifiable actions into your Bun serve application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

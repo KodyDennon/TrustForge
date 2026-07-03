@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/daemon",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge daemon: WebSocket-carried session + guarded RPC + vault + approvals.",
+  "description": "The TrustForge background daemon. Handles key management, packet routing, capability caching, and secure session orchestration.",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"

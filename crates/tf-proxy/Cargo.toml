@@ -1,4 +1,5 @@
 [package]
+description = "TrustForge module for proxy. Part of the open-source trust fabric for AI-native software."
 readme.workspace = true
 name = "tf-proxy"
 version = "0.1.1"

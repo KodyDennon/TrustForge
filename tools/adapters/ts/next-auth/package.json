@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/next-auth",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge callbacks for NextAuth / Auth.js — projects JWTs and sessions into TrustForge actors.",
+  "description": "TrustForge authentication and policy enforcement adapter for Next auth. Seamlessly integrate zero-trust verifiable actions into your Next auth application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/session",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge session protocol over WebSocket.",
+  "description": "TrustForge session carrier driver. Implements the secure handshake, AEAD framing, and perfect forward secrecy for network sessions.",
   "main": "./src/index.ts",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",

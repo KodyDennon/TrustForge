@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "TrustForge embedded HAL traits — LoRa, BLE, NFC, secure-element, and entropy abstractions for no_std deployments."
+description = "TrustForge hardware abstraction layer (HAL) traits. Provides interfaces for LoRa, BLE, NFC, secure elements, and hardware entropy sources."
 
 [features]
 default = ["alloc"]

@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "Prometheus exporter that scrapes a tf-daemon admin endpoint and re-emits TrustForge metrics in the Prometheus text-exposition format."
+description = "TrustForge module for prom-exporter. Part of the open-source trust fabric for AI-native software."
 
 [dependencies]
 prometheus = "0.13"

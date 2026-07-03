@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "TrustForge OpenTelemetry / OTLP wiring: standard span and metric names matching the tf-daemon TS reference, plus a tracing -> opentelemetry bridge."
+description = "TrustForge OpenTelemetry integration. Standardized OTLP tracing, spans, and metrics for auditing the entire zero-trust lifecycle."
 
 [dependencies]
 # Core OpenTelemetry SDK + OTLP exporter. We pin the 0.27.x line because

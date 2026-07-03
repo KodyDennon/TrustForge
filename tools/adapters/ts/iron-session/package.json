@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/iron-session",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for iron-session — projects iron-session reads into TrustForge actors.",
+  "description": "TrustForge authentication and policy enforcement adapter for Iron session. Seamlessly integrate zero-trust verifiable actions into your Iron session application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

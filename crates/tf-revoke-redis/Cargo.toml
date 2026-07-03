@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge Redis-backed revocation cache (RevocationCache trait only)."
+description = "TrustForge revocation cache backed by Redis. High-performance, distributed invalidation of capabilities and active sessions."
 
 [dependencies]
 redis = { version = "0.27", default-features = false }

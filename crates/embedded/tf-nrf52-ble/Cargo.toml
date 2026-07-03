@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-nrf52-ble"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K5 — nRF52840 BLE peripheral that exposes a signed-packet GATT characteristic."
+description = "TrustForge embedded firmware for NRF52-BLE. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

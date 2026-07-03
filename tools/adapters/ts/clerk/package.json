@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/clerk",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for Clerk — Next.js middleware wrapper and Express middleware that project Clerk sessions into TrustForge actors.",
+  "description": "TrustForge authentication and policy enforcement adapter for Clerk. Seamlessly integrate zero-trust verifiable actions into your Clerk application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

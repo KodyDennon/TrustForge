@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/better-auth",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge plugin for Better Auth — projects resolved sessions into TrustForge actors and capabilities.",
+  "description": "TrustForge authentication and policy enforcement adapter for Better auth. Seamlessly integrate zero-trust verifiable actions into your Better auth application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

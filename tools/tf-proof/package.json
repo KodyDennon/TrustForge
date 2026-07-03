@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/proof",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge proof CLI: keygen, sign, verify, inspect.",
+  "description": "TrustForge cryptographic proof generator. Mint verifiable credentials and zero-knowledge proofs for trustless authorization.",
   "main": "./src/cli.ts",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",

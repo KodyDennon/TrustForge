@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-rp2040-picow"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K4 — Raspberry Pi Pico W (RP2040 + cyw43 WiFi) packet signer over WiFi."
+description = "TrustForge embedded firmware for RP2040-PICOW. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

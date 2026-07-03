@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description.workspace = true
+description = "TrustForge middleware for Hyper. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Hyper servers."
 
 [lib]
 path = "src/lib.rs"

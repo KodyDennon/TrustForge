@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/evidence",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge compliance evidence CLI: assemble / verify / seal / open / anchor / replay / redact.",
+  "description": "TrustForge evidence archive manager. Record, query, and cryptographically verify historical actions and capability delegations.",
   "main": "./src/cli.ts",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",

@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/test-utils",
   "version": "0.1.0",
   "type": "module",
-  "description": "Shared test utilities for TrustForge TS adapters (mock daemon, fixtures).",
+  "description": "TrustForge authentication and policy enforcement adapter for Test utils. Seamlessly integrate zero-trust verifiable actions into your Test utils application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",

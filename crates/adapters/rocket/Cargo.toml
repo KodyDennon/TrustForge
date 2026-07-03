@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "TrustForge Rocket fairing that consults tf-daemon /v1/decide."
+description = "TrustForge middleware for Rocket. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Rocket servers."
 
 [dependencies]
 tf-decide-client = { version = "0.1.1", path = "../tf-decide-client" }

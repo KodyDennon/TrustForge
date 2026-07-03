@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "Shared HTTP client used by tf-* framework adapters to call tf-daemon /v1/decide."
+description = "TrustForge middleware for Decide client. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Decide client servers."
 
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

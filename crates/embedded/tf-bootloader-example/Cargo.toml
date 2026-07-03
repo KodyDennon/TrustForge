@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-bootloader-example"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K9 — reference verify-then-boot bootloader fragment for Cortex-M4."
+description = "TrustForge embedded firmware for BOOTLOADER-EXAMPLE. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

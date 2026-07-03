@@ -5,7 +5,7 @@ version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge session carrier driver (handshake + AEAD framing)."
+description = "TrustForge session carrier driver. Implements the secure handshake, AEAD framing, and perfect forward secrecy for network sessions."
 
 [dependencies]
 tf-types = { version = "0.1.1", path = "../tf-types" }

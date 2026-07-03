@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "description": "TrustForge conformance harness — runs vector files, profile gates, interop suite, fuzz corpus, and security regression suite (TF-0010).",
+  "description": "TrustForge protocol conformance test suite. Ensures all language implementations and adapters strictly adhere to the TrustForge specification.",
   "scripts": {
     "typecheck": "bun x tsc -p tsconfig.json --noEmit",
     "test": "bun test"

@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/next",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge adapter for Next.js (App Router + Pages Router, Edge + Node runtimes).",
+  "description": "TrustForge authentication and policy enforcement adapter for Next. Seamlessly integrate zero-trust verifiable actions into your Next application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",

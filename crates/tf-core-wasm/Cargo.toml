@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "TrustForge core surface compiled to wasm32 for in-process TS/JS adapters."
+description = "TrustForge core surface compiled to WebAssembly (wasm32) for high-performance, in-process execution within browser and Node.js environments."
 
 [lib]
 crate-type = ["cdylib", "rlib"]

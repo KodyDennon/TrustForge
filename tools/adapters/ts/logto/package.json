@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/logto",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for Logto — verifies Logto JWTs via JWKS (jose) and projects sub into a TrustForge actor.",
+  "description": "TrustForge authentication and policy enforcement adapter for Logto. Seamlessly integrate zero-trust verifiable actions into your Logto application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"

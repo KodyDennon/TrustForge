@@ -5,7 +5,7 @@ version = "0.1.1"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
-description = "TrustForge no_std core: packet verify, relay authority, ORL, and replay-protected receiver for embedded targets."
+description = "TrustForge core protocol implemented for #![no_std] environments. Optimized for embedded systems, WebAssembly, and constrained targets."
 
 [features]
 default = ["alloc"]

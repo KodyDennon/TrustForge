@@ -3,7 +3,7 @@ readme.workspace = true
 name = "tf-esp32-wifi"
 version = "0.1.1"
 edition = "2021"
-description = "TrustForge K3 — ESP32 (Xtensa) WiFi-uplink packet signer using std-on-ESP-IDF."
+description = "TrustForge embedded firmware for ESP32-WIFI. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
 

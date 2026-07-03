@@ -2,7 +2,7 @@
   "name": "@trustforge-protocol/stack-auth",
   "version": "0.1.0",
   "type": "module",
-  "description": "TrustForge integration for Stack Auth — verifies stack-auth session tokens via @stackframe/stack and projects user.id into a TrustForge actor.",
+  "description": "TrustForge authentication and policy enforcement adapter for Stack auth. Seamlessly integrate zero-trust verifiable actions into your Stack auth application.",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
