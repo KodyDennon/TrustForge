@@ -8,7 +8,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "TrustForge Envoy proxy-wasm HTTP filter (Phase 0 draft)"
-repository = "https://github.com/NuGit-Tech/TrustForge"
+repository = "https://github.com/KodyDennon/TrustForge"
 publish = false
 
 # This crate is intentionally NOT a member of the root workspace because it

@@ -3,6 +3,8 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Rust](https://img.shields.io/badge/Rust-Ready-orange?logo=rust)](https://www.rust-lang.org/)
+[![NPM Core](https://img.shields.io/npm/v/@trustforge-protocol/core.svg)](https://www.npmjs.com/package/@trustforge-protocol/core)
+[![Crates.io Types](https://img.shields.io/crates/v/tf-types.svg)](https://crates.io/crates/tf-types)
 
 **TrustForge** is an open-source trust fabric for AI-native software, secure devices, authenticated live systems, site-to-site communication, service-to-service communication, and verifiable action.
 
