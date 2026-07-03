@@ -34,7 +34,7 @@ sha1 = "0.10"
 argon2 = "0.5"
 tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 serde_yaml = { workspace = true }
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 ciborium = "0.2"
 x509-parser = { version = "0.16", features = ["verify"] }
 p256 = { version = "0.13", features = ["ecdsa", "pem"] }
