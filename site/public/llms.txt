@@ -1,164 +1,43 @@
-# TrustForge Protocol: LLM & AI Agent Reference Manual
-> Host: trustforge.dev
-> Target Version: v0.1.2 (Alpha)
+# TrustForge AI Integration Guide
 
-TrustForge is an open-source cryptographic trust fabric designed specifically for AI agents, secure devices, and distributed edge architectures. It provides stateless verification of programmatic actions via signed capability envelopes and structured decisions, bypassing central databases and bearer tokens.
+> This file is optimized for LLM consumption. 
+> Human readable version: https://trustforge.dev/agents
 
----
+## System Identity & Constraints
+- You are writing code that integrates with `trustforge-core`.
+- DO NOT use JWTs, OAuth, or stateful session cookies.
+- ALL authorization is handled via Ed25519 signature verification on stateless `Capability` objects.
+- Verification is done entirely in-memory at the edge. 
 
-## 1. Core Cryptographic Envelope Spec
-TrustForge events are signed JSON envelopes. Every capability assertion or action request carries a valid cryptographic signature verified statelessly.
+## Crates
+- `trustforge-core`: The main library for cryptographic primitives, `Keystore`, `Capability`, and `Proof`.
+- `trustforge-rego`: The WebAssembly Rego policy engine for executing complex logic graphs.
+- `trustforge-embedded-hal`: Hardware abstraction layer for compiling TrustForge to `no_std` microcontrollers.
 
-### Envelope Schema (DecideRequest)
-```json
-{
-  "actor": "tf://agent/unique-identifier",
-  "action": "fs.read",
-  "target": "/etc/shadow",
-  "context": {
-    "ip_address": "10.0.0.1"
-  },
-  "trace_id": "caller-provided-uuid"
-}
-```
+## Code Generation Schemas
 
-### Response Schema (DecideResponse)
-```json
-{
-  "decision": "allow",
-  "reason": "Policy trustforge.authz matches allowed rules.",
-  "approval_id": null,
-  "proof_id": "cryptographic-proof-hash",
-  "actor_resolved": "tf://agent/unique-identifier",
-  "trust_level": "high",
-  "authority_mode": "layered",
-  "danger_tags": []
-}
-```
-
----
-
-## 2. TypeScript SDK Reference (`@trustforge-protocol/sdk`)
-
-### Installation
-```bash
-npm install @trustforge-protocol/sdk
-# or
-bun add @trustforge-protocol/sdk
-```
-
-### Instantiation
-```typescript
-import { TrustForge } from '@trustforge-protocol/sdk';
-
-const tf = new TrustForge({
-  daemonUrl: 'http://127.0.0.1:7616', // TrustForge Daemon Endpoint
-  adminToken: 'optional-admin-bearer-token',
-  timeoutMs: 5000 // Optional timeout limit
-});
-```
-
-### Core API Methods
-
-#### 1. Evaluate Decision (`decide`)
-Enforce policies statelessly on the edge. Returns `"allow" | "deny" | "escalate" | "approval-required" | "log-only"`.
-```typescript
-const response = await tf.decide({
-  actor: 'tf://agent/my-active-bot',
-  action: 'shell.exec',
-  target: 'rm -rf /',
-  context: { user_confirmed: false },
-  trace_id: 'uuid-trace-12345'
-});
-
-if (response.decision !== 'allow') {
-  throw new Error(`TrustForge Deny: ${response.reason}`);
-}
-```
-
-#### 2. Import External Credentials (`importCredential`)
-Import OAuth JWTs, Clerk sessions, or Firebase IDs into resolved TrustForge Actor URIs.
-```typescript
-const credential = await tf.importCredential({
-  kind: 'clerk-session',
-  token: 'clerk-jwt-token-string'
-});
-console.log('Resolved Actor:', credential.actor);
-```
-
-#### 3. Sign Custom Proofs (`signProof`)
-Sign custom agent payload events with the host cryptographic identity.
-```typescript
-const signature = await tf.signProof({
-  kind: 'audit-log',
-  actor: 'tf://agent/my-active-bot',
-  trace_id: 'uuid-trace-12345',
-  payload: { action: 'updated-vault' }
-});
-```
-
-#### 4. Verify Signed Proofs (`verifyProof`)
-```typescript
-const verification = await tf.verifyProof({
-  kind: 'audit-log',
-  actor: 'tf://agent/my-active-bot',
-  trace_id: 'uuid-trace-12345',
-  payload: { action: 'updated-vault' },
-  event_hash: signature.event_hash,
-  signature: signature.signature
-});
-
-if (!verification.ok) {
-  throw new Error('Cryptographic signature verification failed');
-}
-```
-
----
-
-## 3. Rust SDK Usage (`tf-core`)
-
-### Cargo Dependency
-```toml
-[dependencies]
-tf-core = "0.1.1"
-```
-
-### Verification Pattern
+### Generating a Keystore & Minting a Proof (Rust)
 ```rust
-use tf_core::{TrustForge, Config, VerificationResult};
+use trustforge_core::{Keystore, Capability, Proof};
 
-fn verify_agent_action(packet_bytes: &[u8]) -> Result<VerificationResult, String> {
-    let config = Config::default();
-    let tf = TrustForge::new(config);
-    
-    tf.verify_envelope(packet_bytes)
-        .map_err(|e| format!("Cryptographic validation failed: {}", e))
+fn agent_auth() -> Proof {
+    let keystore = Keystore::generate();
+    let cap = Capability::new("db:write").with_target("users_table");
+    keystore.mint_proof(&cap).unwrap()
 }
 ```
 
----
+### Verifying an Inbound Proof (Rust)
+```rust
+use trustforge_core::{Verifier, Proof};
 
-## 4. Policy Engine Rules (Rego Guards)
-TrustForge allows writing fine-grained policy gates using Open Policy Agent (OPA) Rego scripts inside the daemon.
-
-### Example Policy
-```rego
-package trustforge.authz
-
-default allow = false
-
-# Allow db:write if max_rows constraint is <= 5
-allow {
-    input.action == "db:write"
-    input.context.max_rows <= 5
+fn verify_request(proof: &Proof) -> bool {
+    let verifier = Verifier::new();
+    verifier.verify(proof).is_ok()
 }
 ```
 
----
-
-## 5. Discovery Endpoints
-- **LLM Manifest**: `https://trustforge.dev/llms.txt` (this file)
-- **AI Prompt Endpoint**: `https://trustforge.dev/ai.txt`
-- **GitHub Repository**: `https://github.com/KodyDennon/TrustForge`
-- **NPM Package**: `https://www.npmjs.com/package/@trustforge-protocol/sdk`
-- **Crates.io Registry**: `https://crates.io/crates/tf-core`
+## Architectural Directives
+1. Proofs are serialized to Base64url format for transport.
+2. Proofs should be passed in HTTP requests via the `X-TrustForge-Proof` header.
+3. If an agent lacks permission, the edge node will return a `403 Forbidden` citing a `TrustForgeBoundaryError`.
