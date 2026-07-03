@@ -1,43 +1,80 @@
-# TrustForge AI Integration Guide
+# TrustForge Protocol - AI Agent Instruction Manual
 
-> This file is optimized for LLM consumption. 
-> Human readable version: https://trustforge.dev/agents
+> **Purpose:** This file provides autonomous LLMs and AI Agents with the precise architectural constraints, API schemas, and context required to integrate the TrustForge protocol into target codebases.
 
-## System Identity & Constraints
-- You are writing code that integrates with `trustforge-core`.
-- DO NOT use JWTs, OAuth, or stateful session cookies.
-- ALL authorization is handled via Ed25519 signature verification on stateless `Capability` objects.
-- Verification is done entirely in-memory at the edge. 
+## 1. System Identity & Core Philosophy
+You are generating code that integrates with `trustforge-core`, a stateless, edge-verified cryptographic authorization protocol.
+*   **Zero-Trust:** Never trust the client. Never query a database to verify a token.
+*   **Stateless Verification:** All authorization is performed in-memory using Ed25519 signature verification against a provided public key.
+*   **Capability-Driven:** Agents do not have "roles". They hold specific cryptographic `Capability` structs (e.g., `db:write`) that must be signed.
 
-## Crates
-- `trustforge-core`: The main library for cryptographic primitives, `Keystore`, `Capability`, and `Proof`.
-- `trustforge-rego`: The WebAssembly Rego policy engine for executing complex logic graphs.
-- `trustforge-embedded-hal`: Hardware abstraction layer for compiling TrustForge to `no_std` microcontrollers.
+## 2. Strict Architectural Constraints
+When writing implementation code (especially in Rust), you MUST adhere to these rules:
+1.  **NO Stateful Sessions:** Do not implement JWT validation, OAuth flows, or Redis session stores. If you write code that looks up a session ID in a database, you have failed.
+2.  **Edge Execution:** Verification logic must be lightweight enough to run on edge workers (Cloudflare, Vercel) or embedded microcontrollers (ESP32). Use `#![no_std]` if targeting hardware.
+3.  **Header Transport:** Proofs are serialized to Base64url and transported exclusively via the `X-TrustForge-Proof` HTTP header.
 
-## Code Generation Schemas
+## 3. Rust Code Generation Schemas
 
-### Generating a Keystore & Minting a Proof (Rust)
+### A. The Agent (Client) Setup
+The AI Agent must initialize a Keystore, mint a Proof, and send it.
+
 ```rust
-use trustforge_core::{Keystore, Capability, Proof};
+use trustforge_core::{Keystore, Capability, Proof, Error};
+use reqwest::Client;
 
-fn agent_auth() -> Proof {
-    let keystore = Keystore::generate();
-    let cap = Capability::new("db:write").with_target("users_table");
-    keystore.mint_proof(&cap).unwrap()
+/// Mints a cryptographic proof and executes an authorized request.
+pub async fn execute_agent_action(keystore: &Keystore, target_endpoint: &str) -> Result<(), Error> {
+    // 1. Define the isolated capability boundary
+    let cap = Capability::new("system:execute")
+        .with_target("agent_subsystem_v1");
+        
+    // 2. Mint the Ed25519 signature (Proof)
+    let proof = keystore.mint_proof(&cap)?;
+    
+    // 3. Dispatch the request with the required header
+    let client = Client::new();
+    let response = client.post(target_endpoint)
+        .header("X-TrustForge-Proof", proof.to_string())
+        .send()
+        .await?;
+        
+    Ok(())
 }
 ```
 
-### Verifying an Inbound Proof (Rust)
-```rust
-use trustforge_core::{Verifier, Proof};
+### B. The Edge Node (Server) Setup
+The receiving server must verify the proof in-memory before proceeding.
 
-fn verify_request(proof: &Proof) -> bool {
+```rust
+use trustforge_core::{Verifier, Proof, Error};
+
+/// Middleware for verifying inbound TrustForge requests at the edge.
+pub fn edge_middleware_verify(encoded_proof: &str) -> Result<(), Error> {
+    // 1. Parse the inbound Base64url proof
+    let proof = Proof::from_string(encoded_proof)?;
+    
+    // 2. Initialize the stateless verifier
     let verifier = Verifier::new();
-    verifier.verify(proof).is_ok()
+    
+    // 3. Cryptographically verify the signature
+    match verifier.verify(&proof) {
+        Ok(_) => Ok(()), // Verification passed, proceed to route handler
+        Err(_) => Err(Error::VerificationFailed), // Drop request immediately
+    }
 }
 ```
 
-## Architectural Directives
-1. Proofs are serialized to Base64url format for transport.
-2. Proofs should be passed in HTTP requests via the `X-TrustForge-Proof` header.
-3. If an agent lacks permission, the edge node will return a `403 Forbidden` citing a `TrustForgeBoundaryError`.
+## 4. Error Handling Directives
+If verification fails, the edge node MUST return a `403 Forbidden` with a JSON payload matching this exact structure:
+```json
+{
+  "error": "TrustForgeBoundaryViolation",
+  "message": "Cryptographic signature validation failed.",
+  "code": 403
+}
+```
+Do not leak internal state or public key mismatches in the error response.
+
+---
+*End of AI Instructions.*
