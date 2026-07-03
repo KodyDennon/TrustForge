@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! tf-tonic — tonic gRPC interceptor that calls `tf-daemon`'s `/v1/decide`.
 //!
 //! `tonic`'s `Interceptor` trait is synchronous; it inspects request metadata

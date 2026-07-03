@@ -1,3 +1,4 @@
+#![allow(clippy::useless_vec)]
 //! TrustForge bridge for HashiCorp Vault.
 //!
 //! Two primary entry points:
