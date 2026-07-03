@@ -20,5 +20,22 @@
       "UniFi Network Application 8.0+",
       "UniFi OS 4.0+ (UDM Pro / UDM SE / Cloud Key G2 Plus)"
     ]
-  }
+  },
+  "author": "Kody Dennon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KodyDennon/TrustForge.git"
+  },
+  "homepage": "https://github.com/KodyDennon/TrustForge#readme",
+  "bugs": {
+    "url": "https://github.com/KodyDennon/TrustForge/issues"
+  },
+  "keywords": [
+    "trustforge",
+    "security",
+    "zero-trust",
+    "authentication",
+    "authorization",
+    "crypto"
+  ]
 }

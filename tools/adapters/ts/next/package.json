@@ -27,5 +27,23 @@
     "next": {
       "optional": false
     }
-  }
+  },
+  "author": "Kody Dennon",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KodyDennon/TrustForge.git"
+  },
+  "homepage": "https://github.com/KodyDennon/TrustForge#readme",
+  "bugs": {
+    "url": "https://github.com/KodyDennon/TrustForge/issues"
+  },
+  "keywords": [
+    "trustforge",
+    "security",
+    "zero-trust",
+    "authentication",
+    "authorization",
+    "crypto"
+  ]
 }
