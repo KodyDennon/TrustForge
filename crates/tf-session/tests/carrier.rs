@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use std::sync::Arc;
 use tf_session::{attach_initiator, attach_responder};
 use tf_types::crypto::Ed25519Signer;
