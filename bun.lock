@@ -6,13 +6,13 @@
       "name": "trustforge",
     },
     "tools/adapters/ts/auth0": {
-      "name": "@trustforge/auth0",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/auth0",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -24,13 +24,13 @@
       ],
     },
     "tools/adapters/ts/better-auth": {
-      "name": "@trustforge/better-auth",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/better-auth",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -42,25 +42,25 @@
       ],
     },
     "tools/adapters/ts/bun-serve": {
-      "name": "@trustforge/bun-serve",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/bun-serve",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
     },
     "tools/adapters/ts/clerk": {
-      "name": "@trustforge/clerk",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/clerk",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -74,13 +74,13 @@
       ],
     },
     "tools/adapters/ts/express": {
-      "name": "@trustforge/express",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/express",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "@types/express": "^4.17.21",
         "@types/supertest": "^6.0.2",
@@ -93,14 +93,14 @@
       },
     },
     "tools/adapters/ts/fastify": {
-      "name": "@trustforge/fastify",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/fastify",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
         "fastify-plugin": "^5.0.1",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "fastify": "^5.1.0",
         "typescript": "^5.6.3",
@@ -110,13 +110,13 @@
       },
     },
     "tools/adapters/ts/firebase-auth": {
-      "name": "@trustforge/firebase-auth",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/firebase-auth",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -128,13 +128,13 @@
       ],
     },
     "tools/adapters/ts/h3": {
-      "name": "@trustforge/h3",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/h3",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -143,13 +143,13 @@
       },
     },
     "tools/adapters/ts/hono": {
-      "name": "@trustforge/hono",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/hono",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "hono": "^4.6.0",
         "typescript": "^5.6.3",
@@ -159,13 +159,13 @@
       },
     },
     "tools/adapters/ts/iron-session": {
-      "name": "@trustforge/iron-session",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/iron-session",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -177,13 +177,13 @@
       ],
     },
     "tools/adapters/ts/kinde": {
-      "name": "@trustforge/kinde",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/kinde",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -195,13 +195,13 @@
       ],
     },
     "tools/adapters/ts/koa": {
-      "name": "@trustforge/koa",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/koa",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "@types/koa": "^2.15.0",
         "koa": "^2.15.3",
@@ -212,13 +212,13 @@
       },
     },
     "tools/adapters/ts/logto": {
-      "name": "@trustforge/logto",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/logto",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -232,13 +232,13 @@
       ],
     },
     "tools/adapters/ts/lucia": {
-      "name": "@trustforge/lucia",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/lucia",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -250,10 +250,10 @@
       ],
     },
     "tools/adapters/ts/nestjs": {
-      "name": "@trustforge/nestjs",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/nestjs",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -266,10 +266,10 @@
       },
     },
     "tools/adapters/ts/next": {
-      "name": "@trustforge/next",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/next",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -280,13 +280,13 @@
       },
     },
     "tools/adapters/ts/next-auth": {
-      "name": "@trustforge/next-auth",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/next-auth",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -298,13 +298,13 @@
       ],
     },
     "tools/adapters/ts/passport": {
-      "name": "@trustforge/passport",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/passport",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -318,10 +318,10 @@
       ],
     },
     "tools/adapters/ts/remix": {
-      "name": "@trustforge/remix",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/remix",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -332,22 +332,22 @@
       },
     },
     "tools/adapters/ts/sdk": {
-      "name": "@trustforge/sdk",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/sdk",
+      "version": "0.1.1",
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
     },
     "tools/adapters/ts/stack-auth": {
-      "name": "@trustforge/stack-auth",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/stack-auth",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -359,13 +359,13 @@
       ],
     },
     "tools/adapters/ts/supabase-auth": {
-      "name": "@trustforge/supabase-auth",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/supabase-auth",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -377,10 +377,10 @@
       ],
     },
     "tools/adapters/ts/sveltekit": {
-      "name": "@trustforge/sveltekit",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/sveltekit",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -391,21 +391,21 @@
       },
     },
     "tools/adapters/ts/test-utils": {
-      "name": "@trustforge/test-utils",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/test-utils",
+      "version": "0.1.1",
       "devDependencies": {
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
     },
     "tools/adapters/ts/workos": {
-      "name": "@trustforge/workos",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/workos",
+      "version": "0.1.1",
       "dependencies": {
-        "@trustforge/sdk": "workspace:*",
+        "@trustforge-protocol/sdk": "workspace:*",
       },
       "devDependencies": {
-        "@trustforge/test-utils": "workspace:*",
+        "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
       },
@@ -417,12 +417,12 @@
       ],
     },
     "tools/tf-cli": {
-      "name": "tf-cli",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/cli",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-conformance": "workspace:*",
-        "tf-session": "workspace:*",
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/conformance": "workspace:*",
+        "@trustforge-protocol/session": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -431,11 +431,11 @@
       },
     },
     "tools/tf-conformance": {
-      "name": "tf-conformance",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/conformance",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-schema": "workspace:*",
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/schema": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -444,11 +444,11 @@
       },
     },
     "tools/tf-daemon": {
-      "name": "tf-daemon",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/daemon",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-session": "workspace:*",
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/session": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -463,10 +463,10 @@
       },
     },
     "tools/tf-dashboard": {
-      "name": "tf-dashboard",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/dashboard",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -474,10 +474,10 @@
       },
     },
     "tools/tf-evidence": {
-      "name": "tf-evidence",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/evidence",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -486,10 +486,10 @@
       },
     },
     "tools/tf-packet": {
-      "name": "tf-packet",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/packet",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -498,10 +498,10 @@
       },
     },
     "tools/tf-proof": {
-      "name": "tf-proof",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/proof",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
         "yaml": "^2.6.0",
       },
       "devDependencies": {
@@ -510,8 +510,8 @@
       },
     },
     "tools/tf-schema": {
-      "name": "tf-schema",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/schema",
+      "version": "0.1.1",
       "dependencies": {
         "ajv": "^8.17.1",
         "ajv-formats": "^3.0.1",
@@ -523,10 +523,10 @@
       },
     },
     "tools/tf-session": {
-      "name": "tf-session",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/session",
+      "version": "0.1.1",
       "dependencies": {
-        "tf-types": "workspace:*",
+        "@trustforge-protocol/types": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -534,8 +534,8 @@
       },
     },
     "tools/tf-types-ts": {
-      "name": "tf-types",
-      "version": "0.1.0",
+      "name": "@trustforge-protocol/types",
+      "version": "0.1.1",
       "dependencies": {
         "@noble/ciphers": "^1.0.0",
         "@noble/curves": "^1.6.0",
@@ -849,55 +849,75 @@
 
     "@tokenizer/token": ["@tokenizer/token@0.3.0", "", {}, "sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A=="],
 
-    "@trustforge/auth0": ["@trustforge/auth0@workspace:tools/adapters/ts/auth0"],
+    "@trustforge-protocol/auth0": ["@trustforge-protocol/auth0@workspace:tools/adapters/ts/auth0"],
 
-    "@trustforge/better-auth": ["@trustforge/better-auth@workspace:tools/adapters/ts/better-auth"],
+    "@trustforge-protocol/better-auth": ["@trustforge-protocol/better-auth@workspace:tools/adapters/ts/better-auth"],
 
-    "@trustforge/bun-serve": ["@trustforge/bun-serve@workspace:tools/adapters/ts/bun-serve"],
+    "@trustforge-protocol/bun-serve": ["@trustforge-protocol/bun-serve@workspace:tools/adapters/ts/bun-serve"],
 
-    "@trustforge/clerk": ["@trustforge/clerk@workspace:tools/adapters/ts/clerk"],
+    "@trustforge-protocol/clerk": ["@trustforge-protocol/clerk@workspace:tools/adapters/ts/clerk"],
 
-    "@trustforge/express": ["@trustforge/express@workspace:tools/adapters/ts/express"],
+    "@trustforge-protocol/cli": ["@trustforge-protocol/cli@workspace:tools/tf-cli"],
 
-    "@trustforge/fastify": ["@trustforge/fastify@workspace:tools/adapters/ts/fastify"],
+    "@trustforge-protocol/conformance": ["@trustforge-protocol/conformance@workspace:tools/tf-conformance"],
 
-    "@trustforge/firebase-auth": ["@trustforge/firebase-auth@workspace:tools/adapters/ts/firebase-auth"],
+    "@trustforge-protocol/daemon": ["@trustforge-protocol/daemon@workspace:tools/tf-daemon"],
 
-    "@trustforge/h3": ["@trustforge/h3@workspace:tools/adapters/ts/h3"],
+    "@trustforge-protocol/dashboard": ["@trustforge-protocol/dashboard@workspace:tools/tf-dashboard"],
 
-    "@trustforge/hono": ["@trustforge/hono@workspace:tools/adapters/ts/hono"],
+    "@trustforge-protocol/evidence": ["@trustforge-protocol/evidence@workspace:tools/tf-evidence"],
 
-    "@trustforge/iron-session": ["@trustforge/iron-session@workspace:tools/adapters/ts/iron-session"],
+    "@trustforge-protocol/express": ["@trustforge-protocol/express@workspace:tools/adapters/ts/express"],
 
-    "@trustforge/kinde": ["@trustforge/kinde@workspace:tools/adapters/ts/kinde"],
+    "@trustforge-protocol/fastify": ["@trustforge-protocol/fastify@workspace:tools/adapters/ts/fastify"],
 
-    "@trustforge/koa": ["@trustforge/koa@workspace:tools/adapters/ts/koa"],
+    "@trustforge-protocol/firebase-auth": ["@trustforge-protocol/firebase-auth@workspace:tools/adapters/ts/firebase-auth"],
 
-    "@trustforge/logto": ["@trustforge/logto@workspace:tools/adapters/ts/logto"],
+    "@trustforge-protocol/h3": ["@trustforge-protocol/h3@workspace:tools/adapters/ts/h3"],
 
-    "@trustforge/lucia": ["@trustforge/lucia@workspace:tools/adapters/ts/lucia"],
+    "@trustforge-protocol/hono": ["@trustforge-protocol/hono@workspace:tools/adapters/ts/hono"],
 
-    "@trustforge/nestjs": ["@trustforge/nestjs@workspace:tools/adapters/ts/nestjs"],
+    "@trustforge-protocol/iron-session": ["@trustforge-protocol/iron-session@workspace:tools/adapters/ts/iron-session"],
 
-    "@trustforge/next": ["@trustforge/next@workspace:tools/adapters/ts/next"],
+    "@trustforge-protocol/kinde": ["@trustforge-protocol/kinde@workspace:tools/adapters/ts/kinde"],
 
-    "@trustforge/next-auth": ["@trustforge/next-auth@workspace:tools/adapters/ts/next-auth"],
+    "@trustforge-protocol/koa": ["@trustforge-protocol/koa@workspace:tools/adapters/ts/koa"],
 
-    "@trustforge/passport": ["@trustforge/passport@workspace:tools/adapters/ts/passport"],
+    "@trustforge-protocol/logto": ["@trustforge-protocol/logto@workspace:tools/adapters/ts/logto"],
 
-    "@trustforge/remix": ["@trustforge/remix@workspace:tools/adapters/ts/remix"],
+    "@trustforge-protocol/lucia": ["@trustforge-protocol/lucia@workspace:tools/adapters/ts/lucia"],
 
-    "@trustforge/sdk": ["@trustforge/sdk@workspace:tools/adapters/ts/sdk"],
+    "@trustforge-protocol/nestjs": ["@trustforge-protocol/nestjs@workspace:tools/adapters/ts/nestjs"],
 
-    "@trustforge/stack-auth": ["@trustforge/stack-auth@workspace:tools/adapters/ts/stack-auth"],
+    "@trustforge-protocol/next": ["@trustforge-protocol/next@workspace:tools/adapters/ts/next"],
 
-    "@trustforge/supabase-auth": ["@trustforge/supabase-auth@workspace:tools/adapters/ts/supabase-auth"],
+    "@trustforge-protocol/next-auth": ["@trustforge-protocol/next-auth@workspace:tools/adapters/ts/next-auth"],
 
-    "@trustforge/sveltekit": ["@trustforge/sveltekit@workspace:tools/adapters/ts/sveltekit"],
+    "@trustforge-protocol/packet": ["@trustforge-protocol/packet@workspace:tools/tf-packet"],
 
-    "@trustforge/test-utils": ["@trustforge/test-utils@workspace:tools/adapters/ts/test-utils"],
+    "@trustforge-protocol/passport": ["@trustforge-protocol/passport@workspace:tools/adapters/ts/passport"],
 
-    "@trustforge/workos": ["@trustforge/workos@workspace:tools/adapters/ts/workos"],
+    "@trustforge-protocol/proof": ["@trustforge-protocol/proof@workspace:tools/tf-proof"],
+
+    "@trustforge-protocol/remix": ["@trustforge-protocol/remix@workspace:tools/adapters/ts/remix"],
+
+    "@trustforge-protocol/schema": ["@trustforge-protocol/schema@workspace:tools/tf-schema"],
+
+    "@trustforge-protocol/sdk": ["@trustforge-protocol/sdk@workspace:tools/adapters/ts/sdk"],
+
+    "@trustforge-protocol/session": ["@trustforge-protocol/session@workspace:tools/tf-session"],
+
+    "@trustforge-protocol/stack-auth": ["@trustforge-protocol/stack-auth@workspace:tools/adapters/ts/stack-auth"],
+
+    "@trustforge-protocol/supabase-auth": ["@trustforge-protocol/supabase-auth@workspace:tools/adapters/ts/supabase-auth"],
+
+    "@trustforge-protocol/sveltekit": ["@trustforge-protocol/sveltekit@workspace:tools/adapters/ts/sveltekit"],
+
+    "@trustforge-protocol/test-utils": ["@trustforge-protocol/test-utils@workspace:tools/adapters/ts/test-utils"],
+
+    "@trustforge-protocol/types": ["@trustforge-protocol/types@workspace:tools/tf-types-ts"],
+
+    "@trustforge-protocol/workos": ["@trustforge-protocol/workos@workspace:tools/adapters/ts/workos"],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 
@@ -1414,26 +1434,6 @@
     "supports-preserve-symlinks-flag": ["supports-preserve-symlinks-flag@1.0.0", "", {}, "sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w=="],
 
     "svelte": ["svelte@5.55.5", "", { "dependencies": { "@jridgewell/remapping": "^2.3.4", "@jridgewell/sourcemap-codec": "^1.5.0", "@sveltejs/acorn-typescript": "^1.0.5", "@types/estree": "^1.0.5", "@types/trusted-types": "^2.0.7", "acorn": "^8.12.1", "aria-query": "5.3.1", "axobject-query": "^4.1.0", "clsx": "^2.1.1", "devalue": "^5.6.4", "esm-env": "^1.2.1", "esrap": "^2.2.4", "is-reference": "^3.0.3", "locate-character": "^3.0.0", "magic-string": "^0.30.11", "zimmerframe": "^1.1.2" } }, "sha512-2uCs/LZ9us+AktdzYJM8OcxQ8qnPS1kpaO7syGT/MgO+6Qr1Ybl+TqPq+97u7PHqmmMlye5ZkoyXONy5mjjAbw=="],
-
-    "tf-cli": ["tf-cli@workspace:tools/tf-cli"],
-
-    "tf-conformance": ["tf-conformance@workspace:tools/tf-conformance"],
-
-    "tf-daemon": ["tf-daemon@workspace:tools/tf-daemon"],
-
-    "tf-dashboard": ["tf-dashboard@workspace:tools/tf-dashboard"],
-
-    "tf-evidence": ["tf-evidence@workspace:tools/tf-evidence"],
-
-    "tf-packet": ["tf-packet@workspace:tools/tf-packet"],
-
-    "tf-proof": ["tf-proof@workspace:tools/tf-proof"],
-
-    "tf-schema": ["tf-schema@workspace:tools/tf-schema"],
-
-    "tf-session": ["tf-session@workspace:tools/tf-session"],
-
-    "tf-types": ["tf-types@workspace:tools/tf-types-ts"],
 
     "thread-stream": ["thread-stream@4.0.0", "", { "dependencies": { "real-require": "^0.2.0" } }, "sha512-4iMVL6HAINXWf1ZKZjIPcz5wYaOdPhtO8ATvZ+Xqp3BTdaqtAwQkNmKORqcIo5YkQqGXq5cwfswDwMqqQNrpJA=="],
 
