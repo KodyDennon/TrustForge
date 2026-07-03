@@ -9,7 +9,7 @@ description = "TrustForge middleware for Axum. Provides drop-in zero-trust reque
 
 [dependencies]
 tf-decide-client = { version = "0.1.1", path = "../tf-decide-client" }
-axum = "0.7"
+axum = "0.8"
 tower = { version = "0.5", features = ["util"] }
 tower-layer = "0.3"
 tower-service = "0.3"
