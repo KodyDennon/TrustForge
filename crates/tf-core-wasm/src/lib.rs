@@ -26,8 +26,7 @@ pub fn verify_packet(
     public_key_b64: String,
     now: String,
 ) -> Result<JsValue, JsValue> {
-    use base64::Engine;
-    let pk_bytes: Vec<u8> = base64::engine::general_purpose::STANDARD
+    let pk_bytes: Vec<u8> = tf_types::encoding::STANDARD
         .decode(&public_key_b64)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     if pk_bytes.len() != 32 {
@@ -56,12 +55,11 @@ pub fn evaluate_policy(manifest_json: String, query: JsValue) -> Result<JsValue,
 /// Verify an ed25519 signature. Returns `bool`.
 #[wasm_bindgen]
 pub fn ed25519_verify(public_key_b64: String, message: Vec<u8>, signature_b64: String) -> bool {
-    use base64::Engine;
-    let pk = match base64::engine::general_purpose::STANDARD.decode(&public_key_b64) {
+    let pk = match tf_types::encoding::STANDARD.decode(&public_key_b64) {
         Ok(b) => b,
         Err(_) => return false,
     };
-    let sig = match base64::engine::general_purpose::STANDARD.decode(&signature_b64) {
+    let sig = match tf_types::encoding::STANDARD.decode(&signature_b64) {
         Ok(b) => b,
         Err(_) => return false,
     };
@@ -75,10 +73,9 @@ pub fn verify_session_migration(
     public_key_b64: String,
     last_generation: u64,
 ) -> Result<JsValue, JsValue> {
-    use base64::Engine;
     let migration: tf_types::session_migration::SessionMigration =
         serde_json::from_str(&migration_json).map_err(|e| JsValue::from_str(&e.to_string()))?;
-    let pk_bytes = base64::engine::general_purpose::STANDARD
+    let pk_bytes = tf_types::encoding::STANDARD
         .decode(&public_key_b64)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     if pk_bytes.len() != 32 {

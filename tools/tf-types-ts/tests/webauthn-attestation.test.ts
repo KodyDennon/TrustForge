@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { encode as cborEncode } from "cbor-x";
+import { encode as cborEncode } from "../src/core/cbor.js";
 import { sha256 } from "@noble/hashes/sha256";
 import { p256 } from "@noble/curves/p256";
 import { ed25519 } from "@noble/curves/ed25519";

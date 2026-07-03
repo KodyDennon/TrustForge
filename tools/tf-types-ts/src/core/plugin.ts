@@ -18,7 +18,7 @@
 
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "./yaml.js";
 import { canonicalize } from "./canonical.js";
 import {
   CryptoError,

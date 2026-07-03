@@ -1,8 +1,7 @@
 //! Encrypted .tfbundle (L4/L5) sealing + transparency anchoring — Rust
 //! mirror of `tools/tf-types-ts/src/core/bundle.ts`.
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::encoding::STANDARD;
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{ChaCha20Poly1305, Nonce};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};

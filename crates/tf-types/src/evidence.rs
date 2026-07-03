@@ -1,8 +1,7 @@
 //! Compliance evidence pipeline (TF-0012) — Rust mirror of
 //! `tools/tf-types-ts/src/core/evidence.ts`.
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::encoding::STANDARD;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

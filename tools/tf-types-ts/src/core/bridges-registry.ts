@@ -12,7 +12,7 @@
  * `crates/tf-types/src/bridges_registry.rs`.
  */
 import { readFileSync } from "node:fs";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "./yaml.js";
 
 export type BridgesRegistryKind =
   | "oauth"

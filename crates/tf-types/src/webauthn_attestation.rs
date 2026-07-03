@@ -4,7 +4,8 @@
 //! Mirrors `tools/tf-types-ts/src/core/webauthn-attestation.ts`. Supports
 //! the three attestation formats real authenticators emit for the common
 //! flows: `none`, `packed` (self-attestation; full x5c verification when
-//! a chain is present), and `fido-u2f`. CBOR decoding uses `ciborium`
+//! a chain is present), and `fido-u2f`. CBOR decoding uses the in-house
+//! `crate::cbor` codec
 //! and signature verification uses `p256` / `ed25519-dalek` so we don't
 //! depend on Node-style runtime crypto.
 //!
@@ -15,7 +16,7 @@
 
 use std::convert::TryInto;
 
-use ciborium::value::Value as CborValue;
+use crate::cbor::Value as CborValue;
 use ed25519_dalek::{Signature as Ed25519Signature, Verifier, VerifyingKey as Ed25519VerifyingKey};
 use p256::ecdsa::Signature as P256Signature;
 use p256::ecdsa::VerifyingKey as P256VerifyingKey;
@@ -149,7 +150,7 @@ pub fn parse_authenticator_data(buf: &[u8]) -> Result<ParsedAuthData, BridgeErro
 }
 
 pub fn parse_cose_public_key(cose: &[u8]) -> Result<CosePublicKey, BridgeError> {
-    let val: CborValue = ciborium::de::from_reader(cose)
+    let val: CborValue = crate::cbor::decode(cose)
         .map_err(|e| BridgeError::InvalidInput(format!("COSE key not valid CBOR: {}", e)))?;
     let map = match &val {
         CborValue::Map(m) => m,
@@ -232,7 +233,7 @@ pub fn parse_cose_public_key(cose: &[u8]) -> Result<CosePublicKey, BridgeError> 
 }
 
 pub fn decode_attestation_object(buf: &[u8]) -> Result<AttestationObject, BridgeError> {
-    let val: CborValue = ciborium::de::from_reader(buf).map_err(|e| {
+    let val: CborValue = crate::cbor::decode(buf).map_err(|e| {
         BridgeError::InvalidInput(format!("attestationObject not valid CBOR: {}", e))
     })?;
     let map = match val {

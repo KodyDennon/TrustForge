@@ -1,8 +1,26 @@
 //! SPIFFE bridge. Mirrors `tools/tf-types-ts/src/core/bridge-spiffe.ts`.
 
-use regex::Regex;
-
 use crate::bridges::{Bridge, BridgeError, BridgeKind};
+
+/// DNS-like label check, equivalent to the anchored pattern
+/// `[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?`: alphanumeric first and
+/// last byte, alphanumeric / `.` / `-` in between.
+fn is_dns_like(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    let Some((&first, rest)) = bytes.split_first() else {
+        return false;
+    };
+    if !first.is_ascii_alphanumeric() {
+        return false;
+    }
+    let Some((&last, middle)) = rest.split_last() else {
+        return true; // single character
+    };
+    last.is_ascii_alphanumeric()
+        && middle
+            .iter()
+            .all(|&b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParsedSpiffeId {
@@ -30,8 +48,7 @@ pub fn parse_spiffe_id(id: &str) -> Result<ParsedSpiffeId, BridgeError> {
     if path.is_empty() {
         return Err(BridgeError::InvalidInput("SPIFFE ID has no path".into()));
     }
-    let re = Regex::new(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$").unwrap();
-    if !re.is_match(trust_domain) {
+    if !is_dns_like(trust_domain) {
         return Err(BridgeError::InvalidInput(format!(
             "SPIFFE trust domain is not DNS-like: {}",
             trust_domain
@@ -53,12 +70,18 @@ pub fn spiffe_to_actor_id(id: &str) -> Result<String, BridgeError> {
 }
 
 pub fn actor_id_to_spiffe(actor_id: &str) -> Result<String, BridgeError> {
-    let re = Regex::new(r"^tf:actor:([^:]+):(.+)$").unwrap();
-    let caps = re
-        .captures(actor_id)
-        .ok_or_else(|| BridgeError::InvalidInput(format!("malformed actor URI: {}", actor_id)))?;
-    let type_segment = caps.get(1).unwrap().as_str();
-    let path_segment = caps.get(2).unwrap().as_str();
+    // Shape: `tf:actor:<type>:<path>` where <type> has no `:` and <path>
+    // is non-empty (may itself contain `:`).
+    let malformed =
+        || BridgeError::InvalidInput(format!("malformed actor URI: {}", actor_id));
+    let rest = actor_id.strip_prefix("tf:actor:").ok_or_else(malformed)?;
+    let colon = rest.find(':').ok_or_else(malformed)?;
+    let (type_segment, path_segment) = (&rest[..colon], &rest[colon + 1..]);
+    // `path` may contain further `:` but not a newline (parity with the
+    // former `(.+)$` pattern, where `.` excluded `\n`).
+    if type_segment.is_empty() || path_segment.is_empty() || path_segment.contains('\n') {
+        return Err(malformed());
+    }
     if type_segment != "service" {
         return Err(BridgeError::Unsupported(format!(
             "SPIFFE bridge only projects service actors, got {}",

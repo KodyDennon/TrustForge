@@ -1,7 +1,6 @@
 //! Rust federation tests.
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use tf_types::encoding::STANDARD;
 use ed25519_dalek::{Signer, SigningKey};
 use rand::rngs::OsRng;
 use tf_types::federation::{

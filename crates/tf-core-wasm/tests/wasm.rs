@@ -49,7 +49,7 @@ fn verify_packet_returns_decision_object() {
             "signature": "AAAA"
         }
     });
-    let pk = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 32]);
+    let pk = tf_types::encoding::STANDARD.encode([0u8; 32]);
     let res =
         verify_packet(jv(packet), pk, "2026-04-25T00:00:00Z".to_string()).expect("verify_packet");
     let v: serde_json::Value = serde_wasm_bindgen::from_value(res).expect("from_value");
@@ -59,8 +59,8 @@ fn verify_packet_returns_decision_object() {
 
 #[wasm_bindgen_test]
 fn ed25519_verify_returns_false_on_garbage() {
-    let pk = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 32]);
-    let sig = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [0u8; 64]);
+    let pk = tf_types::encoding::STANDARD.encode([0u8; 32]);
+    let sig = tf_types::encoding::STANDARD.encode([0u8; 64]);
     let ok = ed25519_verify(pk, b"hello".to_vec(), sig);
     assert!(!ok);
 }

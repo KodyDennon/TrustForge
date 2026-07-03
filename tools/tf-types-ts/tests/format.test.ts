@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "../src/core/yaml.js";
 import type { ProofBundle } from "../src/generated/proof-bundle";
 import type { ProofEvent } from "../src/generated/proof-event";
 import { fromHex, toHex } from "../src/core/crypto";

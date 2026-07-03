@@ -57,7 +57,29 @@ pub struct McpAction {
     pub danger_tags: Option<Vec<String>>,
 }
 
-const ACTION_NAME_RE: &str = r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$";
+/// Valid action names are two or more dot-separated segments, each
+/// `[a-z][a-z0-9_]*` (formerly the pattern
+/// `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`).
+fn is_valid_action_name(name: &str) -> bool {
+    let mut segments = 0usize;
+    for segment in name.split('.') {
+        let bytes = segment.as_bytes();
+        let Some((&first, rest)) = bytes.split_first() else {
+            return false; // empty segment (leading/trailing/double dot)
+        };
+        if !first.is_ascii_lowercase() {
+            return false;
+        }
+        if !rest
+            .iter()
+            .all(|&b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+        {
+            return false;
+        }
+        segments += 1;
+    }
+    segments >= 2
+}
 
 fn normalize_tool_name(name: &str, prefix: Option<&str>) -> String {
     let mut scrubbed = String::with_capacity(name.len());
@@ -95,14 +117,13 @@ pub fn mcp_to_contract_actions(
         .default_approval
         .clone()
         .unwrap_or_else(|| "conditional".to_string());
-    let re = regex::Regex::new(ACTION_NAME_RE).expect("static regex");
     let mut out = Vec::with_capacity(tool_list.tools.len());
     for tool in &tool_list.tools {
         if tool.name.is_empty() {
             return Err(BridgeError::InvalidInput("MCP tool missing a name".into()));
         }
         let action_name = normalize_tool_name(&tool.name, opts.name_prefix.as_deref());
-        if !re.is_match(&action_name) {
+        if !is_valid_action_name(&action_name) {
             return Err(BridgeError::InvalidInput(format!(
                 "MCP tool {} produced invalid action name {}",
                 tool.name, action_name

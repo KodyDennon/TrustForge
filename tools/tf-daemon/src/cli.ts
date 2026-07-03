@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from "node:fs";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import { BUILTIN_PROFILES, canonicalize } from "tf-types";
 import { runDaemon } from "./index.js";
 

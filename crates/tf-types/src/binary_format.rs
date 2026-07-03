@@ -19,14 +19,13 @@
 //!
 //! --- CBOR DETERMINISM (READ BEFORE EDITING) ---
 //!
-//! For wire-level parity with the TS encoder (cbor-x with sorted keys
-//! + `variableMapSize: true`), the Rust encoder converts through
-//! `serde_json::Value` first. `serde_json::Value::Object` is a
-//! `BTreeMap`, so its keys are emitted in lexicographic byte order
-//! when ciborium walks it — which matches RFC 8949 §4.2.3 deterministic
-//! encoding and matches the TS side. Without this intermediate, a
-//! native `#[derive(Serialize)]` struct would emit fields in
-//! declaration order and break parity.
+//! For wire-level parity with the TS encoder, the Rust encoder converts
+//! through `serde_json::Value` first and explicitly sorts every object's
+//! keys lexicographically (`canonicalize_json`); the in-house
+//! `crate::cbor` encoder then emits map entries in exactly that order
+//! with the smallest definite-length headers. Without this
+//! intermediate, a native `#[derive(Serialize)]` struct would emit
+//! fields in declaration order and break parity.
 //!
 //! Yes, this costs one extra ser/deser per encode. The packets are
 //! small (typical .tfpkt <1 KiB) and constrained-mode use cases never
@@ -34,8 +33,8 @@
 //! correct. Do NOT remove the round-trip without first updating
 //! `conformance/binary-format-vectors.yaml` and the matching TS test.
 
+use crate::cbor;
 use crate::generated::Packet;
-use ciborium::value::Value as CborValue;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub const TFBUNDLE_MAGIC: [u8; 8] = [0x54, 0x46, 0x42, 0x4e, 0x44, 0x01, 0x00, 0x00];
@@ -104,14 +103,14 @@ fn cbor_encode<T: Serialize>(v: &T) -> Result<Vec<u8>, BinaryFormatError> {
     let json_value: serde_json::Value =
         serde_json::to_value(v).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
     let canonical = canonicalize_json(json_value);
-    let mut out = Vec::new();
-    ciborium::ser::into_writer(&canonical, &mut out)
-        .map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
-    Ok(out)
+    let value = cbor::from_json(&canonical).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
+    cbor::encode(&value).map_err(|e| BinaryFormatError::Cbor(e.to_string()))
 }
 
 fn cbor_decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, BinaryFormatError> {
-    ciborium::de::from_reader(bytes).map_err(|e| BinaryFormatError::Cbor(e.to_string()))
+    let value = cbor::decode(bytes).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
+    let json = cbor::to_json(&value).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
+    serde_json::from_value(json).map_err(|e| BinaryFormatError::Cbor(e.to_string()))
 }
 
 /* -------------------------------------------------------------------------- */
@@ -138,7 +137,7 @@ pub struct TfbundleParts {
     /// CBOR-decoded body as a generic Value; callers can deserialize
     /// into a typed struct via `serde_json::to_value` round-trip if
     /// they don't want to call `read_tfbundle_typed::<T>` directly.
-    pub body: CborValue,
+    pub body: cbor::Value,
     pub signature: Vec<u8>,
     pub body_bytes: Vec<u8>,
 }
@@ -157,7 +156,7 @@ pub fn read_tfbundle(buf: &[u8]) -> Result<TfbundleParts, BinaryFormatError> {
         return Err(BinaryFormatError::Truncated(off));
     }
     let body_bytes = buf[off..off + body_len].to_vec();
-    let body: CborValue = cbor_decode(&body_bytes)?;
+    let body = cbor::decode(&body_bytes).map_err(|e| BinaryFormatError::Cbor(e.to_string()))?;
     off += body_len;
     let sig_len = read_u32_be(buf, off)? as usize;
     off += 4;
@@ -226,10 +225,9 @@ mod tests {
         let parts = read_tfbundle(&buf).expect("read");
         assert_eq!(parts.signature.len(), 0);
         // Round-trip the CBOR body back through serde_json.
-        let mut serialised = Vec::new();
-        ciborium::ser::into_writer(&parts.body, &mut serialised).unwrap();
+        let serialised = crate::cbor::encode(&parts.body).unwrap();
         // Re-decode as a typed Value to assert structure.
-        let decoded: serde_json::Value = ciborium::de::from_reader(serialised.as_slice()).unwrap();
+        let decoded = crate::cbor::to_json(&crate::cbor::decode(&serialised).unwrap()).unwrap();
         assert_eq!(decoded["bundle_version"], "1");
     }
 

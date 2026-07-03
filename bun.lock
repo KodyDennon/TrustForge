@@ -7,7 +7,7 @@
     },
     "tools/adapters/ts/auth0": {
       "name": "@trustforge-protocol/auth0",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -25,7 +25,7 @@
     },
     "tools/adapters/ts/better-auth": {
       "name": "@trustforge-protocol/better-auth",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -43,7 +43,7 @@
     },
     "tools/adapters/ts/bun-serve": {
       "name": "@trustforge-protocol/bun-serve",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -55,7 +55,7 @@
     },
     "tools/adapters/ts/clerk": {
       "name": "@trustforge-protocol/clerk",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -75,7 +75,7 @@
     },
     "tools/adapters/ts/express": {
       "name": "@trustforge-protocol/express",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -94,7 +94,7 @@
     },
     "tools/adapters/ts/fastify": {
       "name": "@trustforge-protocol/fastify",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
         "fastify-plugin": "^5.0.1",
@@ -111,7 +111,7 @@
     },
     "tools/adapters/ts/firebase-auth": {
       "name": "@trustforge-protocol/firebase-auth",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -129,7 +129,7 @@
     },
     "tools/adapters/ts/h3": {
       "name": "@trustforge-protocol/h3",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -144,7 +144,7 @@
     },
     "tools/adapters/ts/hono": {
       "name": "@trustforge-protocol/hono",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -160,7 +160,7 @@
     },
     "tools/adapters/ts/iron-session": {
       "name": "@trustforge-protocol/iron-session",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -178,7 +178,7 @@
     },
     "tools/adapters/ts/kinde": {
       "name": "@trustforge-protocol/kinde",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -196,7 +196,7 @@
     },
     "tools/adapters/ts/koa": {
       "name": "@trustforge-protocol/koa",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -213,7 +213,7 @@
     },
     "tools/adapters/ts/logto": {
       "name": "@trustforge-protocol/logto",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -233,7 +233,7 @@
     },
     "tools/adapters/ts/lucia": {
       "name": "@trustforge-protocol/lucia",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -251,7 +251,7 @@
     },
     "tools/adapters/ts/nestjs": {
       "name": "@trustforge-protocol/nestjs",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -267,7 +267,7 @@
     },
     "tools/adapters/ts/next": {
       "name": "@trustforge-protocol/next",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -281,7 +281,7 @@
     },
     "tools/adapters/ts/next-auth": {
       "name": "@trustforge-protocol/next-auth",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -299,7 +299,7 @@
     },
     "tools/adapters/ts/passport": {
       "name": "@trustforge-protocol/passport",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -319,7 +319,7 @@
     },
     "tools/adapters/ts/remix": {
       "name": "@trustforge-protocol/remix",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -333,7 +333,7 @@
     },
     "tools/adapters/ts/sdk": {
       "name": "@trustforge-protocol/sdk",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "devDependencies": {
         "@trustforge-protocol/test-utils": "workspace:*",
         "@types/bun": "^1.3.9",
@@ -342,7 +342,7 @@
     },
     "tools/adapters/ts/stack-auth": {
       "name": "@trustforge-protocol/stack-auth",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -360,7 +360,7 @@
     },
     "tools/adapters/ts/supabase-auth": {
       "name": "@trustforge-protocol/supabase-auth",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -378,7 +378,7 @@
     },
     "tools/adapters/ts/sveltekit": {
       "name": "@trustforge-protocol/sveltekit",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -392,7 +392,7 @@
     },
     "tools/adapters/ts/test-utils": {
       "name": "@trustforge-protocol/test-utils",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "devDependencies": {
         "@types/bun": "^1.3.9",
         "typescript": "^5.6.3",
@@ -400,7 +400,7 @@
     },
     "tools/adapters/ts/workos": {
       "name": "@trustforge-protocol/workos",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/sdk": "workspace:*",
       },
@@ -418,12 +418,11 @@
     },
     "tools/tf-cli": {
       "name": "@trustforge-protocol/cli",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/conformance": "workspace:*",
         "@trustforge-protocol/session": "workspace:*",
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -432,11 +431,10 @@
     },
     "tools/tf-conformance": {
       "name": "@trustforge-protocol/conformance",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/schema": "workspace:*",
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -445,11 +443,10 @@
     },
     "tools/tf-daemon": {
       "name": "@trustforge-protocol/daemon",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/session": "workspace:*",
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -464,7 +461,7 @@
     },
     "tools/tf-dashboard": {
       "name": "@trustforge-protocol/dashboard",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/types": "workspace:*",
       },
@@ -475,10 +472,9 @@
     },
     "tools/tf-evidence": {
       "name": "@trustforge-protocol/evidence",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -487,10 +483,9 @@
     },
     "tools/tf-packet": {
       "name": "@trustforge-protocol/packet",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -499,10 +494,9 @@
     },
     "tools/tf-proof": {
       "name": "@trustforge-protocol/proof",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/types": "workspace:*",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -511,11 +505,11 @@
     },
     "tools/tf-schema": {
       "name": "@trustforge-protocol/schema",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
+        "@trustforge-protocol/types": "workspace:*",
         "ajv": "^8.17.1",
         "ajv-formats": "^3.0.1",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.9",
@@ -524,7 +518,7 @@
     },
     "tools/tf-session": {
       "name": "@trustforge-protocol/session",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@trustforge-protocol/types": "workspace:*",
       },
@@ -535,7 +529,7 @@
     },
     "tools/tf-types-ts": {
       "name": "@trustforge-protocol/types",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@noble/ciphers": "^1.0.0",
         "@noble/curves": "^1.6.0",
@@ -544,13 +538,9 @@
         "@noble/post-quantum": "^0.6.1",
         "@peculiar/asn1-schema": "^2.3.13",
         "@peculiar/asn1-x509": "^2.3.13",
-        "cbor-x": "^1.6.0",
-        "hash-wasm": "^4.12.0",
         "jose": "^5.10.0",
-        "yaml": "^2.6.0",
       },
       "devDependencies": {
-        "@peculiar/webcrypto": "^1.5.0",
         "@peculiar/x509": "^1.12.0",
         "@types/bun": "^1.3.9",
         "fast-check": "^3.22.0",
@@ -560,18 +550,6 @@
   },
   "packages": {
     "@borewit/text-codec": ["@borewit/text-codec@0.2.2", "", {}, "sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ=="],
-
-    "@cbor-extract/cbor-extract-darwin-arm64": ["@cbor-extract/cbor-extract-darwin-arm64@2.2.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-ZKZ/F8US7JR92J4DMct6cLW/Y66o2K576+zjlEN/MevH70bFIsB10wkZEQPLzl2oNh2SMGy55xpJ9JoBRl5DOA=="],
-
-    "@cbor-extract/cbor-extract-darwin-x64": ["@cbor-extract/cbor-extract-darwin-x64@2.2.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-32b1mgc+P61Js+KW9VZv/c+xRw5EfmOcPx990JbCBSkYJFY0l25VinvyyWfl+3KjibQmAcYwmyzKF9J4DyKP/Q=="],
-
-    "@cbor-extract/cbor-extract-linux-arm": ["@cbor-extract/cbor-extract-linux-arm@2.2.2", "", { "os": "linux", "cpu": "arm" }, "sha512-tNg0za41TpQfkhWjptD+0gSD2fggMiDCSacuIeELyb2xZhr7PrhPe5h66Jc67B/5dmpIhI2QOUtv4SBsricyYQ=="],
-
-    "@cbor-extract/cbor-extract-linux-arm64": ["@cbor-extract/cbor-extract-linux-arm64@2.2.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-wfqgzqCAy/Vn8i6WVIh7qZd0DdBFaWBjPdB6ma+Wihcjv0gHqD/mw3ouVv7kbbUNrab6dKEx/w3xQZEdeXIlzg=="],
-
-    "@cbor-extract/cbor-extract-linux-x64": ["@cbor-extract/cbor-extract-linux-x64@2.2.2", "", { "os": "linux", "cpu": "x64" }, "sha512-rpiLnVEsqtPJ+mXTdx1rfz4RtUGYIUg2rUAZgd1KjiC1SehYUSkJN7Yh+aVfSjvCGtVP0/bfkQkXpPXKbmSUaA=="],
-
-    "@cbor-extract/cbor-extract-win32-x64": ["@cbor-extract/cbor-extract-win32-x64@2.2.2", "", { "os": "win32", "cpu": "x64" }, "sha512-dI+9P7cfWxkTQ+oE+7Aa6onEn92PHgfWXZivjNheCRmTBDBf2fx6RyTi0cmgpYLnD1KLZK9ZYrMxaPZ4oiXhGA=="],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 
@@ -768,10 +746,6 @@
     "@peculiar/asn1-x509": ["@peculiar/asn1-x509@2.6.1", "", { "dependencies": { "@peculiar/asn1-schema": "^2.6.0", "asn1js": "^3.0.6", "pvtsutils": "^1.3.6", "tslib": "^2.8.1" } }, "sha512-O9jT5F1A2+t3r7C4VT7LYGXqkGLK7Kj1xFpz7U0isPrubwU5PbDoyYtx6MiGst29yq7pXN5vZbQFKRCP+lLZlA=="],
 
     "@peculiar/asn1-x509-attr": ["@peculiar/asn1-x509-attr@2.6.1", "", { "dependencies": { "@peculiar/asn1-schema": "^2.6.0", "@peculiar/asn1-x509": "^2.6.1", "asn1js": "^3.0.6", "tslib": "^2.8.1" } }, "sha512-tlW6cxoHwgcQghnJwv3YS+9OO1737zgPogZ+CgWRUK4roEwIPzRH4JEiG770xe5HX2ATfCpmX60gurfWIF9dcQ=="],
-
-    "@peculiar/json-schema": ["@peculiar/json-schema@1.1.12", "", { "dependencies": { "tslib": "^2.0.0" } }, "sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w=="],
-
-    "@peculiar/webcrypto": ["@peculiar/webcrypto@1.5.0", "", { "dependencies": { "@peculiar/asn1-schema": "^2.3.8", "@peculiar/json-schema": "^1.1.12", "pvtsutils": "^1.3.5", "tslib": "^2.6.2", "webcrypto-core": "^1.8.0" } }, "sha512-BRs5XUAwiyCDQMsVA9IDvDa7UBR9gAvPHgugOeGng3YN6vJ9JYonyDc0lNczErgtCWtucjR5N7VtaonboD/ezg=="],
 
     "@peculiar/x509": ["@peculiar/x509@1.14.3", "", { "dependencies": { "@peculiar/asn1-cms": "^2.6.0", "@peculiar/asn1-csr": "^2.6.0", "@peculiar/asn1-ecc": "^2.6.0", "@peculiar/asn1-pkcs9": "^2.6.0", "@peculiar/asn1-rsa": "^2.6.0", "@peculiar/asn1-schema": "^2.6.0", "@peculiar/asn1-x509": "^2.6.0", "pvtsutils": "^1.3.6", "reflect-metadata": "^0.2.2", "tslib": "^2.8.1", "tsyringe": "^4.10.0" } }, "sha512-C2Xj8FZ0uHWeCXXqX5B4/gVFQmtSkiuOolzAgutjTfseNOHT3pUjljDZsTSxXFGgio54bCzVFqmEOUrIVk8RDA=="],
 
@@ -1025,10 +999,6 @@
 
     "caniuse-lite": ["caniuse-lite@1.0.30001790", "", {}, "sha512-bOoxfJPyYo+ds6W0YfptaCWbFnJYjh2Y1Eow5lRv+vI2u8ganPZqNm1JwNh0t2ELQCqIWg4B3dWEusgAmsoyOw=="],
 
-    "cbor-extract": ["cbor-extract@2.2.2", "", { "dependencies": { "node-gyp-build-optional-packages": "5.1.1" }, "optionalDependencies": { "@cbor-extract/cbor-extract-darwin-arm64": "2.2.2", "@cbor-extract/cbor-extract-darwin-x64": "2.2.2", "@cbor-extract/cbor-extract-linux-arm": "2.2.2", "@cbor-extract/cbor-extract-linux-arm64": "2.2.2", "@cbor-extract/cbor-extract-linux-x64": "2.2.2", "@cbor-extract/cbor-extract-win32-x64": "2.2.2" }, "bin": { "download-cbor-prebuilds": "bin/download-prebuilds.js" } }, "sha512-hlSxxI9XO2yQfe9g6msd3g4xCfDqK5T5P0fRMLuaLHhxn4ViPrm+a+MUfhrvH2W962RGxcBwEGzLQyjbDG1gng=="],
-
-    "cbor-x": ["cbor-x@1.6.4", "", { "optionalDependencies": { "cbor-extract": "^2.2.2" } }, "sha512-UGKHjp6RHC6QuZ2yy5LCKm7MojM4716DwoSaqwQpaH4DvZvbBTGcoDNTiG9Y2lByXZYFEs9WRkS5tLl96IrF1Q=="],
-
     "cjs-module-lexer": ["cjs-module-lexer@1.4.3", "", {}, "sha512-9z8TZaGM1pfswYeXrUpzPrkx8UnWYdhJclsiYMm6x/w5+nN+8Tf/LnAgfLGQCm59qAOxU8WwHEq2vNwF6i4j+Q=="],
 
     "client-only": ["client-only@0.0.1", "", {}, "sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA=="],
@@ -1177,8 +1147,6 @@
 
     "has-tostringtag": ["has-tostringtag@1.0.2", "", { "dependencies": { "has-symbols": "^1.0.3" } }, "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw=="],
 
-    "hash-wasm": ["hash-wasm@4.12.0", "", {}, "sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ=="],
-
     "hasown": ["hasown@2.0.3", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg=="],
 
     "hono": ["hono@4.12.15", "", {}, "sha512-qM0jDhFEaCBb4TxoW7f53Qrpv9RBiayUHo0S52JudprkhvpjIrGoU1mnnr29Fvd1U335ZFPZQY1wlkqgfGXyLg=="],
@@ -1288,8 +1256,6 @@
     "negotiator": ["negotiator@0.6.3", "", {}, "sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg=="],
 
     "next": ["next@16.2.4", "", { "dependencies": { "@next/env": "16.2.4", "@swc/helpers": "0.5.15", "baseline-browser-mapping": "^2.9.19", "caniuse-lite": "^1.0.30001579", "postcss": "8.4.31", "styled-jsx": "5.1.6" }, "optionalDependencies": { "@next/swc-darwin-arm64": "16.2.4", "@next/swc-darwin-x64": "16.2.4", "@next/swc-linux-arm64-gnu": "16.2.4", "@next/swc-linux-arm64-musl": "16.2.4", "@next/swc-linux-x64-gnu": "16.2.4", "@next/swc-linux-x64-musl": "16.2.4", "@next/swc-win32-arm64-msvc": "16.2.4", "@next/swc-win32-x64-msvc": "16.2.4", "sharp": "^0.34.5" }, "peerDependencies": { "@opentelemetry/api": "^1.1.0", "@playwright/test": "^1.51.1", "babel-plugin-react-compiler": "*", "react": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "react-dom": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", "sass": "^1.3.0" }, "optionalPeers": ["@opentelemetry/api", "@playwright/test", "babel-plugin-react-compiler", "sass"], "bin": { "next": "dist/bin/next" } }, "sha512-kPvz56wF5frc+FxlHI5qnklCzbq53HTwORaWBGdT0vNoKh1Aya9XC8aPauH4NJxqtzbWsS5mAbctm4cr+EkQ2Q=="],
-
-    "node-gyp-build-optional-packages": ["node-gyp-build-optional-packages@5.1.1", "", { "dependencies": { "detect-libc": "^2.0.1" }, "bin": { "node-gyp-build-optional-packages": "bin.js", "node-gyp-build-optional-packages-test": "build-test.js", "node-gyp-build-optional-packages-optional": "optional.js" } }, "sha512-+P72GAjVAbTxjjwUmwjVrqrdZROD4nf8KgpBoDxqXXTiYZZt/ud60dE5yvCSr9lRO8e8yv6kgJIC0K0PfZFVQw=="],
 
     "node-mock-http": ["node-mock-http@1.0.4", "", {}, "sha512-8DY+kFsDkNXy1sJglUfuODx1/opAGJGyrTuFqEoN90oRc2Vk0ZbD4K2qmKXBBEhZQzdKHIVfEJpDU8Ak2NJEvQ=="],
 
@@ -1478,8 +1444,6 @@
     "vite": ["vite@8.0.10", "", { "dependencies": { "lightningcss": "^1.32.0", "picomatch": "^4.0.4", "postcss": "^8.5.10", "rolldown": "1.0.0-rc.17", "tinyglobby": "^0.2.16" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.1.0", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-rZuUu9j6J5uotLDs+cAA4O5H4K1SfPliUlQwqa6YEwSrWDZzP4rhm00oJR5snMewjxF5V/K3D4kctsUTsIU9Mw=="],
 
     "vitefu": ["vitefu@1.1.3", "", { "peerDependencies": { "vite": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0" }, "optionalPeers": ["vite"] }, "sha512-ub4okH7Z5KLjb6hDyjqrGXqWtWvoYdU3IGm/NorpgHncKoLTCfRIbvlhBm7r0YstIaQRYlp4yEbFqDcKSzXSSg=="],
-
-    "webcrypto-core": ["webcrypto-core@1.8.1", "", { "dependencies": { "@peculiar/asn1-schema": "^2.3.13", "@peculiar/json-schema": "^1.1.12", "asn1js": "^3.0.5", "pvtsutils": "^1.3.5", "tslib": "^2.7.0" } }, "sha512-P+x1MvlNCXlKbLSOY4cYrdreqPG5hbzkmawbcXLKN/mf6DZW0SdNNkZ+sjwsqVkI4A4Ko2sPZmkZtCKY58w83A=="],
 
     "wrap-ansi": ["wrap-ansi@7.0.0", "", { "dependencies": { "ansi-styles": "^4.0.0", "string-width": "^4.1.0", "strip-ansi": "^6.0.0" } }, "sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q=="],
 

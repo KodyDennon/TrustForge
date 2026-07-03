@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import Ajv2020, { type ValidateFunction } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 
 export const REPO_ROOT = resolve(import.meta.dir, "..", "..", "..");
 export const SCHEMAS_DIR = join(REPO_ROOT, "schemas");

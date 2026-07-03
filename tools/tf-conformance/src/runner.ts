@@ -9,7 +9,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import {
   AgentGuard,
   RevocationIndex,

@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use regex::Regex;
+use crate::glob::glob_match;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -645,41 +645,4 @@ fn negative_matches(neg: &NegativeCapability, q: &GuardQuery) -> bool {
         return false;
     };
     glob_match(target_pattern, query_target)
-}
-
-fn glob_match(pattern: &str, value: &str) -> bool {
-    // Iterate as Unicode chars (NOT bytes). Pre-B8 we cast each UTF-8
-    // byte to char, which corrupted any non-ASCII pattern (e.g. an
-    // `é` in a target_set name produced two Latin-1 chars in the regex
-    // and never matched the actual `é`).
-    let mut re = String::from("^");
-    let chars: Vec<char> = pattern.chars().collect();
-    let mut i = 0;
-    while i < chars.len() {
-        let c = chars[i];
-        match c {
-            '*' => {
-                if i + 1 < chars.len() && chars[i + 1] == '*' {
-                    re.push_str(".*");
-                    i += 2;
-                } else {
-                    re.push_str("[^/]*");
-                    i += 1;
-                }
-            }
-            // Escape every regex meta character (including `?` — pre-B8
-            // it was passed through as the regex zero-or-one quantifier).
-            '.' | '+' | '^' | '$' | '{' | '}' | '(' | ')' | '|' | '[' | ']' | '\\' | '?' => {
-                re.push('\\');
-                re.push(c);
-                i += 1;
-            }
-            _ => {
-                re.push(c);
-                i += 1;
-            }
-        }
-    }
-    re.push('$');
-    Regex::new(&re).map(|r| r.is_match(value)).unwrap_or(false)
 }

@@ -1,7 +1,6 @@
 //! Session-migration helpers (Rust mirror of TS).
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::encoding::STANDARD;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use hkdf::Hkdf;
 use serde::{Deserialize, Serialize};

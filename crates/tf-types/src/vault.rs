@@ -9,7 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use argon2::{Algorithm, Argon2, Params, Version};
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use crate::encoding::STANDARD as B64;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json;

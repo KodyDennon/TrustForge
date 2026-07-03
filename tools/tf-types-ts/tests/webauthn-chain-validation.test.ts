@@ -11,16 +11,12 @@
  */
 import { describe, expect, test } from "bun:test";
 import * as x509 from "@peculiar/x509";
-import { Crypto } from "@peculiar/webcrypto";
 import { sha256 } from "@noble/hashes/sha2";
-import { encode as cborEncode } from "cbor-x";
+import { encode as cborEncode } from "../src/core/cbor.js";
 import { verifyAttestation, BridgeFailure } from "../src/index";
 
-const cryptoProvider = new Crypto();
-// @peculiar/x509 accepts WebCrypto-shaped Crypto regardless of the host's
-// `crypto.timingSafeEqual` extension; cast to satisfy the strict DOM lib.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(x509.cryptoProvider as any).set(cryptoProvider as any);
+const cryptoProvider = globalThis.crypto;
+x509.cryptoProvider.set(cryptoProvider);
 
 const RP_ID = "tf.example";
 const ORIGIN = `https://${RP_ID}`;

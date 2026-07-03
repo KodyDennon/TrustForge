@@ -9,6 +9,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::canonicalize;
+use crate::glob::glob_match;
 use crate::guard::NegativeCapability;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -416,36 +417,6 @@ fn negative_matches(neg: &NegativeCapability, q: &PolicyQuery) -> bool {
     glob_match(target_pattern, query_target)
 }
 
-fn glob_match(pattern: &str, value: &str) -> bool {
-    let mut re = String::from("^");
-    let bytes = pattern.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        match b {
-            b'*' => {
-                if i + 1 < bytes.len() && bytes[i + 1] == b'*' {
-                    re.push_str(".*");
-                    i += 2;
-                } else {
-                    re.push_str("[^/]*");
-                    i += 1;
-                }
-            }
-            b'.' | b'+' | b'^' | b'$' | b'{' | b'}' | b'(' | b')' | b'|' | b'[' | b']' | b'\\' => {
-                re.push('\\');
-                re.push(b as char);
-                i += 1;
-            }
-            _ => {
-                re.push(b as char);
-                i += 1;
-            }
-        }
-    }
-    re.push('$');
-    Regex::new(&re).map(|r| r.is_match(value)).unwrap_or(false)
-}
 
 fn now_iso8601() -> String {
     let secs = std::time::SystemTime::now()

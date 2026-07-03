@@ -9,7 +9,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "yaml": "^2.6.0",
     "@trustforge-protocol/types": "workspace:*"
   },
   "devDependencies": {

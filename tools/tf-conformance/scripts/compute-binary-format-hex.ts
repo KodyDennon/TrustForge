@@ -8,7 +8,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import { writeTfbundle, writeTfpkt } from "tf-types";
 
 const ROOT = resolve(import.meta.dir, "..", "..", "..");

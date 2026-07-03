@@ -23,7 +23,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "./yaml.js";
 
 import type { AgentContract } from "../generated/agent-contract.js";
 import type { Conformance } from "../generated/conformance.js";

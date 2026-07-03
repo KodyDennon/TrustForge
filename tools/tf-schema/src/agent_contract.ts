@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import { buildAjv, getValidator } from "./loader";
 
 export type Severity = "error" | "warning" | "info";

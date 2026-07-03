@@ -2,8 +2,7 @@
 //! Packet mode (TF-0011) — Rust mirror of
 //! `tools/tf-types-ts/src/core/packet.ts`.
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::encoding::STANDARD;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use flate2::read::DeflateDecoder;
 use flate2::write::DeflateEncoder;
@@ -372,23 +371,20 @@ pub fn reassemble_fragments(fragments: &[Packet]) -> ReassembleResult {
 }
 
 fn serde_cbor_envelope(raw: &[u8]) -> Vec<u8> {
-    let value = ciborium::value::Value::Map(vec![(
-        ciborium::value::Value::Text("raw".into()),
-        ciborium::value::Value::Bytes(raw.to_vec()),
+    let value = crate::cbor::Value::Map(vec![(
+        crate::cbor::Value::Text("raw".into()),
+        crate::cbor::Value::Bytes(raw.to_vec()),
     )]);
-    let mut buf = Vec::new();
-    ciborium::ser::into_writer(&value, &mut buf).expect("cbor encode");
-    buf
+    crate::cbor::encode(&value).expect("cbor encode")
 }
 
 fn decode_cbor_envelope(bytes: &[u8]) -> Result<Vec<u8>, String> {
-    let value: ciborium::value::Value =
-        ciborium::de::from_reader(bytes).map_err(|e| format!("cbor: {}", e))?;
+    let value = crate::cbor::decode(bytes).map_err(|e| format!("cbor: {}", e))?;
     match value {
-        ciborium::value::Value::Map(entries) => {
+        crate::cbor::Value::Map(entries) => {
             for (k, v) in entries {
-                if matches!(k, ciborium::value::Value::Text(ref s) if s == "raw") {
-                    if let ciborium::value::Value::Bytes(b) = v {
+                if matches!(k, crate::cbor::Value::Text(ref s) if s == "raw") {
+                    if let crate::cbor::Value::Bytes(b) = v {
                         return Ok(b);
                     }
                 }

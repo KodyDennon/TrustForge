@@ -11,8 +11,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine as _;
+use crate::encoding::STANDARD;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

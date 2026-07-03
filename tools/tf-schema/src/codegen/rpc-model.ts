@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import { pascal, type TypeDecl } from "./model";
 
 type Node = Record<string, unknown>;

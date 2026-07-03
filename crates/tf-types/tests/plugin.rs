@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use tf_types::encoding::STANDARD as B64;
 use rand::rngs::OsRng;
 use serde_json::{json, Value};
 use tempfile::tempdir;

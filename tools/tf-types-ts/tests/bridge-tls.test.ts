@@ -1,11 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { Crypto } from "@peculiar/webcrypto";
 import * as x509 from "@peculiar/x509";
 
 import { BridgeFailure, TlsBridge, parsePemBundle, extractEkuOids } from "../src/index";
 
-const webcrypto = new Crypto();
-x509.cryptoProvider.set(webcrypto as unknown as globalThis.Crypto);
+const webcrypto = globalThis.crypto;
+x509.cryptoProvider.set(webcrypto);
 
 interface CertMaterial {
   cert: x509.X509Certificate;

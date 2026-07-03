@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "../src/core/yaml.js";
 import { canonicalize } from "../src/core/canonical";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");

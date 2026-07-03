@@ -8,7 +8,7 @@
 //! `SignatureEnvelope` schema today. No custom crypto is introduced in
 //! this module — everything is a thin adapter.
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use crate::encoding::STANDARD as B64;
 use ed25519_dalek::{Signature, Signer as _, SigningKey, Verifier as _, VerifyingKey};
 use sha2::{Digest, Sha256};
 

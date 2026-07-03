@@ -25,8 +25,7 @@ use crate::generated::{
     PublicKey, PublicKey_Purpose, TrustLevel,
 };
 
-use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
-use base64::Engine as _;
+use crate::encoding::{STANDARD, URL_SAFE_NO_PAD};
 
 // ---------------------------------------------------------------------------
 // Public types

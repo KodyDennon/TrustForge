@@ -25,7 +25,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { parse as parseYAML, stringify as yamlStringify } from "yaml";
+import { parseYaml as parseYAML, stringifyYaml as yamlStringify } from "@trustforge-protocol/types";
 import {
   RpcCallError,
   RpcClient,

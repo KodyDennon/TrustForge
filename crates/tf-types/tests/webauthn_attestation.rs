@@ -5,9 +5,8 @@
 //! through `verify_attestation`. Cross-language parity is asserted with
 //! `tools/tf-types-ts/tests/webauthn-attestation.test.ts`.
 
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use base64::Engine;
-use ciborium::value::Value;
+use tf_types::encoding::URL_SAFE_NO_PAD;
+use tf_types::cbor::Value;
 use ed25519_dalek::Signer as _;
 use ed25519_dalek::SigningKey as Ed25519SigningKey;
 use p256::ecdsa::signature::Signer as P256Signer;
@@ -34,9 +33,7 @@ fn challenge() -> String {
 }
 
 fn cbor_encode(v: &Value) -> Vec<u8> {
-    let mut buf = Vec::new();
-    ciborium::ser::into_writer(v, &mut buf).unwrap();
-    buf
+    tf_types::cbor::encode(v).unwrap()
 }
 
 fn build_client_data(challenge: &str, origin: &str) -> Vec<u8> {

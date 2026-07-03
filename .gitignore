@@ -144,3 +144,6 @@ logs/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# npm auth tokens — never commit
+.npmrc

@@ -17,7 +17,7 @@
  */
 
 import { deflateSync, inflateSync } from "node:zlib";
-import { encode as cborEncode, decode as cborDecode } from "cbor-x";
+import { encode as cborEncode, decode as cborDecode } from "./cbor.js";
 import { canonicalize } from "./canonical.js";
 import { ed25519Sign, ed25519Verify, sha256 } from "./crypto.js";
 import { isWithinWindow } from "./expiration.js";

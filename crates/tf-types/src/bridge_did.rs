@@ -1,7 +1,6 @@
 //! DID (W3C DID Core 1.0) bridge — Rust mirror of TS.
 
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use base64::Engine;
+use crate::encoding::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -111,7 +110,7 @@ impl DidBridge {
             public_keys: vec![PublicKey {
                 key_id: vm.id.clone(),
                 algorithm: pk.algorithm,
-                public_key: base64::engine::general_purpose::STANDARD.encode(&pk.bytes),
+                public_key: crate::encoding::STANDARD.encode(&pk.bytes),
                 purpose: PublicKey_Purpose::Signing,
                 valid_from: None,
                 valid_until: None,
@@ -208,7 +207,7 @@ fn decode_multibase(s: &str) -> Option<Vec<u8>> {
     let body = &s[1..];
     match prefix {
         b'z' => base58btc_decode(body),
-        b'm' => base64::engine::general_purpose::STANDARD.decode(body).ok(),
+        b'm' => crate::encoding::STANDARD.decode(body).ok(),
         b'u' => URL_SAFE_NO_PAD.decode(body).ok(),
         _ => None,
     }

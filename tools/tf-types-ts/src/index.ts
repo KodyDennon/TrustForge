@@ -50,3 +50,4 @@ export * from "./core/federation.js";
 export * from "./core/profile.js";
 export * from "./core/proof-event-builder.js";
 export * from "./core/webauthn-attestation.js";
+export { parse as parseYaml, stringify as stringifyYaml, YamlError } from "./core/yaml.js";

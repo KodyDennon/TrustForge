@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "../src/core/yaml.js";
 import { AgentGuard, type GuardDecision, type GuardEventStub } from "../src/core/guard";
 
 type Expect = { kind: GuardDecision["kind"]; danger_tags?: string[] };

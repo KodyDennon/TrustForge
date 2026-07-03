@@ -23,29 +23,22 @@
  *
  * --- CBOR DETERMINISM (READ BEFORE EDITING) ---
  *
- * Byte-level parity with the Rust encoder (`ciborium::ser::into_writer`
- * over `serde_json::Value`, which uses a BTreeMap) requires two
- * non-default `cbor-x` settings:
+ * Byte-level parity with the Rust encoder (`crate::cbor` over sorted
+ * `serde_json::Value`) rests on two properties:
  *
- *   1. `variableMapSize: true`  — emit `0xa0..0xbb`-prefixed maps with
- *      the smallest definite-length encoding. The cbor-x default
- *      always uses a fixed-width 16-bit length (`b9 XX XX`); ciborium
- *      always uses the smallest fit (`a2` for size 2, etc.). Without
- *      this flag every map is a length-mismatch.
- *   2. Recursive key sorting via `sortKeysDeep()`   — RFC 8949 §4.2.3
- *      "Length-First Bytewise Lexicographic Comparison" (preferred
- *      deterministic encoding). serde_json::Value's BTreeMap already
- *      sorts; cbor-x preserves JS object insertion order, so we sort
- *      ourselves before encoding.
+ *   1. The in-house `cbor.ts` encoder always emits the smallest
+ *      definite-length headers (ints, strings, arrays, maps alike).
+ *   2. Recursive key sorting via `sortKeysDeep()` — the encoder itself
+ *      preserves JS object insertion order, so we sort ourselves before
+ *      encoding, exactly like the Rust side's `canonicalize_json`.
  *
- * Both settings are enforced by `CANONICAL_ENCODER`. Flipping either
- * one breaks `conformance/binary-format-vectors.yaml`. If you need a
- * faster non-canonical encoder for some other path, do it under a
- * different name — do NOT change the body of `writeTfbundle` /
- * `writeTfpkt` without updating the vectors and the Rust parity test.
+ * Changing either property breaks
+ * `conformance/binary-format-vectors.yaml`. Do NOT change the body of
+ * `writeTfbundle` / `writeTfpkt` without updating the vectors and the
+ * Rust parity test.
  */
 
-import { Encoder, decode as cborDecode } from "cbor-x";
+import { encode as cborEncode, decode as cborDecode } from "./cbor.js";
 import type { Packet } from "../generated/packet.js";
 import type { ProofBundle } from "../generated/proof-bundle.js";
 import type { ProofBundleEncrypted } from "../generated/proof-bundle-encrypted.js";
@@ -77,23 +70,8 @@ function sortKeysDeep(value: unknown): unknown {
   return out;
 }
 
-/**
- * Canonical encoder used by both writeTfbundle and writeTfpkt. See
- * "CBOR DETERMINISM" docstring above for the rationale.
- */
-const CANONICAL_ENCODER = new Encoder({
-  useFloat32: 0, // FLOAT32_OPTIONS.NEVER
-  mapsAsObjects: false,
-  useRecords: false,
-  pack: false,
-  variableMapSize: true,
-  tagUint8Array: false,
-});
-
 function canonicalCborEncode(value: unknown): Uint8Array {
-  const sorted = sortKeysDeep(value);
-  const out = CANONICAL_ENCODER.encode(sorted);
-  return out instanceof Uint8Array ? out : new Uint8Array(out);
+  return cborEncode(sortKeysDeep(value));
 }
 
 function putU32BE(view: number[], n: number): void {

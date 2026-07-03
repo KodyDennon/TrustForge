@@ -5,7 +5,7 @@
 //!   * a mock upstream that records every request and replies 200
 //!   * the tf-proxy itself, bound to an ephemeral port
 //!
-//! and then drive a `reqwest::Client` against the proxy.
+//! and then drive an HTTP client (hyper-util) against the proxy.
 
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -186,11 +186,47 @@ async fn start_proxy(daemon_body: &str, mode: Mode) -> ProxyHarness {
     }
 }
 
-fn client() -> reqwest::Client {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(5))
-        .build()
-        .unwrap()
+struct TestResponse {
+    status: hyper::StatusCode,
+    headers: hyper::HeaderMap,
+    body: Bytes,
+}
+
+impl TestResponse {
+    fn status(&self) -> hyper::StatusCode {
+        self.status
+    }
+    fn headers(&self) -> &hyper::HeaderMap {
+        &self.headers
+    }
+    fn text(&self) -> String {
+        String::from_utf8_lossy(&self.body).into_owned()
+    }
+    fn json(&self) -> serde_json::Value {
+        serde_json::from_slice(&self.body).unwrap()
+    }
+}
+
+async fn http_get(url: &str) -> TestResponse {
+    let client = hyper_util::client::legacy::Client::builder(
+        hyper_util::rt::TokioExecutor::new(),
+    )
+    .build_http::<Full<Bytes>>();
+    let req = Request::builder()
+        .uri(url)
+        .body(Full::new(Bytes::new()))
+        .unwrap();
+    let resp = tokio::time::timeout(Duration::from_secs(5), client.request(req))
+        .await
+        .expect("request timed out")
+        .unwrap();
+    let (parts, body) = resp.into_parts();
+    let body = body.collect().await.unwrap().to_bytes();
+    TestResponse {
+        status: parts.status,
+        headers: parts.headers,
+        body,
+    }
 }
 
 // ---------- Tests ----------
@@ -199,10 +235,10 @@ fn client() -> reqwest::Client {
 async fn allow_forwards_to_upstream() {
     let h = start_proxy(r#"{"decision":"allow","reason":"ok"}"#, Mode::Enforce).await;
     let url = format!("http://{}/api/users", h.addr);
-    let resp = client().get(&url).send().await.unwrap();
+    let resp = http_get(&url).await;
     assert_eq!(resp.status(), 200);
     assert_eq!(resp.headers().get("x-upstream").unwrap(), "yes");
-    let body = resp.text().await.unwrap();
+    let body = resp.text();
     assert_eq!(body, "hello from upstream");
     assert_eq!(h.upstream.hits.load(Ordering::Relaxed), 1);
 }
@@ -215,7 +251,7 @@ async fn deny_in_enforce_returns_403() {
     )
     .await;
     let url = format!("http://{}/admin/delete", h.addr);
-    let resp = client().get(&url).send().await.unwrap();
+    let resp = http_get(&url).await;
     assert_eq!(resp.status(), 403);
     let www = resp
         .headers()
@@ -226,7 +262,7 @@ async fn deny_in_enforce_returns_403() {
         .to_string();
     assert!(www.contains("TrustForge"), "header was: {www}");
     assert!(www.contains("no-cap"), "header was: {www}");
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body: serde_json::Value = resp.json();
     assert_eq!(body["error"], "deny");
     assert_eq!(body["reason"], "no-cap");
     assert_eq!(body["proof_id"], "proof-123");
@@ -271,7 +307,7 @@ async fn deny_in_observe_only_still_forwards() {
     )
     .await;
     let url = format!("http://{}/api/widgets", h.addr);
-    let resp = client().get(&url).send().await.unwrap();
+    let resp = http_get(&url).await;
     assert_eq!(resp.status(), 200);
     assert_eq!(h.upstream.hits.load(Ordering::Relaxed), 1);
 
@@ -296,7 +332,7 @@ async fn approval_required_returns_202() {
     )
     .await;
     let url = format!("http://{}/api/sensitive", h.addr);
-    let resp = client().get(&url).send().await.unwrap();
+    let resp = http_get(&url).await;
     assert_eq!(resp.status(), 202);
     let location = resp
         .headers()
@@ -309,7 +345,7 @@ async fn approval_required_returns_202() {
         location.ends_with("/v1/approval/appr-42"),
         "location was: {location}"
     );
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body: serde_json::Value = resp.json();
     assert_eq!(body["status"], "pending");
     assert_eq!(body["approval_id"], "appr-42");
     assert_eq!(h.upstream.hits.load(Ordering::Relaxed), 0);
@@ -420,9 +456,9 @@ async fn websocket_upgrade_allow_pipes_bytes() {
 async fn malformed_daemon_response_returns_502() {
     let h = start_proxy("not-json-at-all", Mode::Enforce).await;
     let url = format!("http://{}/whatever", h.addr);
-    let resp = client().get(&url).send().await.unwrap();
+    let resp = http_get(&url).await;
     assert_eq!(resp.status(), 502);
-    let body: serde_json::Value = resp.json().await.unwrap();
+    let body: serde_json::Value = resp.json();
     assert_eq!(body["error"], "daemon-error");
     assert_eq!(h.upstream.hits.load(Ordering::Relaxed), 0);
     // Daemon was contacted at least once.

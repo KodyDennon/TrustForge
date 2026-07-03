@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 const SCHEMA_PATH = join(REPO_ROOT, "schemas", "agent-contract.schema.json");

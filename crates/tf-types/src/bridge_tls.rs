@@ -245,7 +245,7 @@ impl TlsBridge {
             _ => "unknown",
         };
         let public_key_b64 =
-            base64::engine::general_purpose::STANDARD.encode(pk.subject_public_key.data.as_ref());
+            crate::encoding::STANDARD.encode(pk.subject_public_key.data.as_ref());
 
         let fingerprint = sha256_hex(leaf.as_ref());
 
@@ -460,7 +460,6 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
     (year as i32, m, d, hour, minute, second)
 }
 
-use base64::Engine as _;
 
 // =============================================================================
 // OCSP, CRL, exporter binding, and post-handshake re-auth modules.

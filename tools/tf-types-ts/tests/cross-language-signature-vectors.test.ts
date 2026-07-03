@@ -13,7 +13,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parse as parseYAML } from "../src/core/yaml.js";
 import { sha256 } from "@noble/hashes/sha2";
 import { canonicalize, ed25519PublicKey, ed25519Sign, ed25519Verify } from "../src/index";
 

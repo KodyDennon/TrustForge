@@ -2,8 +2,7 @@
 //! Forwarding authority is strictly separate from action authority;
 //! `RelayHandler` only sees opaque ciphertext and routes it.
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::encoding::STANDARD;
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

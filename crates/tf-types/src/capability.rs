@@ -153,37 +153,5 @@ fn pick_earlier<'a>(a: &'a str, b: &'a str) -> &'a str {
 }
 
 fn matches_glob(pattern: &str, value: &str) -> bool {
-    // Minimal glob: `*` matches non-`/` chars, `**` matches any.
-    // Escape regex meta first, then translate globs.
-    let mut re = String::with_capacity(pattern.len() + 4);
-    re.push('^');
-    let bytes = pattern.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        match b {
-            b'*' => {
-                if i + 1 < bytes.len() && bytes[i + 1] == b'*' {
-                    re.push_str(".*");
-                    i += 2;
-                } else {
-                    re.push_str("[^/]*");
-                    i += 1;
-                }
-            }
-            b'.' | b'+' | b'^' | b'$' | b'{' | b'}' | b'(' | b')' | b'|' | b'[' | b']' | b'\\' => {
-                re.push('\\');
-                re.push(b as char);
-                i += 1;
-            }
-            _ => {
-                re.push(b as char);
-                i += 1;
-            }
-        }
-    }
-    re.push('$');
-    regex::Regex::new(&re)
-        .map(|r| r.is_match(value))
-        .unwrap_or(false)
+    crate::glob::glob_match(pattern, value)
 }

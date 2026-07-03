@@ -20,7 +20,7 @@ import {
   mkdirSync,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import {
   AgentGuard,
   NativePolicyEngine,

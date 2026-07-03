@@ -9,117 +9,333 @@
 #   enforcement_level:  E0..E5 (default E4)
 #   query:              {action, target?}
 #   expect:             expected GuardDecision.kind value
+#
+# NOTE: anchors/aliases were expanded — TF-YAML (the in-house
+# parser) deliberately does not support them.
 
-contract: &c
+contract:
   agent_contract_version: "1"
-  contract_id: tf:contract:test-neg-cap
+  contract_id: "tf:contract:test-neg-cap"
   trust_domain: example.com
-  agent_actor: tf:actor:agent:example.com/test
+  agent_actor: "tf:actor:agent:example.com/test"
   actions:
     - name: file.write
       risk: R2
       danger_tags: []
     - name: file.delete
       risk: R3
-      danger_tags: [destructive]
+      danger_tags:
+        - destructive
     - name: payment.send
       risk: R4
-      danger_tags: [financial]
+      danger_tags:
+        - financial
       approval: required
-
 vectors:
   - name: negcap-action-only-blocks-everything
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.delete
         reason: never delete on this host
     enforcement_level: E4
-    query: { action: file.delete, target: "/tmp/x" }
+    query:
+      action: file.delete
+      target: "/tmp/x"
     expect: deny
-
   - name: negcap-with-target-glob-matches
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.write
         target: "/etc/**"
     enforcement_level: E4
-    query: { action: file.write, target: "/etc/passwd" }
+    query:
+      action: file.write
+      target: "/etc/passwd"
     expect: deny
-
   - name: negcap-with-target-glob-misses
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.write
         target: "/etc/**"
     enforcement_level: E4
-    query: { action: file.write, target: "/tmp/note.txt" }
+    query:
+      action: file.write
+      target: "/tmp/note.txt"
     expect: allow
-
   - name: negcap-precedence-over-forbidden
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.delete
     enforcement_level: E4
-    # negative cap matches first, so reason is the negcap reason rather
-    # than "danger_tags require escalation"; the verdict is deny either way.
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: deny
-
   - name: e0-shadow-mode-converts-deny-to-log-only
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.delete
     enforcement_level: E0
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: log-only
-
   - name: e0-shadow-mode-converts-escalate-to-log-only
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     enforcement_level: E0
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: log-only
-
   - name: e1-warn-mode-allows-with-warn-tag
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     negative_capabilities:
       - name: file.delete
     enforcement_level: E1
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: allow
-
   - name: e3-escalates-allow-with-danger-tag
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     enforcement_level: E3
-    # file.delete has danger_tag destructive — at E3 even allow becomes
-    # escalate; here the underlying decision is "escalate" because the
-    # destructive tag triggers ESCALATE_TAGS, so result stays escalate.
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: escalate
-
   - name: e5-fail-closed-converts-escalate-to-deny
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     enforcement_level: E5
-    query: { action: file.delete, target: "/tmp" }
+    query:
+      action: file.delete
+      target: "/tmp"
     expect: deny
-
   - name: e5-fail-closed-converts-approval-required-to-deny
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     enforcement_level: E5
-    query: { action: payment.send, target: vendor-1 }
+    query:
+      action: payment.send
+      target: vendor-1
     expect: deny
-
   - name: plain-allow-passes-through-e4
-    contract: *c
+    contract:
+      agent_contract_version: "1"
+      contract_id: "tf:contract:test-neg-cap"
+      trust_domain: example.com
+      agent_actor: "tf:actor:agent:example.com/test"
+      actions:
+        - name: file.write
+          risk: R2
+          danger_tags: []
+        - name: file.delete
+          risk: R3
+          danger_tags:
+            - destructive
+        - name: payment.send
+          risk: R4
+          danger_tags:
+            - financial
+          approval: required
     enforcement_level: E4
-    query: { action: file.write, target: "/tmp/note.txt" }
+    query:
+      action: file.write
+      target: "/tmp/note.txt"
     expect: allow
-
   - name: forbidden-still-deny-without-negcap
     contract:
-      <<: *c
+      "<<":
+        agent_contract_version: "1"
+        contract_id: "tf:contract:test-neg-cap"
+        trust_domain: example.com
+        agent_actor: "tf:actor:agent:example.com/test"
+        actions:
+          - name: file.write
+            risk: R2
+            danger_tags: []
+          - name: file.delete
+            risk: R3
+            danger_tags:
+              - destructive
+          - name: payment.send
+            risk: R4
+            danger_tags:
+              - financial
+            approval: required
       forbidden:
         - action: file.write
           reason: writes are blocked in this contract
     enforcement_level: E4
-    query: { action: file.write, target: "/tmp/x" }
+    query:
+      action: file.write
+      target: "/tmp/x"
     expect: deny

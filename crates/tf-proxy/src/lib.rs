@@ -1,6 +1,8 @@
 //! tf-proxy: TrustForge enforcement reverse proxy.
 //!
-//! Sits in front of an upstream HTTP/HTTPS service. For every request it
+//! Sits in front of an upstream HTTP service (TLS termination happens at
+//! the proxy's own listener; a TLS upstream is out of scope for this first
+//! cut, in both the buffered and raw-splice paths). For every request it
 //! consults `tf-daemon`'s `/v1/decide` endpoint and either forwards, denies,
 //! or surfaces an approval-required handoff based on the daemon's verdict.
 //!
@@ -18,7 +20,8 @@ use hyper::body::{Bytes, Incoming};
 use hyper::header::{HeaderName, HeaderValue, UPGRADE};
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, Uri};
-use hyper_util::rt::TokioIo;
+use hyper_util::client::legacy::{connect::HttpConnector, Client};
+use hyper_util::rt::{TokioExecutor, TokioIo};
 use serde::{Deserialize, Serialize};
 use std::io::BufReader;
 use tokio::io::AsyncWriteExt;
@@ -86,7 +89,7 @@ pub struct DecideResponse {
 /// Shared state used by every connection handler.
 pub struct ProxyState {
     pub config: ProxyConfig,
-    pub http: reqwest::Client,
+    pub http: Client<HttpConnector, Full<Bytes>>,
     counter: AtomicU64,
     /// OpenTelemetry handle owned by the binary entry point. Set once at
     /// startup via [`ProxyState::set_otel`]. We use `OnceLock` so the
@@ -97,10 +100,9 @@ pub struct ProxyState {
 
 impl ProxyState {
     pub fn new(config: ProxyConfig) -> Arc<Self> {
-        let http = reqwest::Client::builder()
+        let http = Client::builder(TokioExecutor::new())
             .pool_idle_timeout(std::time::Duration::from_secs(30))
-            .build()
-            .expect("reqwest client");
+            .build_http();
         Arc::new(Self {
             config,
             http,
@@ -235,31 +237,42 @@ pub async fn call_decide(
         trace_id: state.next_trace_id(),
     };
     let url = format!("{}/v1/decide", state.config.daemon.trim_end_matches('/'));
-    let mut rb = state.http.post(&url).json(&body);
+    let payload = serde_json::to_vec(&body).map_err(|e| format!("encode decide body: {e}"))?;
+    let mut rb = Request::builder()
+        .method(Method::POST)
+        .uri(&url)
+        .header("content-type", "application/json");
     if let Some(t) = state.config.admin_token.as_deref() {
         rb = rb.header("X-Admin-Token", t);
     }
-    let resp = rb
-        .send()
+    let req = rb
+        .body(Full::new(Bytes::from(payload)))
+        .map_err(|e| format!("build decide request: {e}"))?;
+    let resp = state
+        .http
+        .request(req)
         .await
         .map_err(|e| format!("daemon unreachable: {e}"))?;
     if !resp.status().is_success() {
         return Err(format!("daemon status {}", resp.status()));
     }
-    let txt = resp
-        .text()
+    let bytes = resp
+        .into_body()
+        .collect()
         .await
-        .map_err(|e| format!("daemon body read: {e}"))?;
+        .map_err(|e| format!("daemon body read: {e}"))?
+        .to_bytes();
+    let txt = String::from_utf8_lossy(&bytes);
     let decoded: DecideResponse =
-        serde_json::from_str(&txt).map_err(|e| format!("daemon malformed body: {e}: {txt}"))?;
+        serde_json::from_slice(&bytes).map_err(|e| format!("daemon malformed body: {e}: {txt}"))?;
     if decoded.decision.is_empty() {
         return Err("daemon returned empty decision".to_string());
     }
     Ok(decoded)
 }
 
-/// Forward an HTTP request to the upstream service via reqwest and copy the
-/// response back as a hyper response.
+/// Forward an HTTP request to the upstream service and copy the response
+/// back as a hyper response.
 pub async fn forward_to_upstream(
     state: &ProxyState,
     req: Request<Incoming>,
@@ -272,8 +285,6 @@ pub async fn forward_to_upstream(
         .unwrap_or_else(|| req.uri().path().to_string());
     let url = format!("{upstream_base}{path_and_query}");
 
-    let method = reqwest::Method::from_bytes(req.method().as_str().as_bytes())
-        .map_err(|e| format!("bad method: {e}"))?;
     let (parts, body) = req.into_parts();
     let body_bytes = body
         .collect()
@@ -281,9 +292,10 @@ pub async fn forward_to_upstream(
         .map_err(|e| format!("read req body: {e}"))?
         .to_bytes();
 
-    let mut rb = state.http.request(method, &url);
+    let mut rb = Request::builder().method(parts.method.clone()).uri(&url);
     for (k, v) in parts.headers.iter() {
-        // Skip hop-by-hop headers and host (reqwest sets it).
+        // Skip hop-by-hop headers and host (the client sets it from the
+        // upstream URI).
         let name = k.as_str().to_ascii_lowercase();
         if matches!(
             name.as_str(),
@@ -300,18 +312,19 @@ pub async fn forward_to_upstream(
         ) {
             continue;
         }
-        rb = rb.header(k.as_str(), v.as_bytes());
+        rb = rb.header(k, v);
     }
-    if !body_bytes.is_empty() {
-        rb = rb.body(body_bytes.to_vec());
-    }
-    let upstream_resp = rb
-        .send()
+    let upstream_req = rb
+        .body(Full::new(body_bytes))
+        .map_err(|e| format!("build upstream request: {e}"))?;
+    let upstream_resp = state
+        .http
+        .request(upstream_req)
         .await
         .map_err(|e| format!("upstream error: {e}"))?;
-    let status = upstream_resp.status();
-    let mut builder = Response::builder().status(status.as_u16());
-    for (k, v) in upstream_resp.headers().iter() {
+    let (resp_parts, resp_body) = upstream_resp.into_parts();
+    let mut builder = Response::builder().status(resp_parts.status);
+    for (k, v) in resp_parts.headers.iter() {
         let name = k.as_str().to_ascii_lowercase();
         if matches!(
             name.as_str(),
@@ -327,17 +340,13 @@ pub async fn forward_to_upstream(
         ) {
             continue;
         }
-        if let (Ok(hn), Ok(hv)) = (
-            HeaderName::from_bytes(k.as_str().as_bytes()),
-            HeaderValue::from_bytes(v.as_bytes()),
-        ) {
-            builder = builder.header(hn, hv);
-        }
+        builder = builder.header(k, v);
     }
-    let body = upstream_resp
-        .bytes()
+    let body = resp_body
+        .collect()
         .await
-        .map_err(|e| format!("upstream body: {e}"))?;
+        .map_err(|e| format!("upstream body: {e}"))?
+        .to_bytes();
     builder
         .body(Full::new(body))
         .map_err(|e| format!("response build: {e}"))

@@ -332,8 +332,7 @@ pub fn parse_algorithm(name: &str) -> Result<Algorithm, BridgeError> {
 /// base64-encoded, with the algorithm name normalised to TrustForge's
 /// vocabulary). Mirrors the TS `projectJwkToPublicKey`.
 pub fn project_jwk_to_public_key(jwk: &Jwk) -> Result<PublicKey, BridgeError> {
-    use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
-    use base64::Engine;
+    use crate::encoding::{STANDARD, URL_SAFE_NO_PAD};
     let key_id = jwk
         .kid
         .clone()

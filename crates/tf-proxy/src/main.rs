@@ -57,9 +57,8 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // Install a default crypto provider for rustls (needed by tokio-rustls
-    // and reqwest's rustls backend).
-    let _ = rustls::crypto::ring::default_provider().install_default();
+    // Install a default crypto provider for rustls (needed by tokio-rustls).
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
     let cli = Cli::parse();
 

@@ -273,9 +273,8 @@ describe("TLS bridge — Sprint 5 additions", () => {
     // Mint a real self-signed root via @peculiar/x509 so the
     // TlsBridge constructor accepts it.
     const x509 = await import("@peculiar/x509");
-    const { Crypto } = await import("@peculiar/webcrypto");
-    const webcrypto = new Crypto();
-    x509.cryptoProvider.set(webcrypto as unknown as globalThis.Crypto);
+    const webcrypto = globalThis.crypto;
+    x509.cryptoProvider.set(webcrypto);
     const key = (await webcrypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" },
       true,

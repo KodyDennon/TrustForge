@@ -4,8 +4,7 @@
 //! `l5d-client-id`. Together they exercise the happy path plus three
 //! kinds of failure (malformed, missing-required-field, wrong shape).
 
-use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
-use base64::Engine as _;
+use tf_types::encoding::{STANDARD, URL_SAFE_NO_PAD};
 
 use tf_types::bridge_service_mesh::{
     envoy_accepted_event, istio_accepted_event, linkerd_accepted_event, parse_istio_attributes,

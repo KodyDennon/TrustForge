@@ -6,7 +6,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use tf_types::encoding::STANDARD as B64;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use tokio::sync::mpsc;

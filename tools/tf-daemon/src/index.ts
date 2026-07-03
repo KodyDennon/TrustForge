@@ -11,7 +11,7 @@
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { dirname, resolve as resolvePath, join as joinPath } from "node:path";
-import { parse as parseYAML } from "yaml";
+import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 import { BridgesRegistry } from "tf-types";
 import {
   hostTokenKindToBridge,

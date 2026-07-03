@@ -19,13 +19,9 @@
     "@noble/post-quantum": "^0.6.1",
     "@peculiar/asn1-schema": "^2.3.13",
     "@peculiar/asn1-x509": "^2.3.13",
-    "cbor-x": "^1.6.0",
-    "hash-wasm": "^4.12.0",
-    "jose": "^5.10.0",
-    "yaml": "^2.6.0"
+    "jose": "^5.10.0"
   },
   "devDependencies": {
-    "@peculiar/webcrypto": "^1.5.0",
     "@peculiar/x509": "^1.12.0",
     "@types/bun": "^1.3.9",
     "fast-check": "^3.22.0",

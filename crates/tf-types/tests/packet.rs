@@ -181,7 +181,7 @@ fn fragment_and_reassemble_byte_identical() {
     assert!(fragments.len() > 1);
     let r = reassemble_fragments(&fragments);
     assert!(r.ok, "expected ok, got {:?}", r.reason);
-    let wire = base64::engine::general_purpose::STANDARD
+    let wire = tf_types::encoding::STANDARD
         .decode(&original.payload)
         .unwrap();
     assert_eq!(r.payload.unwrap().len(), wire.len());
@@ -216,4 +216,3 @@ fn reassembly_rejects_missing_fragment() {
     assert!(!r.ok);
 }
 
-use base64::Engine as _;

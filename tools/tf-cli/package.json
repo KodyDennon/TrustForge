@@ -8,7 +8,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "yaml": "^2.6.0",
     "@trustforge-protocol/conformance": "workspace:*",
     "@trustforge-protocol/session": "workspace:*",
     "@trustforge-protocol/types": "workspace:*"

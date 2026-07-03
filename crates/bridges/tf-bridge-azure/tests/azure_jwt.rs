@@ -3,8 +3,7 @@
 //! signs Azure-shaped tokens with a freshly generated RSA key, and
 //! verifies them through the bridge.
 
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use base64::Engine;
+use tf_types::encoding::URL_SAFE_NO_PAD;
 use rsa::pkcs1v15::SigningKey;
 use rsa::signature::{RandomizedSigner, SignatureEncoding};
 use rsa::traits::PublicKeyParts;

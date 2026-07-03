@@ -1,5 +1,5 @@
 import { join, relative } from "node:path";
-import { stringify as yamlStringify } from "yaml";
+import { stringifyYaml as yamlStringify } from "@trustforge-protocol/types";
 import {
   FIXTURES_DIR,
   REPO_ROOT,

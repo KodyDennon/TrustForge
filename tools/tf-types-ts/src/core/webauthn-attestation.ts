@@ -3,7 +3,7 @@
  *
  * Supports the three attestation formats that real authenticators produce
  * for software-only and hardware-backed flows: `none`, `packed`, and
- * `fido-u2f`. CBOR decoding uses the `cbor-x` library; signature
+ * `fido-u2f`. CBOR decoding uses the in-house `cbor.ts` codec; signature
  * verification uses `@noble/curves` + `@noble/ed25519` so we don't depend
  * on Node's crypto for primitives.
  *
@@ -12,7 +12,7 @@
  * credential into a TrustForge actor-identity document.
  */
 
-import { decode as cborDecode } from "cbor-x";
+import { decode as cborDecode } from "./cbor.js";
 import { sha256 } from "@noble/hashes/sha256";
 import { p256 } from "@noble/curves/p256";
 import { ed25519 } from "@noble/curves/ed25519";
