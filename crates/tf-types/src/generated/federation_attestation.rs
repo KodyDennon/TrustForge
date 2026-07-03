@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Cross-trust-domain attestation: domain A signs a statement asserting that domain B's identity (or a specific actor in B) is recognized within A's trust fabric, optionally bounded by capability scope and time. Used by SPIFFE federated trust bundles, business-partner trust links, and sovereignty federations (TF-0002 "federated" identity mode).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

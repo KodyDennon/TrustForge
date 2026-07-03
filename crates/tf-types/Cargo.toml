@@ -38,7 +38,7 @@ ciborium = "0.2"
 x509-parser = { version = "0.16", features = ["verify"] }
 p256 = { version = "0.13", features = ["ecdsa", "pem"] }
 fips204 = "0.4"
-wasmtime = { version = "25", default-features = false, features = ["cranelift", "runtime"] }
+wasmtime = { version = "43.0.1", default-features = false, features = ["cranelift", "runtime"] }
 ureq = { version = "2", default-features = false, features = ["json", "tls"], optional = true }
 
 [dev-dependencies]

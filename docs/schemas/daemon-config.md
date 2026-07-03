@@ -19,11 +19,3 @@ Configuration file for a running tf-daemon instance (.tf/daemon.yaml).
 | `profile` | string (pattern: `^tf-[a-z][a-z0-9-]*-compatible$`) | · | Conformance profile this daemon claims at startup. The runtime FeatureGate refuses to boot when the profile's MUST entries are not all satisfied. |
 | `enforcement_level` | [`EnforcementLevel`](./_common.md#enforcementlevel) | · | Default EnforcementLevel for the daemon's AgentGuard. See DECISIONS.md "Progressive enforcement". |
 | `admin` | object | · | Local admin HTTP endpoint. Disabled when omitted. |
-
-## Local Auth Contract
-
-- TCP `/v1/*` endpoints use bearer auth (`TF_ADMIN_TOKEN` by default).
-- Unix `/v1/decide` and `/v1/decide-batch` use local peer/filesystem trust
-  through `/run/trustforge/decide.sock` by default.
-- Admin, credential import, proof signing, proof verification, and mutation
-  routes remain bearer-gated.

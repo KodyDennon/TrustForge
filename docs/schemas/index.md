@@ -13,6 +13,7 @@ This directory is generated from `schemas/*.schema.json` by
 | [approval-request](./approval-request.md) | — | A pending approval request raised by the daemon when a guarded action requires explicit human approval. |
 | [approval-response](./approval-response.md) | — | A signed response to an ApprovalRequest. |
 | [bridge-descriptor](./bridge-descriptor.md) | — | Declarative descriptor for a TrustForge compatibility bridge |
+| [bridges-registry](./bridges-registry.md) | — | Per-deployment registry that overrides the default credential-resolver mapping |
 | [capability-token](./capability-token.md) | TF-0004 | Serialized capability grant carried across actors (TF-0004). |
 | [conformance](./conformance.md) | TF-0010 | Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010) |
 | [conformance-vector](./conformance-vector.md) | — | A single conformance vector consumed by tf-conformance runners |

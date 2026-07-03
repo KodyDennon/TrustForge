@@ -35,6 +35,8 @@ Single action declaration.
 | `description` | string | · | Human-readable purpose of the action. |
 | `allow_targets` | array of string (minLength: 1) | · | Glob patterns or @target-set references the action may target. |
 | `deny_targets` | array of string (minLength: 1) | · | Glob patterns or @target-set references the action must not target. |
+| `allow_actors` | array of string (minLength: 1) | · | Glob patterns matching caller actor URIs that MAY invoke this action. Empty / omitted means 'every authenticated actor is allowed' (subject to deny_actors and other guard rules). The matcher checks both the cryptographic actor URI (tf:actor:process:key/<thumbprint>) and the self-claimed peer_hint URI when present. |
+| `deny_actors` | array of string (minLength: 1) | · | Glob patterns matching caller actor URIs that MUST NOT invoke this action. Overrides allow_actors. The matcher checks both the cryptographic actor URI and the self-claimed peer_hint URI. |
 | `parameters` | object | · | Inline JSON Schema describing the parameters this action accepts. |
 | `reversible` | boolean | · | Hint that this action can be inverted by its counterpart. |
 | `danger_tags` | array of [`DangerTag`](./_common.md#dangertag) | · | Structured danger categories; AI agents MUST escalate on destructive / irreversible / financial / security-sensitive tags. |

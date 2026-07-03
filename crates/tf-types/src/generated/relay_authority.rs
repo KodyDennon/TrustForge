@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Encodes the distinction between forwarding authority and action authority. A relay can carry signed/encrypted TrustForge packets without ever being able to decrypt, authorize, or execute them. The authority record is what the daemon checks before letting a relay forward packets on its behalf, and the proof event a relay emits when it forwards is bound to this record.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

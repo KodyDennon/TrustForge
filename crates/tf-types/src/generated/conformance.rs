@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Manifest describing which TrustForge profiles a deployment claims to implement (TF-0010). Distinct from the repo's conformance/ test-harness directory.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

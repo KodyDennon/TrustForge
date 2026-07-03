@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Dotted lowercase action identifier, e.g. file.write, shell.exec.
 pub type ActionName = String;
@@ -99,7 +99,9 @@ pub enum Constraint {
         until: Timestamp,
     },
     #[serde(rename = "target")]
-    Target { patterns: Vec<String> },
+    Target {
+        patterns: Vec<String>,
+    },
     #[serde(rename = "quantity")]
     Quantity {
         max: i64,
@@ -112,13 +114,22 @@ pub enum Constraint {
         window_seconds: i64,
     },
     #[serde(rename = "session")]
-    Session { session_id: String },
+    Session {
+        session_id: String,
+    },
     #[serde(rename = "approval")]
-    Approval { approval: ApprovalRequirement },
+    Approval {
+        approval: ApprovalRequirement,
+    },
     #[serde(rename = "quorum")]
-    Quorum { quorum: i64, of: Vec<ActorId> },
+    Quorum {
+        quorum: i64,
+        of: Vec<ActorId>,
+    },
     #[serde(rename = "device_binding")]
-    DeviceBinding { device_actor: ActorId },
+    DeviceBinding {
+        device_actor: ActorId,
+    },
 }
 
 /// Structured danger categories used by agent-contract and dangerous-actions. AI agents must escalate on destructive / irreversible / financial / security-sensitive tags regardless of the declared approval mode.

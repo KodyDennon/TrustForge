@@ -36,6 +36,9 @@ export const CONTRACT = {
       "proof": "L0",
       "approval": "none",
       "reversible": true,
+      "danger_tags": [
+        "privacy"
+      ],
       "description": "Read a file from the working tree.",
       "allow_targets": [
         "@source",
@@ -65,7 +68,8 @@ export const CONTRACT = {
       "approval": "conditional",
       "reversible": false,
       "danger_tags": [
-        "destructive"
+        "destructive",
+        "privacy"
       ],
       "reversal_note": "Recoverable via git checkout if committed.",
       "description": "Modify a file in the working tree.",
@@ -123,7 +127,9 @@ export const FILE_READ_META = {
   "approval": "none",
   "proof": "L0",
   "reversible": true,
-  "danger_tags": [],
+  "danger_tags": [
+    "privacy"
+  ],
   "allow_targets": [
     "@source",
     "@tests"
@@ -141,7 +147,8 @@ export const FILE_WRITE_META = {
   "proof": "L2",
   "reversible": false,
   "danger_tags": [
-    "destructive"
+    "destructive",
+    "privacy"
   ],
   "allow_targets": [
     "@source"

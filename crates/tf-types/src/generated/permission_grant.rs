@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Daemon-signed reply to a PermissionRequest. When granted, the bearer can present this to the RpcServer to authorize the requested action within the listed constraints; when denied, audits still see the reason and the policy decision the engine produced.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

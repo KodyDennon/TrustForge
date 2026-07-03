@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Configuration file for a running tf-daemon instance (.tf/daemon.yaml).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +20,9 @@ pub struct DaemonConfig {
     pub contract_path: String,
     /// Path to the .tflog file the daemon appends to.
     pub proof_log_path: String,
+    /// v1 local HTTP endpoint exposure. TCP listeners require bearer auth; Unix-domain sockets are local-decision sockets guarded by filesystem/group/peer trust.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub http: Option<DaemonConfig_Http>,
     /// Approval-queue tuning.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub approval_queue: Option<DaemonConfig_ApprovalQueue>,
@@ -45,6 +48,12 @@ pub struct DaemonConfig_Admin {
     /// Path of the JSON revocation list the admin endpoint appends to.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub revocation_path: Option<String>,
+    /// Expected Host header and listener bind for admin routes. Defaults to 127.0.0.1.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bind: Option<String>,
+    /// Maximum accepted JSON body size for admin and v1 routes. Defaults to 65536.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_body_bytes: Option<i64>,
 }
 
 /// Approval-queue tuning.
@@ -65,10 +74,21 @@ pub enum DaemonConfig_DaemonVersion {
     V1,
 }
 
+/// v1 local HTTP endpoint exposure. TCP listeners require bearer auth; Unix-domain sockets are local-decision sockets guarded by filesystem/group/peer trust.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DaemonConfig_Http {
+    /// TCP exposure for /v1/* endpoints. This surface is bearer-token protected.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tcp: Option<serde_json::Value>,
+    /// Unix-domain socket exposure for local decision callers. /v1/decide uses local-peer trust; privileged routes stay bearer-gated.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub unix: Option<serde_json::Value>,
+}
+
 /// Transport bind settings for the daemon.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DaemonConfig_Listen {
-    /// Carrier kind. Only WebSocket is supported in this phase.
+    /// Carrier kind. websocket: drive session over Bun.serve. tcp: drive session over raw Bun.listen. tls: drive session over raw Bun.listen with TLS termination.
     pub kind: String,
     /// Bind host for the WebSocket listener.
     #[serde(skip_serializing_if = "Option::is_none", default)]

@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Signed record describing a TrustForge session being moved between transports while preserving session_id, generation, and trust continuity (TF-0003 "session migration").
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -17,6 +17,8 @@ export interface DaemonConfig {
   contract_path: string;
   /** Path to the .tflog file the daemon appends to. */
   proof_log_path: string;
+  /** v1 local HTTP endpoint exposure. TCP listeners require bearer auth; Unix-domain sockets are local-decision sockets guarded by filesystem/group/peer trust. */
+  http?: DaemonConfig_Http;
   /** Approval-queue tuning. */
   approval_queue?: DaemonConfig_ApprovalQueue;
   /** Conformance profile this daemon claims at startup. The runtime FeatureGate refuses to boot when the profile's MUST entries are not all satisfied. */
@@ -35,6 +37,10 @@ export interface DaemonConfig_Admin {
   token_env?: string;
   /** Path of the JSON revocation list the admin endpoint appends to. */
   revocation_path?: string;
+  /** Expected Host header and listener bind for admin routes. Defaults to 127.0.0.1. */
+  bind?: string;
+  /** Maximum accepted JSON body size for admin and v1 routes. Defaults to 65536. */
+  max_body_bytes?: number;
 }
 
 /** Approval-queue tuning. */
@@ -49,10 +55,18 @@ export interface DaemonConfig_ApprovalQueue {
 export type DaemonConfig_DaemonVersion =
   | "1";
 
+/** v1 local HTTP endpoint exposure. TCP listeners require bearer auth; Unix-domain sockets are local-decision sockets guarded by filesystem/group/peer trust. */
+export interface DaemonConfig_Http {
+  /** TCP exposure for /v1/* endpoints. This surface is bearer-token protected. */
+  tcp?: Record<string, unknown>;
+  /** Unix-domain socket exposure for local decision callers. /v1/decide uses local-peer trust; privileged routes stay bearer-gated. */
+  unix?: Record<string, unknown>;
+}
+
 /** Transport bind settings for the daemon. */
 export interface DaemonConfig_Listen {
-  /** Carrier kind. Only WebSocket is supported in this phase. */
-  kind: "websocket";
+  /** Carrier kind. websocket: drive session over Bun.serve. tcp: drive session over raw Bun.listen. tls: drive session over raw Bun.listen with TLS termination. */
+  kind: "websocket" | "tcp" | "tls";
   /** Bind host for the WebSocket listener. */
   bind?: string;
   /** Port for the WebSocket listener. 0 asks the OS to pick one. */

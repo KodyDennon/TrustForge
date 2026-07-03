@@ -2,15 +2,15 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// One RPC method.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Method {
     /// Method name, camelCase or snake_case, starts with a lowercase letter.
     pub name: String,
-    /// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility.
+    /// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. http-bridge: bidi stream that carries HTTP/1.1 or HTTP/2 frames (headers, chunks, trailers) for cross-site proxying.
     pub kind: Method_Kind,
     /// What this method does.
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -43,7 +43,7 @@ pub struct Method {
     pub conformance_tests: Option<Vec<String>>,
 }
 
-/// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility.
+/// Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. http-bridge: bidi stream that carries HTTP/1.1 or HTTP/2 frames (headers, chunks, trailers) for cross-site proxying.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Method_Kind {
     #[serde(rename = "unary")]
@@ -66,6 +66,8 @@ pub enum Method_Kind {
     RemoteShell,
     #[serde(rename = "agent-session")]
     AgentSession,
+    #[serde(rename = "http-bridge")]
+    HttpBridge,
 }
 
 /// Priority class for streaming methods (TF-0011).

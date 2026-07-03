@@ -8,6 +8,7 @@ export * from "./approval-ceremony.js";
 export * from "./approval-request.js";
 export * from "./approval-response.js";
 export * from "./bridge-descriptor.js";
+export * from "./bridges-registry.js";
 export * from "./capability-token.js";
 export * from "./conformance.js";
 export * from "./conformance-vector.js";

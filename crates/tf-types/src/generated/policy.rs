@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Declarative policy definition referenced by TF-0004. Backend-agnostic (Cedar, Rego, custom, native, none).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

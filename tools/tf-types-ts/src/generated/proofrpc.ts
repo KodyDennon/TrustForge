@@ -7,7 +7,7 @@ import type { Conformance } from "./conformance.js";
 export interface Method {
   /** Method name, camelCase or snake_case, starts with a lowercase letter. */
   name: string;
-  /** Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. */
+  /** Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. http-bridge: bidi stream that carries HTTP/1.1 or HTTP/2 frames (headers, chunks, trailers) for cross-site proxying. */
   kind: Method_Kind;
   /** What this method does. */
   description?: string;
@@ -33,7 +33,7 @@ export interface Method {
   conformance_tests?: string[];
 }
 
-/** Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. */
+/** Streaming mode. unary: one request → one response. server-streaming: one request → many. client-streaming: many → one. bidi-streaming: many ↔ many. subscribe: one subscribe → many events with optional ack. command-channel: long-lived control with backpressure. bulk-transfer: chunked binary with content-hashing. telemetry: push-only with priority class. remote-shell: stdin/stdout stream. agent-session: bidi stream that carries the chain of responsibility. http-bridge: bidi stream that carries HTTP/1.1 or HTTP/2 frames (headers, chunks, trailers) for cross-site proxying. */
 export type Method_Kind =
   | "unary"
   | "server-streaming"
@@ -44,7 +44,8 @@ export type Method_Kind =
   | "bulk-transfer"
   | "telemetry"
   | "remote-shell"
-  | "agent-session";
+  | "agent-session"
+  | "http-bridge";
 
 /** Priority class for streaming methods (TF-0011). */
 export type Method_StreamingPriority =

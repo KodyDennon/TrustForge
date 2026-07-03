@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use super::*;
 use serde::{Deserialize, Serialize};
+use super::*;
 
 /// Declarative descriptor for a TrustForge compatibility bridge. Concrete bridges implement the TS Bridge interface or the Rust Bridge trait and are registered by BridgeRegistry.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
