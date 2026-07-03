@@ -1,3 +1,4 @@
+#![allow(clippy::needless_borrows_for_generic_args)]
 //! Per-actor authority parity tests — Rust mirror of
 //! `tools/tf-types-ts/tests/per-actor-authority.test.ts`.
 

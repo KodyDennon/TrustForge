@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! Rust WebAuthn bridge tests + parity over conformance/bridge-vectors.yaml.
 
 use std::fs;
