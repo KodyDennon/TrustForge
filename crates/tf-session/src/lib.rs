@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use futures::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tf_types::rpc::RpcTransport;
