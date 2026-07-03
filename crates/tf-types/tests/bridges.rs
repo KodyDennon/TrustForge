@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! SPIFFE bridge tests + cross-language parity against
 //! `conformance/bridge-vectors.yaml`.
 
