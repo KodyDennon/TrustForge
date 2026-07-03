@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Serialized capability grant carried across actors (TF-0004).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

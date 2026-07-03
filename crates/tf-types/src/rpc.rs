@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 //! ProofRPC runtime — mirrors `tools/tf-types-ts/src/core/rpc.ts`.
 //!
 //! Sits on top of a transport that carries `SessionFrame` values
@@ -843,7 +844,7 @@ impl<T: RpcTransport + 'static> RpcClient<T> {
                 ..Default::default()
             }),
         }));
-        let owned_chunks: Vec<Vec<u8>> = chunks.iter().cloned().collect();
+        let owned_chunks: Vec<Vec<u8>> = chunks.to_vec();
         let pump_transport = transport.clone();
         let pump_call_id = call_id.clone();
         tokio::spawn(async move {

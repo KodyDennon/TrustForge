@@ -51,7 +51,7 @@ async fn main() -> std::io::Result<()> {
     // var is set, init_otel installs a stdout exporter so dev runs still
     // see the canonical `tf.*` metrics.
     let otel = tf_otel::init_otel("tf-prom-exporter", args.otlp_endpoint.as_deref())
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("otel init: {e}")))?;
+        .map_err(|e| std::io::Error::other(format!("otel init: {e}")))?;
 
     let metrics = Arc::new(Metrics::new().with_otel(Some(otel.clone())));
     let mut cfg = ScrapeConfig::new(args.daemon_url.clone());

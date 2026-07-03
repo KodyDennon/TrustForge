@@ -1,3 +1,4 @@
+#![allow(clippy::doc_lazy_continuation)]
 //! Binary container formats — Rust mirror of TS `binary-format.ts`.
 //!
 //!   .tfbundle  — sealed/serialized proof bundle, L4/L5 capable.

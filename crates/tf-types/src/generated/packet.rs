@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Standalone signed/encrypted object that may be delivered offline, relayed, stored, or transferred and verified later. Implements TF-0011 packet mode: packet priority, expiration, route constraints, fragmentation, emergency packets.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

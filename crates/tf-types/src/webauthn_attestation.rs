@@ -1,3 +1,4 @@
+#![allow(clippy::unnecessary_unwrap)]
 //! Full WebAuthn attestation parser + verifier.
 //!
 //! Mirrors `tools/tf-types-ts/src/core/webauthn-attestation.ts`. Supports
@@ -215,7 +216,7 @@ pub fn parse_cose_public_key(cose: &[u8]) -> Result<CosePublicKey, BridgeError> 
     let (n_final, e_final) = if kty == 3 {
         // For kty=3 our switch above stored modulus in n (when -1 was bytes) and x (when -2
         // was bytes); we need to swap x→e here because RSA's exponent is -2.
-        (n.clone().or_else(|| None), x.clone().or_else(|| None))
+        (n.clone().or(None), x.clone().or(None))
     } else {
         (None, None)
     };

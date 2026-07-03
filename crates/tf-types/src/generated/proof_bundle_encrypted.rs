@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Encrypted variant of .tfbundle (proof level L4). The plaintext is a canonical proof-bundle.schema.json document; the ciphertext is sealed with a per-bundle ChaCha20-Poly1305 data key and the data key is wrapped to one or more recipient ed25519 keys via X25519+HKDF-SHA256.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

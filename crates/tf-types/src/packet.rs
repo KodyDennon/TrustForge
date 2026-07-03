@@ -1,3 +1,4 @@
+#![allow(clippy::unusual_byte_groupings)]
 //! Packet mode (TF-0011) — Rust mirror of
 //! `tools/tf-types-ts/src/core/packet.ts`.
 
@@ -96,8 +97,7 @@ pub fn sign_packet(args: SignPacketArgs<'_>) -> Result<Packet, String> {
 
     // Wrap payload in canonical envelope before encoding.
     let payload_bytes: Vec<u8> = if encoding == "cbor" {
-        let env = serde_cbor_envelope(args.payload);
-        env
+        serde_cbor_envelope(args.payload)
     } else {
         let canonical = canonicalize(&serde_json::json!({
             "raw": STANDARD.encode(args.payload),
@@ -247,7 +247,7 @@ pub fn fragment_packet(
     if total_bytes <= mtu {
         return vec![source.clone()];
     }
-    let count = (total_bytes + mtu - 1) / mtu;
+    let count = total_bytes.div_ceil(mtu);
     let digest_hex = sha256_hex(&original);
     let payload_digest = format!("sha256:{}", digest_hex);
     let fragment_id = format!("frag-{}", source.packet_id);
@@ -476,8 +476,8 @@ pub fn simulate_lora(
         state ^= state << 13;
         state ^= state >> 7;
         state ^= state << 17;
-        let v = (state.wrapping_mul(0x2545_F491_4F6C_DD1Du64) >> 11) as f64 / (1u64 << 53) as f64;
-        v
+
+        (state.wrapping_mul(0x2545_F491_4F6C_DD1Du64) >> 11) as f64 / (1u64 << 53) as f64
     };
     let mut delivered = Vec::with_capacity(packets.len());
     let mut dropped: Vec<Packet> = Vec::new();

@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! Persistence-backend traits for proof ledger, revocation cache, and
 //! evidence archive. Implementations live in separate crates (tf-store-*).
 //!

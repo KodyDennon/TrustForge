@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 //! gRPC bridge — mirror of TS `bridge-grpc.ts`.
 //!
 //! Wraps a caller-supplied gRPC channel adapter and exposes it as a

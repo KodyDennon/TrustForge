@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// A group of related packets (e.g. emergency packet + post-event quorum review) shipped together as a unit, for store-and-forward / air-gap workflows.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

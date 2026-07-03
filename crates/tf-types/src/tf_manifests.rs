@@ -1,3 +1,4 @@
+#![allow(clippy::field_reassign_with_default)]
 //! `.tf/` manifest loader — Rust mirror of
 //! `tools/tf-types-ts/src/core/tf-manifests.ts`.
 

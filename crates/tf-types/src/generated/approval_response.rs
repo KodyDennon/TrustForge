@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// A signed response to an ApprovalRequest.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

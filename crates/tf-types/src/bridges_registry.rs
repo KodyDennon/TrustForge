@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+#![allow(clippy::doc_lazy_continuation)]
 //! Rust mirror of `tools/tf-types-ts/src/core/bridges-registry.ts`.
 //!
 //! Loads + validates `.tf/bridges.yaml` against

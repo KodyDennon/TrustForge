@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 //! AgentGuard — Rust mirror of `tools/tf-types-ts/src/core/guard.ts`.
 //!
 //! Accepts a parsed agent-contract value (as serde_json::Value so the Rust
@@ -35,20 +36,15 @@ pub enum GuardDecision {
     },
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum EnforcementLevel {
     E0,
     E1,
     E2,
     E3,
+    #[default]
     E4,
     E5,
-}
-
-impl Default for EnforcementLevel {
-    fn default() -> Self {
-        EnforcementLevel::E4
-    }
 }
 
 impl EnforcementLevel {

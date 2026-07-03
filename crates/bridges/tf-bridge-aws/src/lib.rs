@@ -108,7 +108,7 @@ pub async fn verify_aws_sigv4_request(
     sts_endpoint: &str,
     req: &AwsSigV4Request,
 ) -> Result<AwsCallerIdentity, AwsBridgeError> {
-    if req.method.to_ascii_uppercase() != "POST" {
+    if !req.method.eq_ignore_ascii_case("POST") {
         return Err(AwsBridgeError::InvalidInput(format!(
             "GetCallerIdentity must be POST, got {}",
             req.method

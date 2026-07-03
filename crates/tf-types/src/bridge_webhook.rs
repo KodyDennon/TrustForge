@@ -188,7 +188,7 @@ fn decode_hex(s: &str) -> Option<Vec<u8>> {
     let trimmed = trimmed
         .trim_start_matches("sha256=")
         .trim_start_matches("sha1=");
-    if trimmed.len() % 2 != 0 {
+    if !trimmed.len().is_multiple_of(2) {
         return None;
     }
     let mut out = Vec::with_capacity(trimmed.len() / 2);

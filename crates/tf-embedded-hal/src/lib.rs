@@ -20,9 +20,6 @@
 #![deny(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 pub mod adapters;
 
 use core::fmt::Debug;

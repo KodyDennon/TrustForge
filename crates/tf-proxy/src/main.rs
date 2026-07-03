@@ -69,7 +69,7 @@ async fn main() -> std::io::Result<()> {
     // `handle.install_subscriber()` so the daemon's existing fmt layer
     // (line-oriented logs to stderr) and the OTel layer coexist.
     let otel = tf_otel::init_otel("tf-proxy", cli.otlp_endpoint.as_deref())
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("otel init: {e}")))?;
+        .map_err(|e| std::io::Error::other(format!("otel init: {e}")))?;
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,tf_proxy=info"));
     let subscriber = tracing_subscriber::registry()

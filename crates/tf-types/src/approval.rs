@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 //! ApprovalQueue — Rust mirror of
 //! `tools/tf-types-ts/src/core/approval.ts`.
 //!

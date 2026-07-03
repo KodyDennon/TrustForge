@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// An AI agent's typed request to acquire authority for a specific action, target, and duration. The daemon validates the request, runs the policy engine, optionally collects approvals, and replies with a PermissionGrant or a denial. See TF-0006 "dynamic permission negotiation".
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

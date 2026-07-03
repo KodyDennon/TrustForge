@@ -204,7 +204,7 @@ impl NativePolicyEngine {
     }
 
     pub fn evaluate(&self, query: &PolicyQuery) -> PolicyDecision {
-        let now = query.now.clone().unwrap_or_else(|| now_iso8601());
+        let now = query.now.clone().unwrap_or_else(now_iso8601);
         let neg_caps = if query.negative_capabilities.is_empty() {
             self.policy.negative_capabilities.clone()
         } else {

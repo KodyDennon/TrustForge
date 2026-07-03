@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Configuration file for a running tf-daemon instance (.tf/daemon.yaml).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

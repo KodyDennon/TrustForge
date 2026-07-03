@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Identity document that binds an actor URI to public keys, authority roots, and validity (TF-0002).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

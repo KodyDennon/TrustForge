@@ -170,7 +170,7 @@ impl OAuthBridge {
             attestations: None,
             valid_from: claims
                 .iat
-                .map(|t| timestamp(t))
+                .map(timestamp)
                 .unwrap_or_else(|| timestamp(now_unix())),
             valid_until: claims.exp.map(timestamp),
             revocation_ref: None,

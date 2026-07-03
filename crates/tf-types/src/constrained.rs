@@ -1,3 +1,4 @@
+#![allow(clippy::let_and_return)]
 //! Constrained-mode runtime primitives — Rust mirror of
 //! `tools/tf-types-ts/src/core/constrained.ts`.
 //!

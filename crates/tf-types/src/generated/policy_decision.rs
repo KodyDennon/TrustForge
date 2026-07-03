@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// Structured result emitted by a TrustForge PolicyEngine. Captures the decision, the rule that produced it, the constraints attached, and enough provenance to be replayed in audits and verified after the fact (TF-0004, DECISIONS.md "AI-readable manifests").
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

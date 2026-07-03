@@ -2,8 +2,8 @@
 
 #![allow(unused_imports, non_camel_case_types, non_snake_case, clippy::all)]
 
-use serde::{Deserialize, Serialize};
 use super::*;
+use serde::{Deserialize, Serialize};
 
 /// JSON representation of a .tfproof bundle (TF-0005). Binary framing is defined in Phase 2.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

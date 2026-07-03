@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! Service-mesh bridge — Envoy XFCC, Istio AuthN, Linkerd l5d-client-id.
 //!
 //! This module exposes three public parser entry points used by the

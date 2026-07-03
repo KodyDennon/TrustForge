@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! tf-rocket — Rocket fairing that calls `tf-daemon`'s `/v1/decide`.
 //!
 //! Attach [`TrustForgeFairing`] with `rocket::build().attach(...)`. Every

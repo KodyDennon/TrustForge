@@ -124,7 +124,7 @@ pub enum SessionFrame {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SessionConfig {
     pub self_actor: String,
     pub peer_hint: Option<String>,
@@ -142,24 +142,6 @@ pub struct SessionConfig {
     pub identity_mldsa_pub: Option<Vec<u8>>,
     pub eph_seed: Option<[u8; 32]>,
     pub session_id_seed: Option<[u8; 16]>,
-}
-
-impl Default for SessionConfig {
-    fn default() -> Self {
-        Self {
-            self_actor: String::new(),
-            peer_hint: None,
-            self_hint: None,
-            identity_priv: [0u8; 32],
-            identity_pub: [0u8; 32],
-            preferred_suite: None,
-            supported_suites: None,
-            identity_mldsa_priv: None,
-            identity_mldsa_pub: None,
-            eph_seed: None,
-            session_id_seed: None,
-        }
-    }
 }
 
 pub struct Initiator {

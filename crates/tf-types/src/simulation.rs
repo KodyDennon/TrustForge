@@ -1,3 +1,4 @@
+#![allow(clippy::unnecessary_to_owned)]
 //! TrustForge simulation harness — Rust mirror of
 //! `tools/tf-types-ts/src/core/simulation.ts`.
 //!
