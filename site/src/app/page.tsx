@@ -20,31 +20,6 @@ const GithubIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
-interface GlowCardProps {
-  children: React.ReactNode;
-}
-
-const GlowCard: React.FC<GlowCardProps> = ({ children }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-  };
-
-  return (
-    <div className="glow-card" ref={cardRef} onMouseMove={handleMouseMove}>
-      <div className="card-border-glow" />
-      <div className="glow-card-spotlight" />
-      {children}
-    </div>
-  );
-};
-
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [activePlayground, setActivePlayground] = useState<'sign' | 'verify' | 'contract'>('sign');
@@ -75,7 +50,7 @@ export default function Home() {
           'Proof generated: trustforge.cap.e27fc9...8a12f'
         ];
         for (const log of sequence) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 200));
           setConsoleLogs((prev) => [...prev, log]);
         }
       } else if (action === 'verify') {
@@ -87,7 +62,7 @@ export default function Home() {
           'STATISTICAL TRUST RATING: 100%'
         ];
         for (const log of sequence) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 200));
           setConsoleLogs((prev) => [...prev, log]);
         }
       } else {
@@ -99,7 +74,7 @@ export default function Home() {
           'Action executed.'
         ];
         for (const log of sequence) {
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 200));
           setConsoleLogs((prev) => [...prev, log]);
         }
       }
@@ -190,207 +165,182 @@ export default function Home() {
 
       <header className={`nav-header ${scrolled ? 'scrolled' : ''}`}>
         <div className="nav-container">
-          <div className="logo">
+          <a href="#" className="logo">
             <div className="logo-symbol" />
             TrustForge
-          </div>
+          </a>
           <nav className="nav-links">
-            <a href="#anvil">Anvil Playground</a>
-            <a href="#protocol">Protocol Core</a>
+            <a href="#protocol">Protocol</a>
             <a href="#integration">Integration</a>
+            <a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer">GitHub</a>
           </nav>
         </div>
       </header>
 
-      <section className="hero container">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="badge">
-            <div className="badge-dot" />
-            v0.1.1 Production Alpha
-          </div>
-          <h1>
-            The Next Era of Security is <br />
-            <span className="gradient-text-accent">Verifiable Action.</span>
-          </h1>
-          <p className="subtitle">
-            TrustForge is a high-performance open-source trust fabric designed for AI agents and distributed systems. Generate cryptographic proofs, negotiate stateless boundaries, and enforce policies on the edge.
-          </p>
-          <div className="cta-group">
-            <a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer" className="cta-button">
-              Get Started on GitHub
-            </a>
-            <a href="#anvil" className="cta-button cta-secondary">
-              Try Interactive Sandbox
-            </a>
-          </div>
-        </motion.div>
-      </section>
-
-      <section id="anvil" className="container playground-section">
-        <div className="playground-grid">
-          <div>
-            <h2 style={{ marginBottom: '1.5rem' }}>The Cryptographic Sandbox</h2>
-            <p style={{ color: '#8f8f9e', fontSize: '1.1rem', marginBottom: '2.5rem' }}>
-              Witness how the TrustForge protocol executes cryptographic validations statelessly on the edge. Trigger an action and see the live trace output.
+      <section className="hero-wrapper container">
+        <div className="hero-grid">
+          <div className="hero-content">
+            <div className="badge">
+              <div className="badge-dot" />
+              v0.1.1 Production Alpha
+            </div>
+            <h1>
+              The Next Era of Security is <br />
+              <span className="gradient-text-accent">Verifiable Action.</span>
+            </h1>
+            <p className="subtitle">
+              TrustForge is a high-performance open-source trust fabric designed for AI agents and distributed systems. Generate cryptographic proofs, negotiate stateless boundaries, and enforce policies on the edge.
             </p>
-            <div className="sandbox-controls">
-              <button 
-                className={`control-btn ${activePlayground === 'sign' ? 'active' : ''}`}
-                onClick={() => triggerPlaygroundAction('sign')}
-              >
-                <div className="control-btn-info">
-                  <span>Sign Capability</span>
-                  <span>Mint self-contained cryptographic session authorization</span>
-                </div>
-                <ArrowRight size={18} />
-              </button>
-              <button 
-                className={`control-btn ${activePlayground === 'verify' ? 'active' : ''}`}
-                onClick={() => triggerPlaygroundAction('verify')}
-              >
-                <div className="control-btn-info">
-                  <span>Verify Envelope</span>
-                  <span>Validate public keys and verify mathematical signatures</span>
-                </div>
-                <ArrowRight size={18} />
-              </button>
-              <button 
-                className={`control-btn ${activePlayground === 'contract' ? 'active' : ''}`}
-                onClick={() => triggerPlaygroundAction('contract')}
-              >
-                <div className="control-btn-info">
-                  <span>Policy Check</span>
-                  <span>Validate capability targets against Rego guard models</span>
-                </div>
-                <ArrowRight size={18} />
-              </button>
+            <div className="cta-group">
+              <a href="https://github.com/KodyDennon/TrustForge" target="_blank" rel="noopener noreferrer" className="cta-button">
+                Get Started on GitHub
+              </a>
+              <a href="#protocol" className="cta-button cta-secondary">
+                Explore Protocol
+              </a>
             </div>
           </div>
 
-          <div>
-            <div className="anvil-canvas">
-              <div className="laser-ray" style={{ left: '30%', animationDelay: '0s' }} />
-              <div className="laser-ray" style={{ left: '70%', animationDelay: '1.5s' }} />
-              
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePlayground}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}
+          <div className="hero-graphic">
+            <div className="sandbox-card">
+              <div className="sandbox-tabs">
+                <button 
+                  className={`sandbox-tab-btn ${activePlayground === 'sign' ? 'active' : ''}`}
+                  onClick={() => triggerPlaygroundAction('sign')}
                 >
-                  {/* Glowing central SVG Anvil geometry */}
-                  <svg width="180" height="120" viewBox="0 0 100 60" fill="none">
-                    <defs>
-                      <linearGradient id="glow-grad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#0ff0fc" />
-                        <stop offset="50%" stopColor="#b052f5" />
-                        <stop offset="100%" stopColor="#ff007f" />
-                      </linearGradient>
-                      <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <path
-                      d="M20 15 H80 L75 35 H25 L20 15 Z"
-                      fill="url(#glow-grad)"
-                      opacity="0.2"
-                    />
-                    <path
-                      d="M10 45 L90 45 L85 52 L15 52 Z M20 15 L15 25 H85 L80 15 H20 Z M25 25 L35 45 H65 L75 25 Z"
-                      stroke="url(#glow-grad)"
-                      strokeWidth="1.5"
-                      filter="url(#neon-glow)"
-                      style={{ strokeDasharray: isForging ? '10 5' : 'none', transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  </svg>
-                  <span style={{ fontSize: '0.9rem', color: '#fff', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
-                    {activePlayground === 'sign' && 'MINTING PROOF'}
-                    {activePlayground === 'verify' && 'VALIDATING BOUNDARY'}
-                    {activePlayground === 'contract' && 'ENFORCING RULES'}
-                  </span>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                  Sign
+                </button>
+                <button 
+                  className={`sandbox-tab-btn ${activePlayground === 'verify' ? 'active' : ''}`}
+                  onClick={() => triggerPlaygroundAction('verify')}
+                >
+                  Verify
+                </button>
+                <button 
+                  className={`sandbox-tab-btn ${activePlayground === 'contract' ? 'active' : ''}`}
+                  onClick={() => triggerPlaygroundAction('contract')}
+                >
+                  Guard
+                </button>
+              </div>
 
-            <div className="console-box">
-              {consoleLogs.map((log, idx) => (
-                <div className="console-line" key={idx}>
-                  <span className="console-prompt">&gt;</span>
-                  <span>{log}</span>
+              <div className="sandbox-display">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activePlayground}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}
+                  >
+                    <svg width="120" height="80" viewBox="0 0 100 60" fill="none">
+                      <defs>
+                        <linearGradient id="glow-grad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#0ff0fc" />
+                          <stop offset="50%" stopColor="#b052f5" />
+                          <stop offset="100%" stopColor="#ff007f" />
+                        </linearGradient>
+                        <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="2.5" result="blur" />
+                          <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <path
+                        d="M20 15 H80 L75 35 H25 L20 15 Z"
+                        fill="url(#glow-grad)"
+                        opacity="0.15"
+                      />
+                      <path
+                        d="M10 45 L90 45 L85 50 L15 50 Z M20 15 L15 25 H85 L80 15 H20 Z M25 25 L35 45 H65 L75 25 Z"
+                        stroke="url(#glow-grad)"
+                        strokeWidth="1.5"
+                        filter="url(#neon-glow)"
+                        style={{ strokeDasharray: isForging ? '8 4' : 'none' }}
+                      />
+                    </svg>
+                  </motion.div>
+                </AnimatePresence>
+                <div className="sandbox-status-text">
+                  {activePlayground === 'sign' && 'MINTING PROOF'}
+                  {activePlayground === 'verify' && 'VALIDATING BOUNDARY'}
+                  {activePlayground === 'contract' && 'ENFORCING RULES'}
                 </div>
-              ))}
-              {isForging && <div className="console-line"><span className="console-prompt">&gt;</span><span style={{ opacity: 0.5 }}>Processing...</span></div>}
+              </div>
+
+              <div className="sandbox-console">
+                {consoleLogs.map((log, idx) => (
+                  <div className="console-line" key={idx}>
+                    <span className="console-prompt">&gt;</span>
+                    <span>{log}</span>
+                  </div>
+                ))}
+                {isForging && <div className="console-line"><span className="console-prompt">&gt;</span><span style={{ opacity: 0.5 }}>Processing...</span></div>}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="protocol" className="container architecture-section">
+      <section id="protocol" className="container section-padding">
         <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Engineered for zero trust.</h2>
-        <p style={{ color: '#8f8f9e', fontSize: '1.2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto 4rem auto' }}>
           Eliminate complex authorization architectures. TrustForge wraps session negotiation into stateless verification structures.
         </p>
 
         <div className="cards-grid">
-          <GlowCard>
-            <div className="icon-wrapper"><Shield size={28} /></div>
+          <div className="glow-card">
+            <div className="icon-container"><Shield size={24} /></div>
             <h3>Stateless Assertions</h3>
-            <p>Skip round-trips to key vaults or central databases. Cryptographic capability boundaries are decoded and authenticated directly at edge layers within microseconds.</p>
-          </GlowCard>
+            <p>Skip round-trips to key databases. Cryptographic capability boundaries are decoded and authenticated directly at edge layers within microseconds.</p>
+          </div>
           
-          <GlowCard>
-            <div className="icon-wrapper"><Fingerprint size={28} /></div>
+          <div className="glow-card">
+            <div className="icon-container"><Fingerprint size={24} /></div>
             <h3>Dynamic Keystores</h3>
             <p>Rotate verification certificates statelessly. Supports automatic configuration pulling with native fallback paths to cached local buffers.</p>
-          </GlowCard>
+          </div>
 
-          <GlowCard>
-            <div className="icon-wrapper"><Zap size={28} /></div>
+          <div className="glow-card">
+            <div className="icon-container"><Zap size={24} /></div>
             <h3>Quantum Immunity</h3>
             <p>Future-proof envelope formats designed to host hybrid post-quantum cryptography payloads (PQ-MLDSA) alongside production-ready elliptic curves.</p>
-          </GlowCard>
+          </div>
         </div>
       </section>
 
-      <section id="integration" className="container integration-section">
-        <h2 style={{ textAlign: 'center', marginBottom: '3rem' }}>Integrate in seconds.</h2>
+      <section id="integration" className="container section-padding">
+        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Integrate in seconds.</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
+          Deploy native adapters onto your framework of choice with single-line imports.
+        </p>
         
-        <div className="integration-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'nextjs' ? 'active' : ''}`}
-            onClick={() => setActiveTab('nextjs')}
-          >
-            Next.js Edge
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'workers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('workers')}
-          >
-            Cloudflare Workers
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'rust' ? 'active' : ''}`}
-            onClick={() => setActiveTab('rust')}
-          >
-            Rust Backend
-          </button>
-        </div>
-
         <div className="code-panel">
           <div className="code-header">
             <span className="code-filename">{codeSnippets[activeTab].file}</span>
-            <span style={{ fontSize: '0.85rem', color: '#6e6e7c', fontWeight: 650 }}>TYPESCRIPT</span>
+            <div className="code-tabs">
+              <button 
+                className={`code-tab-btn ${activeTab === 'nextjs' ? 'active' : ''}`}
+                onClick={() => setActiveTab('nextjs')}
+              >
+                Next.js Edge
+              </button>
+              <button 
+                className={`code-tab-btn ${activeTab === 'workers' ? 'active' : ''}`}
+                onClick={() => setActiveTab('workers')}
+              >
+                Cloudflare Workers
+              </button>
+              <button 
+                className={`code-tab-btn ${activeTab === 'rust' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rust')}
+              >
+                Rust Backend
+              </button>
+            </div>
           </div>
           <div className="code-body">
             <code>
@@ -402,7 +352,7 @@ export default function Home() {
 
       <footer className="footer">
         <div className="container footer-content">
-          <div className="footer-logo">
+          <div className="logo">
             <div className="logo-symbol" />
             TrustForge
           </div>
