@@ -1,5 +1,5 @@
 [package]
-readme.workspace = true
+
 name = "tf-stm32wl-lora"
 version = "0.1.1"
 edition = "2021"
