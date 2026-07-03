@@ -1,3 +1,4 @@
+#![allow(clippy::useless_vec)]
 //! Tests for the Vault bridge — uses a stub `VaultLookup` to exercise
 //! the actor-translation path without hitting a real Vault instance.
 

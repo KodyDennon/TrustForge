@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 //! Tests for the Azure JWT bridge — uses `wiremock` for the JWKS,
 //! signs Azure-shaped tokens with a freshly generated RSA key, and
 //! verifies them through the bridge.

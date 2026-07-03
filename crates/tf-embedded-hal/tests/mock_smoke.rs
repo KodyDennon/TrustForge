@@ -1,3 +1,4 @@
+#![allow(unused_mut)]
 //! End-to-end smoke test: sign a packet via `MockSecureElement`,
 //! squirt it through `MockLoraRadio`, receive it on the other side,
 //! and verify the signature against the element's published pubkey.
