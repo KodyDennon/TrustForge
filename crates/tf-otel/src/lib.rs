@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! tf-otel — TrustForge OpenTelemetry / OTLP wiring for Rust.
 //!
 //! This crate is the Rust counterpart to `tools/tf-daemon/src/otel.ts`.

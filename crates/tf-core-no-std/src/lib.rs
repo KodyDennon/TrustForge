@@ -1,3 +1,4 @@
+#![allow(clippy::doc_overindented_list_items)]
 //! `tf-core-no-std` — TrustForge embedded core (Phase K1).
 //!
 //! This crate is the no_std subset of `tf-types`, intended for

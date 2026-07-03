@@ -1,3 +1,4 @@
+#![allow(clippy::items_after_test_module)]
 //! Packet-mode (TF-0011) sign/verify, embedded edition.
 //!
 //! Design constraints:
