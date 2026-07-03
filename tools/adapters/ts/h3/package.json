@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/h3",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for H3. Seamlessly integrate zero-trust verifiable actions into your H3 application.",
   "main": "./src/index.ts",

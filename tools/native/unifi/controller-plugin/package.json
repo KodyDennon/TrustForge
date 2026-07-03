@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/trustforge-unifi-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TrustForge module for trustforge-unifi-plugin. Part of the open-source trust fabric for AI-native software.",
   "license": "Apache-2.0 OR MIT",
   "main": "src/index.js",

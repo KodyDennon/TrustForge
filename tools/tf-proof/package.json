@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/proof",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "TrustForge cryptographic proof generator. Mint verifiable credentials and zero-knowledge proofs for trustless authorization.",
   "main": "./src/cli.ts",

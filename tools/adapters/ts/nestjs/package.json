@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/nestjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Nestjs. Seamlessly integrate zero-trust verifiable actions into your Nestjs application.",
   "main": "./src/index.ts",

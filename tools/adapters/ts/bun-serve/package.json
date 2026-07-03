@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/bun-serve",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Bun serve. Seamlessly integrate zero-trust verifiable actions into your Bun serve application.",
   "main": "./src/index.ts",

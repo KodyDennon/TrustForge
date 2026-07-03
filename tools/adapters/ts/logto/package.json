@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/logto",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Logto. Seamlessly integrate zero-trust verifiable actions into your Logto application.",
   "main": "./src/index.ts",
