@@ -48,5 +48,5 @@ jsonschema = { version = "0.18", default-features = false }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync", "macros", "time"] }
 tempfile = "3"
 which = "6"
-rcgen = "0.13"
+rcgen = "0.14"
 time = "0.3"
