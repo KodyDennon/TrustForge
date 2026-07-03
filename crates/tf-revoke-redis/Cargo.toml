@@ -9,4 +9,4 @@ description = "TrustForge Redis-backed revocation cache (RevocationCache trait o
 [dependencies]
 redis = { version = "0.27", default-features = false }
 thiserror = "1"
-tf-types = { path = "../tf-types" }
+tf-types = { version = "0.1.0", path = "../tf-types" }

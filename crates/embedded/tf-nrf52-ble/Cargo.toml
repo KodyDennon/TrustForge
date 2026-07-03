@@ -22,8 +22,8 @@ test = false
 bench = false
 
 [dependencies]
-tf-core-no-std = { path = "../../tf-core-no-std", default-features = false }
-tf-embedded-hal = { path = "../../tf-embedded-hal", default-features = false }
+tf-core-no-std = { version = "0.1.0", path = "../../tf-core-no-std", default-features = false }
+tf-embedded-hal = { version = "0.1.0", path = "../../tf-embedded-hal", default-features = false }
 
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"

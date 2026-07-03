@@ -7,7 +7,7 @@ repository.workspace = true
 description = "TrustForge session carrier driver (handshake + AEAD framing)."
 
 [dependencies]
-tf-types = { path = "../tf-types" }
+tf-types = { version = "0.1.0", path = "../tf-types" }
 tokio = { version = "1", features = ["rt", "net", "io-util", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 serde = { workspace = true }

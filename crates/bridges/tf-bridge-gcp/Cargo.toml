@@ -7,7 +7,7 @@ repository.workspace = true
 description = "TrustForge bridge for GCP IAM — verifies Google ID tokens via Google's JWKS, translates service accounts and IAM roles into TrustForge actors and capabilities."
 
 [dependencies]
-tf-types = { path = "../../tf-types" }
+tf-types = { version = "0.1.0", path = "../../tf-types" }
 jsonwebtoken = "9"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }

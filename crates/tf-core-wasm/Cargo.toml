@@ -10,7 +10,7 @@ description = "TrustForge core surface compiled to wasm32 for in-process TS/JS a
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-tf-types = { path = "../tf-types" }
+tf-types = { version = "0.1.0", path = "../tf-types" }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"

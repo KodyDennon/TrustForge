@@ -21,7 +21,7 @@ test = false
 bench = false
 
 [dependencies]
-tf-core-no-std = { path = "../../tf-core-no-std", default-features = false }
+tf-core-no-std = { version = "0.1.0", path = "../../tf-core-no-std", default-features = false }
 # `tf-embedded-hal` is intentionally NOT pulled in for K6 — its
 # `heapless::spsc::Queue` re-export requires atomic load/store, which
 # `riscv32imc` lacks (the C-extension is RV32I**M**C, no A). Targets

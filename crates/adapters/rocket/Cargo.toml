@@ -7,7 +7,7 @@ repository.workspace = true
 description = "TrustForge Rocket fairing that consults tf-daemon /v1/decide."
 
 [dependencies]
-tf-decide-client = { path = "../tf-decide-client" }
+tf-decide-client = { version = "0.1.0", path = "../tf-decide-client" }
 rocket = { version = "0.5", default-features = false, features = ["json"] }
 serde_json = "1"
 tokio = { version = "1", features = ["rt", "macros"] }
