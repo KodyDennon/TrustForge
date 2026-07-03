@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  npm-publish:
+    name: Publish NPM Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+          
+      - name: Install dependencies
+        run: bun install
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+          
+      - name: Publish to NPM
+        run: |
+          # Strip private: true from packages before publishing to ensure they are public
+          find tools -name package.json -not -path "*/node_modules/*" -exec bash -c 'jq "del(.private)" "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \;
+          jq "del(.private)" package.json > package.json.tmp && mv package.json.tmp package.json
+          
+          # Publish all packages
+          npm publish --workspaces --access public || true
+          npm publish --access public || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  cargo-publish:
+    name: Publish Cargo Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Publish Crates
+        run: bash scripts/publish-crates.sh
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
