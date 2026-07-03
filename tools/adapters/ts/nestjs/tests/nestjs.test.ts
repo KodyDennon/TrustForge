@@ -83,7 +83,7 @@ const approval: TfDecision = {
   proof_id: "sha256:approval",
 };
 
-describe("@trustforge/nestjs", () => {
+describe("@trustforge-protocol/nestjs", () => {
   test("TrustForgeGuard.canActivate(ctx) returns true on allow and decorates request", async () => {
     const tf = mockClient(() => allow);
     const svc = new TrustForgeService({ tf });

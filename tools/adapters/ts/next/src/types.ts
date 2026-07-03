@@ -2,7 +2,7 @@
 //
 // We intentionally define a structural interface here rather than importing
 // the SDK directly so this adapter can be type-checked and tested even when
-// `@trustforge/sdk` isn't fully built yet, and so consumers can inject a
+// `@trustforge-protocol/sdk` isn't fully built yet, and so consumers can inject a
 // mock client (useful for tests + observe-only mode).
 
 export type TfDecisionVerdict =
@@ -57,7 +57,7 @@ export interface TfDecision {
 
 /**
  * Minimal contract every TrustForge SDK instance must satisfy.
- * Real SDK: `import { TrustForge } from "@trustforge/sdk"` returns one of these.
+ * Real SDK: `import { TrustForge } from "@trustforge-protocol/sdk"` returns one of these.
  */
 export interface TrustForgeLike {
   decide(req: TfDecideRequest): Promise<TfDecision>;

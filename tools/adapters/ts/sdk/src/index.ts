@@ -1,5 +1,5 @@
 /**
- * @trustforge/sdk — thin TypeScript client over the tf-daemon HTTP API.
+ * @trustforge-protocol/sdk — thin TypeScript client over the tf-daemon HTTP API.
  *
  * Wire format is pinned by `conformance/decide-protocol-vectors.yaml` and
  * MUST stay byte-compatible with every other language adapter. This module

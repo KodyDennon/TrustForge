@@ -1,10 +1,10 @@
 /**
- * @trustforge/better-auth — Better Auth plugin that projects resolved
+ * @trustforge-protocol/better-auth — Better Auth plugin that projects resolved
  * sessions into TrustForge actors / capabilities.
  *
  * Usage:
  *   import { betterAuth } from "better-auth";
- *   import { trustforgePlugin } from "@trustforge/better-auth";
+ *   import { trustforgePlugin } from "@trustforge-protocol/better-auth";
  *   const auth = betterAuth({
  *     plugins: [trustforgePlugin({ daemonUrl, adminToken })],
  *   });
@@ -19,7 +19,7 @@
  * daemon emits the *signed* proof event when /v1/credentials/import runs.
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgePluginOptions extends TrustForgeOptions {
   /** Hint forwarded to `tf.importCredential`. Default: "better-auth". */

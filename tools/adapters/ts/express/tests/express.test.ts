@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import express from "express";
 import request from "supertest";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { tfExpress, tfRequire } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -30,7 +30,7 @@ function makeApp(daemonUrl: string, mode: "enforce" | "observe-only" = "enforce"
   return app;
 }
 
-describe("@trustforge/express", () => {
+describe("@trustforge-protocol/express", () => {
   test("happy path — allow forwards request and attaches req.tfActor + proof_id", async () => {
     daemon = startMockDaemon({ adminToken: "test-admin-token" });
     const app = makeApp(daemon.url);

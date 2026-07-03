@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForSupabaseToken,
   trustforgeSupabase,
@@ -47,7 +47,7 @@ function makeRes() {
   };
 }
 
-describe("@trustforge/supabase-auth", () => {
+describe("@trustforge-protocol/supabase-auth", () => {
   test("decideForSupabaseToken — verifies JWT and forwards user.id", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForSupabaseToken("good-jwt", {

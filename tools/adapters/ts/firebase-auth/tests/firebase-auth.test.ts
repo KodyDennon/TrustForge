@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForFirebaseToken,
   trustforgeFirebase,
@@ -17,7 +17,7 @@ const fakeVerifier = (uid: string) => async (token: string): Promise<FirebaseDec
   return { uid, email: `${uid}@example.com`, email_verified: true };
 };
 
-describe("@trustforge/firebase-auth", () => {
+describe("@trustforge-protocol/firebase-auth", () => {
   test("decideForFirebaseToken — verifies token and forwards uid", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForFirebaseToken("good-id-token", {

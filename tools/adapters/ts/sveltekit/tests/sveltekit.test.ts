@@ -69,7 +69,7 @@ const approvalReq: TfDecision = {
   proof_id: "sha256:approval",
 };
 
-describe("@trustforge/sveltekit", () => {
+describe("@trustforge-protocol/sveltekit", () => {
   test("on allow, calls resolve(event), sets event.locals.tfActor + tfDecision", async () => {
     const tf = mockClient(() => allow);
     const handle = trustforgeHandle({ tf });

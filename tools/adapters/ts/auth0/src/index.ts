@@ -1,10 +1,10 @@
 /**
- * @trustforge/auth0 — verifies an Auth0 access / id token (RS256, JWKS) via
+ * @trustforge-protocol/auth0 — verifies an Auth0 access / id token (RS256, JWKS) via
  * `jose` (loaded dynamically) and projects the resolved `sub` into a
  * TrustForge decide call with `host_token_kind: "auth0-jwt"`.
  *
  * Usage (Express):
- *   import { trustforgeAuth0 } from "@trustforge/auth0";
+ *   import { trustforgeAuth0 } from "@trustforge-protocol/auth0";
  *   app.use(trustforgeAuth0({
  *     daemonUrl: "...",
  *     domain: "my-tenant.us.auth0.com",
@@ -17,7 +17,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface Auth0Claims {
   sub: string;
@@ -216,4 +216,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

@@ -1,8 +1,8 @@
 /**
- * @trustforge/iron-session — wraps `getIronSession` so every read of the
+ * @trustforge-protocol/iron-session — wraps `getIronSession` so every read of the
  * cookie-backed session also projects the session into a TrustForge actor.
  *
- *   import { trustforgeForIronSession } from "@trustforge/iron-session";
+ *   import { trustforgeForIronSession } from "@trustforge-protocol/iron-session";
  *   const getSession = trustforgeForIronSession(getIronSession, {
  *     daemonUrl: "http://127.0.0.1:7616",
  *     sessionOptions: { cookieName: "app", password: "..." },
@@ -11,7 +11,7 @@
  *   // session.tfActor / session.tfCapabilities are populated.
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgeIronOptions extends TrustForgeOptions {
   hint?: string;

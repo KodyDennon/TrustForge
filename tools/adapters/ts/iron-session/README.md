@@ -1,4 +1,4 @@
-# @trustforge/iron-session
+# @trustforge-protocol/iron-session
 
 Wraps `iron-session`'s `getIronSession` so every read of the cookie-backed
 session also projects the session into a TrustForge actor + capabilities.
@@ -10,14 +10,14 @@ Draft. Part of TrustForge Phase D. Not production ready.
 ## Install
 
 ```bash
-bun add @trustforge/iron-session @trustforge/sdk iron-session
+bun add @trustforge-protocol/iron-session @trustforge-protocol/sdk iron-session
 ```
 
 ## Usage
 
 ```ts
 import { getIronSession } from "iron-session";
-import { trustforgeForIronSession } from "@trustforge/iron-session";
+import { trustforgeForIronSession } from "@trustforge-protocol/iron-session";
 
 const sessionOptions = {
   cookieName: "myapp_session",
@@ -38,7 +38,7 @@ if (session.tfActor) { /* allowed user */ }
 ## Per-route enforcement
 
 ```ts
-import { tfRequireIron } from "@trustforge/iron-session";
+import { tfRequireIron } from "@trustforge-protocol/iron-session";
 const requireWrite = tfRequireIron(
   { daemonUrl: "http://127.0.0.1:7616" },
   "fs.write",

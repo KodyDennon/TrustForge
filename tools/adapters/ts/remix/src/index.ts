@@ -78,10 +78,10 @@ export interface TfRemixOptions {
 async function getClient(opts: TfRemixOptions): Promise<TrustForgeLike> {
   if (opts.tf) return opts.tf;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod: any = await import("@trustforge/sdk").catch(() => null);
+  const mod: any = await import("@trustforge-protocol/sdk").catch(() => null);
   if (!mod?.TrustForge) {
     throw new Error(
-      "@trustforge/remix: @trustforge/sdk is not installed. " +
+      "@trustforge-protocol/remix: @trustforge-protocol/sdk is not installed. " +
         "Pass `tf:` to the wrapper for testing.",
     );
   }
@@ -264,7 +264,7 @@ export const tfRequire = withTrustForgeAction;
  * Usage:
  *
  *   import { createRequestHandler } from "@remix-run/server-runtime";
- *   import { trustforgeRemixHandle } from "@trustforge/remix";
+ *   import { trustforgeRemixHandle } from "@trustforge-protocol/remix";
  *
  *   const remixHandler = createRequestHandler(build, process.env.NODE_ENV);
  *   export const handler = trustforgeRemixHandle({ daemonUrl: "..." })(remixHandler);

@@ -1,9 +1,9 @@
 /**
- * @trustforge/h3 — h3 / Nitro / Nuxt event handler middleware.
+ * @trustforge-protocol/h3 — h3 / Nitro / Nuxt event handler middleware.
  *
  * Usage:
  *   import { createApp } from "h3";
- *   import { trustforgeHandler } from "@trustforge/h3";
+ *   import { trustforgeHandler } from "@trustforge-protocol/h3";
  *
  *   const app = createApp();
  *   app.use(trustforgeHandler({ daemonUrl: "http://127.0.0.1:7616" }));
@@ -17,7 +17,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 /** Subset of h3's H3Event we depend on, typed structurally. */
 export interface H3EventLike {
@@ -280,4 +280,4 @@ export function tfRequire(
   return trustforgeHandler({ ...opts, defaultAction: action });
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

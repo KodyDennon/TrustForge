@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForLogtoToken,
   trustforgeLogto,
@@ -55,7 +55,7 @@ function makeRes() {
   };
 }
 
-describe("@trustforge/logto", () => {
+describe("@trustforge-protocol/logto", () => {
   test("decideForLogtoToken — verifies and forwards sub + scope", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForLogtoToken("good-jwt", {

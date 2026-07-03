@@ -1,4 +1,4 @@
-# @trustforge/sdk
+# @trustforge-protocol/sdk
 
 Thin TypeScript client over the `tf-daemon` HTTP API. Use this from any
 Node/Bun runtime to call `/v1/decide`, `/v1/credentials/import`,
@@ -10,15 +10,15 @@ must stay byte-compatible with every other-language adapter.
 ## Install
 
 ```sh
-bun add @trustforge/sdk
+bun add @trustforge-protocol/sdk
 # or
-npm install @trustforge/sdk
+npm install @trustforge-protocol/sdk
 ```
 
 ## Usage
 
 ```ts
-import { TrustForge } from "@trustforge/sdk";
+import { TrustForge } from "@trustforge-protocol/sdk";
 
 const tf = new TrustForge({
   daemonUrl: "http://127.0.0.1:7616",

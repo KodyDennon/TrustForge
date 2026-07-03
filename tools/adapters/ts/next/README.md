@@ -1,4 +1,4 @@
-# `@trustforge/next`
+# `@trustforge-protocol/next`
 
 Next.js adapter for TrustForge. Drop-in support for both **App Router** and
 **Pages Router**, on both the **Edge** and **Node** runtimes.
@@ -6,8 +6,8 @@ Next.js adapter for TrustForge. Drop-in support for both **App Router** and
 ## Install
 
 ```bash
-bun add @trustforge/next @trustforge/sdk
-# or: npm install @trustforge/next @trustforge/sdk
+bun add @trustforge-protocol/next @trustforge-protocol/sdk
+# or: npm install @trustforge-protocol/next @trustforge-protocol/sdk
 ```
 
 ## Edge / Node middleware (`middleware.ts`)
@@ -15,7 +15,7 @@ bun add @trustforge/next @trustforge/sdk
 Create `middleware.ts` at your project root:
 
 ```ts
-import { withTrustForge, recommendedMatcher } from "@trustforge/next/middleware";
+import { withTrustForge, recommendedMatcher } from "@trustforge-protocol/next/middleware";
 
 export default withTrustForge({
   daemonUrl: "http://127.0.0.1:8642",
@@ -41,7 +41,7 @@ The middleware:
 ## App Router route handler (`app/api/.../route.ts`)
 
 ```ts
-import { tfRequire } from "@trustforge/next/server";
+import { tfRequire } from "@trustforge-protocol/next/server";
 
 export const POST = tfRequire("user.create")(async (req) => {
   const body = await req.json();
@@ -57,7 +57,7 @@ options as the middleware.
 ## Pages Router API route (`pages/api/users.ts`)
 
 ```ts
-import { tfRequireApi } from "@trustforge/next/server";
+import { tfRequireApi } from "@trustforge-protocol/next/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default tfRequireApi("user.create")(
@@ -91,7 +91,7 @@ satisfies `TrustForgeLike` (i.e. has a `decide(req)` method) and you can
 write fast unit tests with no daemon running.
 
 ```ts
-import { withTrustForge } from "@trustforge/next/middleware";
+import { withTrustForge } from "@trustforge-protocol/next/middleware";
 const mw = withTrustForge({ tf: { async decide() { return allowFixture; } } });
 ```
 

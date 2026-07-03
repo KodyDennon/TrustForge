@@ -1,4 +1,4 @@
-# `@trustforge/sveltekit`
+# `@trustforge-protocol/sveltekit`
 
 SvelteKit adapter for TrustForge. Wires into the `handle` server hook so
 every request flows through `tf-daemon` before reaching your routes.
@@ -6,13 +6,13 @@ every request flows through `tf-daemon` before reaching your routes.
 ## Install
 
 ```bash
-bun add @trustforge/sveltekit @trustforge/sdk
+bun add @trustforge-protocol/sveltekit @trustforge-protocol/sdk
 ```
 
 ## Use it (`src/hooks.server.ts`)
 
 ```ts
-import { trustforgeHandle } from "@trustforge/sveltekit";
+import { trustforgeHandle } from "@trustforge-protocol/sveltekit";
 import type { Handle } from "@sveltejs/kit";
 
 export const handle: Handle = trustforgeHandle({
@@ -46,7 +46,7 @@ declare global {
   namespace App {
     interface Locals {
       tfActor?: string;
-      tfDecision?: import("@trustforge/sveltekit").TfDecision;
+      tfDecision?: import("@trustforge-protocol/sveltekit").TfDecision;
       tfProofId?: string;
     }
   }
@@ -60,7 +60,7 @@ Use `sequence()` from `@sveltejs/kit/hooks`:
 
 ```ts
 import { sequence } from "@sveltejs/kit/hooks";
-import { trustforgeHandle } from "@trustforge/sveltekit";
+import { trustforgeHandle } from "@trustforge-protocol/sveltekit";
 import { authHandle } from "$lib/auth";
 
 export const handle = sequence(

@@ -1,10 +1,10 @@
 /**
- * @trustforge/hono — Hono middleware that gates every request via
+ * @trustforge-protocol/hono — Hono middleware that gates every request via
  * tf-daemon /v1/decide.
  *
  * Usage:
  *   import { Hono } from "hono";
- *   import { trustforgeMiddleware, tfRequire } from "@trustforge/hono";
+ *   import { trustforgeMiddleware, tfRequire } from "@trustforge-protocol/hono";
  *
  *   const app = new Hono();
  *   app.use("*", trustforgeMiddleware({ daemonUrl: "..." }));
@@ -17,7 +17,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface TfHonoOptions {
   daemonUrl: string;
@@ -190,4 +190,4 @@ export function tfRequire(
   };
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

@@ -90,10 +90,10 @@ export class TrustForgeService {
     if (!this.clientPromise) {
       this.clientPromise = (async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mod: any = await import("@trustforge/sdk").catch(() => null);
+        const mod: any = await import("@trustforge-protocol/sdk").catch(() => null);
         if (!mod?.TrustForge) {
           throw new Error(
-            "@trustforge/nestjs: @trustforge/sdk is not installed. " +
+            "@trustforge-protocol/nestjs: @trustforge-protocol/sdk is not installed. " +
               "Pass `tf:` to TrustForgeModule.forRoot({...}) for testing.",
           );
         }

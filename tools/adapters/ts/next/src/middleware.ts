@@ -2,7 +2,7 @@
 //
 // Usage (in a Next.js project's `middleware.ts`):
 //
-//   import { withTrustForge } from "@trustforge/next/middleware";
+//   import { withTrustForge } from "@trustforge-protocol/next/middleware";
 //   export default withTrustForge({ daemonUrl: "http://127.0.0.1:8642" });
 //   export const config = { matcher: ["/((?!_next|favicon.ico).*)"] };
 //

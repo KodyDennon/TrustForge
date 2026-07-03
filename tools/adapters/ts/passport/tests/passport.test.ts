@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { TrustForgeStrategy } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -37,7 +37,7 @@ function harness(strategy: TrustForgeStrategy) {
   return () => outcome;
 }
 
-describe("@trustforge/passport", () => {
+describe("@trustforge-protocol/passport", () => {
   test("strategy name is trustforge", () => {
     const s = new TrustForgeStrategy({ daemonUrl: daemon.url, quiet: true });
     expect(s.name).toBe("trustforge");

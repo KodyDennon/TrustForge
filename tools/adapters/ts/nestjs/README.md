@@ -1,4 +1,4 @@
-# `@trustforge/nestjs`
+# `@trustforge-protocol/nestjs`
 
 NestJS adapter for TrustForge. Ships a `CanActivate` guard, an injectable
 service, a `TrustForgeModule.forRoot()` dynamic module, and a
@@ -7,7 +7,7 @@ service, a `TrustForgeModule.forRoot()` dynamic module, and a
 ## Install
 
 ```bash
-npm install @trustforge/nestjs @trustforge/sdk reflect-metadata
+npm install @trustforge-protocol/nestjs @trustforge-protocol/sdk reflect-metadata
 ```
 
 `reflect-metadata` must be imported once at the top of your `main.ts` (this
@@ -18,7 +18,7 @@ is a NestJS requirement, not a TrustForge one).
 ```ts
 // app.module.ts
 import { Module } from "@nestjs/common";
-import { TrustForgeModule } from "@trustforge/nestjs";
+import { TrustForgeModule } from "@trustforge-protocol/nestjs";
 
 @Module({
   imports: [
@@ -39,7 +39,7 @@ can inject `TrustForgeService` and use `TrustForgeGuard` without re-importing.
 
 ```ts
 import { Controller, Post, UseGuards, Body } from "@nestjs/common";
-import { TrustForgeGuard, TrustForgeRequire } from "@trustforge/nestjs";
+import { TrustForgeGuard, TrustForgeRequire } from "@trustforge-protocol/nestjs";
 
 @Controller("users")
 @UseGuards(TrustForgeGuard)
@@ -66,7 +66,7 @@ When the guard runs, it:
 
 ```ts
 import { Injectable } from "@nestjs/common";
-import { TrustForgeService } from "@trustforge/nestjs";
+import { TrustForgeService } from "@trustforge-protocol/nestjs";
 
 @Injectable()
 export class BillingService {
@@ -89,7 +89,7 @@ export class BillingService {
 
 ```ts
 // main.ts
-import { TrustForgeGuardImpl, TrustForgeService } from "@trustforge/nestjs";
+import { TrustForgeGuardImpl, TrustForgeService } from "@trustforge-protocol/nestjs";
 const tfService = app.get(TrustForgeService);
 app.useGlobalGuards(new TrustForgeGuardImpl(tfService, { mode: "enforce" }));
 ```

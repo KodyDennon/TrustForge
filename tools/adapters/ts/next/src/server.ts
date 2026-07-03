@@ -2,14 +2,14 @@
 //
 // App Router (app/api/users/route.ts):
 //
-//   import { tfRequire } from "@trustforge/next/server";
+//   import { tfRequire } from "@trustforge-protocol/next/server";
 //   export const POST = tfRequire("user.create")(async (req) => {
 //     return Response.json({ ok: true });
 //   });
 //
 // Pages Router (pages/api/users.ts):
 //
-//   import { tfRequireApi } from "@trustforge/next/server";
+//   import { tfRequireApi } from "@trustforge-protocol/next/server";
 //   export default tfRequireApi("user.create")(async (req, res) => {
 //     res.json({ ok: true });
 //   });

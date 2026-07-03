@@ -1,4 +1,4 @@
-# @trustforge/better-auth
+# @trustforge-protocol/better-auth
 
 Better Auth plugin that hooks into the `session.fetch` callback and projects
 every resolved Better Auth session into a TrustForge actor + capabilities.
@@ -6,19 +6,19 @@ every resolved Better Auth session into a TrustForge actor + capabilities.
 ## Status
 
 Draft. Part of TrustForge Phase D (TS auth-library bridges). Not production
-ready until the underlying TF specs and `@trustforge/sdk` are stabilized.
+ready until the underlying TF specs and `@trustforge-protocol/sdk` are stabilized.
 
 ## Install
 
 ```bash
-bun add @trustforge/better-auth @trustforge/sdk better-auth
+bun add @trustforge-protocol/better-auth @trustforge-protocol/sdk better-auth
 ```
 
 ## Usage
 
 ```ts
 import { betterAuth } from "better-auth";
-import { trustforgePlugin } from "@trustforge/better-auth";
+import { trustforgePlugin } from "@trustforge-protocol/better-auth";
 
 export const auth = betterAuth({
   // ... your existing better-auth config ...

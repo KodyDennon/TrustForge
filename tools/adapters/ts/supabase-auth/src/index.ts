@@ -1,10 +1,10 @@
 /**
- * @trustforge/supabase-auth — verifies a Supabase access token via the
+ * @trustforge-protocol/supabase-auth — verifies a Supabase access token via the
  * Supabase admin JS client (loaded dynamically) and projects the resolved
  * user id into a TrustForge decide call with `host_token_kind: "supabase-jwt"`.
  *
  * Usage (Express):
- *   import { trustforgeSupabase } from "@trustforge/supabase-auth";
+ *   import { trustforgeSupabase } from "@trustforge-protocol/supabase-auth";
  *   app.use(trustforgeSupabase({
  *     daemonUrl: "...",
  *     supabaseUrl: process.env.SUPABASE_URL!,
@@ -19,7 +19,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface SupabaseUser {
   id: string;
@@ -216,4 +216,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

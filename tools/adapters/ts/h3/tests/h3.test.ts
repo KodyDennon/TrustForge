@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   trustforgeHandler,
   tfRequire,
@@ -55,7 +55,7 @@ function makeEvent(init: {
   return { event, res };
 }
 
-describe("@trustforge/h3", () => {
+describe("@trustforge-protocol/h3", () => {
   test("allow path returns undefined and stamps proof header", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const handler = trustforgeHandler({

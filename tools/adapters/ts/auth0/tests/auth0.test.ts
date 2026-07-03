@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForAuth0Token,
   trustforgeAuth0,
@@ -54,7 +54,7 @@ function makeRes() {
   };
 }
 
-describe("@trustforge/auth0", () => {
+describe("@trustforge-protocol/auth0", () => {
   test("decideForAuth0Token — verifies token and forwards sub + scope", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForAuth0Token("good-jwt", {

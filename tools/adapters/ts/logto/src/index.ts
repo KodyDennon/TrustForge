@@ -1,10 +1,10 @@
 /**
- * @trustforge/logto — verifies a Logto access token (JWT, RS256) via
+ * @trustforge-protocol/logto — verifies a Logto access token (JWT, RS256) via
  * `jose` against Logto's OIDC JWKS endpoint, then projects the resolved
  * `sub` into a TrustForge decide call with `host_token_kind: "logto-jwt"`.
  *
  * Usage (Express):
- *   import { trustforgeLogto } from "@trustforge/logto";
+ *   import { trustforgeLogto } from "@trustforge-protocol/logto";
  *   app.use(trustforgeLogto({
  *     daemonUrl: "...",
  *     endpoint: "https://my-logto.app",
@@ -17,7 +17,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface LogtoClaims {
   sub: string;
@@ -217,4 +217,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

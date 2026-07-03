@@ -1,10 +1,10 @@
 /**
- * @trustforge/next-auth — NextAuth / Auth.js callbacks that project the
+ * @trustforge-protocol/next-auth — NextAuth / Auth.js callbacks that project the
  * resolved JWT / session into a TrustForge actor + capabilities.
  *
  * Usage:
  *   import NextAuth from "next-auth";
- *   import { trustforgeCallbacks } from "@trustforge/next-auth";
+ *   import { trustforgeCallbacks } from "@trustforge-protocol/next-auth";
  *   export const { handlers, auth } = NextAuth({
  *     callbacks: trustforgeCallbacks({ daemonUrl, adminToken }),
  *   });
@@ -14,7 +14,7 @@
  *   callbacks: { ...trustforgeCallbacks({...}), ...myCallbacks }
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgeCallbacksOptions extends TrustForgeOptions {
   /** Hint forwarded to `tf.importCredential`. Default: "next-auth". */

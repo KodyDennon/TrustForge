@@ -24,10 +24,10 @@ async function importSdk(): Promise<{
   }) => TrustForgeLike;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod: any = await import("@trustforge/sdk").catch(() => null);
+  const mod: any = await import("@trustforge-protocol/sdk").catch(() => null);
   if (!mod || !mod.TrustForge) {
     throw new Error(
-      "@trustforge/next: @trustforge/sdk is not installed. " +
+      "@trustforge-protocol/next: @trustforge-protocol/sdk is not installed. " +
         "Either install it or pass `tf:` to the adapter options.",
     );
   }

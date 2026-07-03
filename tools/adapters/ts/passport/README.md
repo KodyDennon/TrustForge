@@ -1,4 +1,4 @@
-# @trustforge/passport
+# @trustforge-protocol/passport
 
 Passport strategy that verifies an inbound credential (typically a bearer
 token, opaque session id, or signed cookie) against the TrustForge daemon and
@@ -11,14 +11,14 @@ Draft. Part of TrustForge Phase D. Not production ready.
 ## Install
 
 ```bash
-bun add @trustforge/passport @trustforge/sdk passport
+bun add @trustforge-protocol/passport @trustforge-protocol/sdk passport
 ```
 
 ## Usage
 
 ```ts
 import passport from "passport";
-import { TrustForgeStrategy } from "@trustforge/passport";
+import { TrustForgeStrategy } from "@trustforge-protocol/passport";
 
 passport.use(
   new TrustForgeStrategy({

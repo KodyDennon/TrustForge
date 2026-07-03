@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   trustforge,
   tfRequire,
@@ -49,7 +49,7 @@ async function runChain(
   });
 }
 
-describe("@trustforge/koa", () => {
+describe("@trustforge-protocol/koa", () => {
   test("allow path attaches ctx.state.tfDecision and continues", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const mw = trustforge({

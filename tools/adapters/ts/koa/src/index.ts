@@ -1,10 +1,10 @@
 /**
- * @trustforge/koa — Koa 2/3 middleware that gates every incoming request
+ * @trustforge-protocol/koa — Koa 2/3 middleware that gates every incoming request
  * through tf-daemon /v1/decide.
  *
  * Usage:
  *   import Koa from "koa";
- *   import { trustforge } from "@trustforge/koa";
+ *   import { trustforge } from "@trustforge-protocol/koa";
  *
  *   const app = new Koa();
  *   app.use(trustforge({ daemonUrl: "http://127.0.0.1:7616" }));
@@ -17,7 +17,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 // We type Koa structurally so the package can be installed without `koa`
 // present at type-check time.
@@ -207,4 +207,4 @@ export function tfRequire(action: string, opts: TfKoaOptions): KoaMiddleware {
   return makeMiddleware({ ...resolveConfig(opts), defaultAction: action });
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

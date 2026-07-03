@@ -1,12 +1,12 @@
 /**
- * @trustforge/lucia — Lucia v3 session-validation hook.
+ * @trustforge-protocol/lucia — Lucia v3 session-validation hook.
  *
  * Lucia exposes `Lucia.validateSession(sessionId)` which returns a
  * `{ session, user }` pair. We wrap that call so every successful validation
  * also projects the session id into a TrustForge actor.
  *
  *   import { Lucia } from "lucia";
- *   import { trustforgeForLucia } from "@trustforge/lucia";
+ *   import { trustforgeForLucia } from "@trustforge-protocol/lucia";
  *
  *   const lucia = new Lucia(adapter, { ... });
  *   export const tfLucia = trustforgeForLucia(lucia, {
@@ -17,7 +17,7 @@
  *   // result.tfActor / result.tfCapabilities are now populated.
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgeLuciaOptions extends TrustForgeOptions {
   hint?: string;

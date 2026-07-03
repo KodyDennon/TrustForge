@@ -1,5 +1,5 @@
 {
-  "name": "@trustforge/nestjs",
+  "name": "@trustforge-protocol/nestjs",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge adapter for NestJS (guard + module + decorator).",
@@ -12,7 +12,7 @@
     "test": "bun test tests"
   },
   "dependencies": {
-    "@trustforge/sdk": "workspace:*"
+    "@trustforge-protocol/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

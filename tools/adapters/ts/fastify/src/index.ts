@@ -1,10 +1,10 @@
 /**
- * @trustforge/fastify — Fastify 4/5 plugin that gates every request via
+ * @trustforge-protocol/fastify — Fastify 4/5 plugin that gates every request via
  * tf-daemon /v1/decide.
  *
  * Usage:
  *   import Fastify from "fastify";
- *   import { fastifyTrustForge } from "@trustforge/fastify";
+ *   import { fastifyTrustForge } from "@trustforge-protocol/fastify";
  *
  *   const app = Fastify();
  *   await app.register(fastifyTrustForge, {
@@ -28,7 +28,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -205,8 +205,8 @@ const trustforgePlugin: FastifyPluginAsync<
 
 export const fastifyTrustForge = fp(trustforgePlugin, {
   fastify: ">=4.0.0",
-  name: "@trustforge/fastify",
+  name: "@trustforge-protocol/fastify",
 });
 
 export default fastifyTrustForge;
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

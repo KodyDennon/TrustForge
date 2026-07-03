@@ -1,4 +1,4 @@
-# @trustforge/next-auth
+# @trustforge-protocol/next-auth
 
 Drop-in NextAuth / Auth.js callbacks that project the resolved JWT / session
 into a TrustForge actor + capabilities.
@@ -10,14 +10,14 @@ Draft. Part of TrustForge Phase D. Not production ready.
 ## Install
 
 ```bash
-bun add @trustforge/next-auth @trustforge/sdk next-auth
+bun add @trustforge-protocol/next-auth @trustforge-protocol/sdk next-auth
 ```
 
 ## Usage
 
 ```ts
 import NextAuth from "next-auth";
-import { trustforgeCallbacks } from "@trustforge/next-auth";
+import { trustforgeCallbacks } from "@trustforge-protocol/next-auth";
 
 export const { handlers, auth } = NextAuth({
   providers: [/* ... */],
@@ -31,7 +31,7 @@ export const { handlers, auth } = NextAuth({
 To merge with your own callbacks:
 
 ```ts
-import { trustforgeCallbacks } from "@trustforge/next-auth";
+import { trustforgeCallbacks } from "@trustforge-protocol/next-auth";
 
 const tf = trustforgeCallbacks({ daemonUrl: "..." });
 export const { handlers, auth } = NextAuth({
@@ -58,7 +58,7 @@ After sign-in the session and JWT carry:
 ### Per-route enforcement
 
 ```ts
-import { tfRequire } from "@trustforge/next-auth";
+import { tfRequire } from "@trustforge-protocol/next-auth";
 const requireFsRead = tfRequire({ daemonUrl: "..." }, "fs.read", "/etc/passwd");
 
 export async function GET() {

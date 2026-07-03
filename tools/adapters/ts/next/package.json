@@ -1,5 +1,5 @@
 {
-  "name": "@trustforge/next",
+  "name": "@trustforge-protocol/next",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge adapter for Next.js (App Router + Pages Router, Edge + Node runtimes).",
@@ -14,7 +14,7 @@
     "test": "bun test tests"
   },
   "dependencies": {
-    "@trustforge/sdk": "workspace:*"
+    "@trustforge-protocol/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

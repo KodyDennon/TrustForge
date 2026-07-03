@@ -1,20 +1,20 @@
-# @trustforge/fastify
+# @trustforge-protocol/fastify
 
 Fastify 4 / 5 plugin for TrustForge. Gates every request via `tf-daemon /v1/decide`.
 
 ## Install
 
 ```sh
-bun add @trustforge/fastify fastify
+bun add @trustforge-protocol/fastify fastify
 # or
-npm install @trustforge/fastify fastify
+npm install @trustforge-protocol/fastify fastify
 ```
 
 ## Usage
 
 ```ts
 import Fastify from "fastify";
-import { fastifyTrustForge } from "@trustforge/fastify";
+import { fastifyTrustForge } from "@trustforge-protocol/fastify";
 
 const app = Fastify();
 

@@ -50,7 +50,7 @@ const approvalReq: TfDecision = {
   proof_id: "sha256:approval",
 };
 
-describe("@trustforge/next middleware (Edge runtime, App Router)", () => {
+describe("@trustforge-protocol/next middleware (Edge runtime, App Router)", () => {
   test("forwards allow decisions with x-middleware-next + proof headers", async () => {
     const tf = mockClient(() => allow);
     const mw = withTrustForge({ tf });
@@ -88,7 +88,7 @@ describe("@trustforge/next middleware (Edge runtime, App Router)", () => {
   });
 });
 
-describe("@trustforge/next middleware (Node runtime, observe-only + skip)", () => {
+describe("@trustforge-protocol/next middleware (Node runtime, observe-only + skip)", () => {
   test("observe-only mode never blocks even on deny", async () => {
     const tf = mockClient(() => deny);
     const mw = withTrustForge({ tf, mode: "observe-only" });
@@ -123,7 +123,7 @@ describe("@trustforge/next middleware (Node runtime, observe-only + skip)", () =
   });
 });
 
-describe("@trustforge/next App Router tfRequire", () => {
+describe("@trustforge-protocol/next App Router tfRequire", () => {
   test("denies with 403 short-circuit when decision = deny", async () => {
     const tf = mockClient(() => deny);
     const wrapped = tfRequire("user.create", { tf })(async () =>
@@ -155,7 +155,7 @@ describe("@trustforge/next App Router tfRequire", () => {
   });
 });
 
-describe("@trustforge/next Pages Router tfRequireApi", () => {
+describe("@trustforge-protocol/next Pages Router tfRequireApi", () => {
   test("forwards allow decisions and annotates response headers", async () => {
     const tf = mockClient(() => allow);
     let handlerCalled = false;

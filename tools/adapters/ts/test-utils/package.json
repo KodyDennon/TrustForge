@@ -1,5 +1,5 @@
 {
-  "name": "@trustforge/test-utils",
+  "name": "@trustforge-protocol/test-utils",
   "version": "0.1.0",
   "type": "module",
   "description": "Shared test utilities for TrustForge TS adapters (mock daemon, fixtures).",

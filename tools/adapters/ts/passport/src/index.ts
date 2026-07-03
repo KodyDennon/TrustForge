@@ -1,11 +1,11 @@
 /**
- * @trustforge/passport — Passport strategy that verifies an inbound
+ * @trustforge-protocol/passport — Passport strategy that verifies an inbound
  * credential (typically a bearer token, opaque session id, or signed cookie)
  * by handing it to the TrustForge daemon, then surfaces the resolved TF
  * actor as the authenticated `req.user`.
  *
  *   import passport from "passport";
- *   import { TrustForgeStrategy } from "@trustforge/passport";
+ *   import { TrustForgeStrategy } from "@trustforge-protocol/passport";
  *   passport.use(new TrustForgeStrategy({ daemonUrl: "..." }));
  *   app.use(passport.authenticate("trustforge", { session: false }));
  *
@@ -14,7 +14,7 @@
  * when the host registers the instance with `passport.use(...)`.
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgeStrategyOptions extends TrustForgeOptions {
   hint?: string;

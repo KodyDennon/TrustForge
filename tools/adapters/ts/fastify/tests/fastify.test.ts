@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import Fastify, { type FastifyInstance } from "fastify";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { fastifyTrustForge } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -38,7 +38,7 @@ async function buildApp(
   return app;
 }
 
-describe("@trustforge/fastify", () => {
+describe("@trustforge-protocol/fastify", () => {
   test("happy path — allow attaches actor + proof_id, x-tf-proof-id header", async () => {
     daemon = startMockDaemon({ adminToken: "test-admin-token" });
     await buildApp(daemon.url);

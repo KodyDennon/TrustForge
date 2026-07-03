@@ -1,4 +1,4 @@
-# @trustforge/hono
+# @trustforge-protocol/hono
 
 Hono middleware for TrustForge. Gates every request through `tf-daemon /v1/decide`.
 Tested against Bun (Hono's default runtime); also works on Cloudflare Workers,
@@ -7,14 +7,14 @@ Deno, and Node via Hono's own runtime adapters.
 ## Install
 
 ```sh
-bun add @trustforge/hono hono
+bun add @trustforge-protocol/hono hono
 ```
 
 ## Usage
 
 ```ts
 import { Hono } from "hono";
-import { trustforgeMiddleware, tfRequire } from "@trustforge/hono";
+import { trustforgeMiddleware, tfRequire } from "@trustforge-protocol/hono";
 
 const app = new Hono();
 

@@ -1,10 +1,10 @@
 /**
- * @trustforge/workos — verifies a WorkOS session via `@workos-inc/node`
+ * @trustforge-protocol/workos — verifies a WorkOS session via `@workos-inc/node`
  * (loaded dynamically) and projects the resolved user id + access token into
  * a TrustForge decide call with `host_token_kind: "workos-jwt"`.
  *
  * Usage (Express):
- *   import { trustforgeWorkOS } from "@trustforge/workos";
+ *   import { trustforgeWorkOS } from "@trustforge-protocol/workos";
  *   app.use(trustforgeWorkOS({
  *     daemonUrl: "...",
  *     workosApiKey: process.env.WORKOS_API_KEY!,
@@ -20,7 +20,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface WorkOSUser {
   id: string;
@@ -262,4 +262,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

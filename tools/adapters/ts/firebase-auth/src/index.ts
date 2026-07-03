@@ -1,10 +1,10 @@
 /**
- * @trustforge/firebase-auth — verifies a Firebase ID token via firebase-admin
+ * @trustforge-protocol/firebase-auth — verifies a Firebase ID token via firebase-admin
  * (loaded dynamically) and projects the verified `uid` into a TrustForge
  * decide call with `host_token_kind: "firebase-id-token"`.
  *
  * Usage (Express):
- *   import { trustforgeFirebase } from "@trustforge/firebase-auth";
+ *   import { trustforgeFirebase } from "@trustforge-protocol/firebase-auth";
  *   app.use(trustforgeFirebase({ daemonUrl: "...", projectId: "my-proj" }));
  *
  * Usage (programmatic):
@@ -19,7 +19,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface FirebaseDecodedToken {
   uid: string;
@@ -213,4 +213,4 @@ export function trustforgeFirebase(opts: TfFirebaseOptions) {
   };
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

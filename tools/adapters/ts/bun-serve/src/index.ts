@@ -1,9 +1,9 @@
 /**
- * @trustforge/bun-serve — wraps a Bun.serve({ fetch }) handler so that every
+ * @trustforge-protocol/bun-serve — wraps a Bun.serve({ fetch }) handler so that every
  * request is gated through tf-daemon /v1/decide before the user handler runs.
  *
  * Usage:
- *   import { withTrustforge } from "@trustforge/bun-serve";
+ *   import { withTrustforge } from "@trustforge-protocol/bun-serve";
  *   Bun.serve({
  *     fetch: withTrustforge(async (req) => new Response("hi"), {
  *       daemonUrl: "http://127.0.0.1:7616",
@@ -25,7 +25,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export type BunFetchHandler = (
   request: Request,
@@ -247,4 +247,4 @@ function withProofHeader(res: Response, proofId: string): Response {
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

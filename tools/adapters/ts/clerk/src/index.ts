@@ -1,5 +1,5 @@
 /**
- * @trustforge/clerk — Clerk integration for Next.js + Express.
+ * @trustforge-protocol/clerk — Clerk integration for Next.js + Express.
  *
  * Two entry points are exported:
  *
@@ -11,7 +11,7 @@
  *    `ClerkExpressRequireAuth()` and stashes the TF actor on `req`.
  */
 
-import { TrustForge, type TrustForgeOptions } from "@trustforge/sdk";
+import { TrustForge, type TrustForgeOptions } from "@trustforge-protocol/sdk";
 
 export interface TrustForgeClerkOptions extends TrustForgeOptions {
   hint?: string;

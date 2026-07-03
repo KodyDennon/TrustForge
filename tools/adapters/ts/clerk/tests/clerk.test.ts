@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   withTrustForge,
   trustforgeClerk,
@@ -15,7 +15,7 @@ afterEach(async () => {
   await daemon.stop();
 });
 
-describe("@trustforge/clerk", () => {
+describe("@trustforge-protocol/clerk", () => {
   test("withTrustForge wraps a Clerk-style middleware and projects sessionId", async () => {
     let innerCalled = false;
     const fakeClerk = async (req: any, _evt: any) => {

@@ -1,5 +1,5 @@
 {
-  "name": "@trustforge/iron-session",
+  "name": "@trustforge-protocol/iron-session",
   "version": "0.1.0",
   "type": "module",
   "description": "TrustForge integration for iron-session — projects iron-session reads into TrustForge actors.",
@@ -12,7 +12,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@trustforge/sdk": "workspace:*"
+    "@trustforge-protocol/sdk": "workspace:*"
   },
   "peerDependencies": {
     "iron-session": ">=8.0.0"
@@ -23,7 +23,7 @@
     }
   },
   "devDependencies": {
-    "@trustforge/test-utils": "workspace:*",
+    "@trustforge-protocol/test-utils": "workspace:*",
     "@types/bun": "^1.3.9",
     "typescript": "^5.6.3"
   }

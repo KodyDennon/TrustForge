@@ -1,4 +1,4 @@
-# @trustforge/express
+# @trustforge-protocol/express
 
 Express 4 / 5 middleware for TrustForge. Gates every request through
 `tf-daemon /v1/decide`.
@@ -6,16 +6,16 @@ Express 4 / 5 middleware for TrustForge. Gates every request through
 ## Install
 
 ```sh
-bun add @trustforge/express express
+bun add @trustforge-protocol/express express
 # or
-npm install @trustforge/express express
+npm install @trustforge-protocol/express express
 ```
 
 ## Usage
 
 ```ts
 import express from "express";
-import { tfExpress, tfRequire } from "@trustforge/express";
+import { tfExpress, tfRequire } from "@trustforge-protocol/express";
 
 const app = express();
 

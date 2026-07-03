@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { trustforgeMiddleware, tfRequire, type DecideResponse } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -36,7 +36,7 @@ function makeApp(daemonUrl: string, mode: "enforce" | "observe-only" = "enforce"
   return app;
 }
 
-describe("@trustforge/hono", () => {
+describe("@trustforge-protocol/hono", () => {
   test("happy path — allow attaches actor + proof", async () => {
     daemon = startMockDaemon({ adminToken: "test-admin-token" });
     const app = makeApp(daemon.url);

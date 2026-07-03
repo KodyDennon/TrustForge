@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { trustforgeCallbacks, tfRequire } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -11,7 +11,7 @@ afterEach(async () => {
   await daemon.stop();
 });
 
-describe("@trustforge/next-auth", () => {
+describe("@trustforge-protocol/next-auth", () => {
   test("returns the four NextAuth callbacks", () => {
     const cb = trustforgeCallbacks({ daemonUrl: daemon.url, quiet: true });
     expect(typeof cb.jwt).toBe("function");

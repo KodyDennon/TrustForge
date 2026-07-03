@@ -2773,7 +2773,7 @@ register({
     }
     emitJson(args, {
       ok: true,
-      hint: `add @trustforge/${name} to your host project's manifest. tf-cli does not modify host package files.`,
+      hint: `add @trustforge-protocol/${name} to your host project's manifest. tf-cli does not modify host package files.`,
     });
     return 0;
   },

@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   trustforgeForIronSession,
   tfRequireIron,
@@ -23,7 +23,7 @@ function fakeGetIronSession(payload: Record<string, unknown>) {
     }) as any;
 }
 
-describe("@trustforge/iron-session", () => {
+describe("@trustforge-protocol/iron-session", () => {
   test("wrapped getIronSession populates tfActor on a payload with id", async () => {
     const wrapped = trustforgeForIronSession(
       fakeGetIronSession({ id: "session-id-1", userId: "u-1" }),

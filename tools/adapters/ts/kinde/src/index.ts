@@ -1,11 +1,11 @@
 /**
- * @trustforge/kinde — verifies a Kinde access / id JWT via
+ * @trustforge-protocol/kinde — verifies a Kinde access / id JWT via
  * `@kinde-oss/kinde-typescript-sdk` (loaded dynamically) or directly via
  * `jose` against Kinde's JWKS endpoint, then projects the `sub` into a
  * TrustForge decide call with `host_token_kind: "kinde-jwt"`.
  *
  * Usage (Express):
- *   import { trustforgeKinde } from "@trustforge/kinde";
+ *   import { trustforgeKinde } from "@trustforge-protocol/kinde";
  *   app.use(trustforgeKinde({
  *     daemonUrl: "...",
  *     issuerUrl: "https://my-org.kinde.com",
@@ -17,7 +17,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface KindeClaims {
   sub: string;
@@ -214,4 +214,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

@@ -1,4 +1,4 @@
-# @trustforge/clerk
+# @trustforge-protocol/clerk
 
 Clerk integration for TrustForge. Captures the resolved Clerk session id from
 `auth().sessionId` and projects it into a TrustForge actor + capabilities.
@@ -13,7 +13,7 @@ Two surfaces are exported:
 ## Install
 
 ```bash
-bun add @trustforge/clerk @trustforge/sdk @clerk/nextjs # or @clerk/clerk-sdk-node
+bun add @trustforge-protocol/clerk @trustforge-protocol/sdk @clerk/nextjs # or @clerk/clerk-sdk-node
 ```
 
 ## Next.js
@@ -21,7 +21,7 @@ bun add @trustforge/clerk @trustforge/sdk @clerk/nextjs # or @clerk/clerk-sdk-no
 ```ts
 // middleware.ts
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import { withTrustForge } from "@trustforge/clerk";
+import { withTrustForge } from "@trustforge-protocol/clerk";
 
 export default withTrustForge(clerkMiddleware(), {
   daemonUrl: "http://127.0.0.1:7616",
@@ -34,7 +34,7 @@ export default withTrustForge(clerkMiddleware(), {
 ```ts
 import express from "express";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
-import { trustforgeClerk } from "@trustforge/clerk";
+import { trustforgeClerk } from "@trustforge-protocol/clerk";
 
 const app = express();
 app.use(ClerkExpressRequireAuth());
@@ -47,7 +47,7 @@ After both middlewares run, `req.tfActor`, `req.tfCredentialId`,
 ## Per-route enforcement
 
 ```ts
-import { tfRequireClerk } from "@trustforge/clerk";
+import { tfRequireClerk } from "@trustforge-protocol/clerk";
 const requireShell = tfRequireClerk(
   { daemonUrl: "http://127.0.0.1:7616" },
   "shell.exec",

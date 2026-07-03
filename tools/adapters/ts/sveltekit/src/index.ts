@@ -2,7 +2,7 @@
 //
 // Wires into `src/hooks.server.ts`:
 //
-//   import { trustforgeHandle } from "@trustforge/sveltekit";
+//   import { trustforgeHandle } from "@trustforge-protocol/sveltekit";
 //   export const handle = trustforgeHandle({ daemonUrl: "..." });
 //
 // Sets `event.locals.tfActor`, `event.locals.tfDecision` on allow.
@@ -21,10 +21,10 @@ async function importSdk(): Promise<{
   TrustForge: new (cfg: { daemonUrl?: string; adminToken?: string }) => TrustForgeLike;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod: any = await import("@trustforge/sdk").catch(() => null);
+  const mod: any = await import("@trustforge-protocol/sdk").catch(() => null);
   if (!mod?.TrustForge) {
     throw new Error(
-      "@trustforge/sveltekit: @trustforge/sdk is not installed. " +
+      "@trustforge-protocol/sveltekit: @trustforge-protocol/sdk is not installed. " +
         "Either install it or pass `tf:` to trustforgeHandle().",
     );
   }

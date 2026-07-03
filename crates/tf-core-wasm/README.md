@@ -38,7 +38,7 @@ cargo build -p tf-core-wasm --target wasm32-unknown-unknown --release
 ## Use from TypeScript
 
 ```ts
-import init, { canonicalize, verify_packet } from "@trustforge/core-wasm";
+import init, { canonicalize, verify_packet } from "@trustforge-protocol/core-wasm";
 
 await init();
 

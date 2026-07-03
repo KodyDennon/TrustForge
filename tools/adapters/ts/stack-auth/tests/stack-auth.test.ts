@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForStackAuthToken,
   trustforgeStackAuth,
@@ -47,7 +47,7 @@ function makeRes() {
   };
 }
 
-describe("@trustforge/stack-auth", () => {
+describe("@trustforge-protocol/stack-auth", () => {
   test("decideForStackAuthToken — verifies and forwards user.id", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForStackAuthToken("good-token", {

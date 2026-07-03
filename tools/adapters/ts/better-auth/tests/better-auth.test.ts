@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { trustforgePlugin } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -11,7 +11,7 @@ afterEach(async () => {
   await daemon.stop();
 });
 
-describe("@trustforge/better-auth", () => {
+describe("@trustforge-protocol/better-auth", () => {
   test("plugin shape: id + hooks.session.fetch present", () => {
     const plugin = trustforgePlugin({
       daemonUrl: daemon.url,

@@ -1,10 +1,10 @@
 /**
- * @trustforge/express — Express 4/5 middleware that gates every incoming
+ * @trustforge-protocol/express — Express 4/5 middleware that gates every incoming
  * request through tf-daemon's /v1/decide endpoint.
  *
  * Usage:
  *   import express from "express";
- *   import { tfExpress, tfRequire } from "@trustforge/express";
+ *   import { tfExpress, tfRequire } from "@trustforge-protocol/express";
  *
  *   const app = express();
  *   app.use(tfExpress({ daemonUrl: "http://127.0.0.1:7616", mode: "enforce" }));
@@ -17,7 +17,7 @@ import {
   type AdapterMode,
   type DecideResponse,
   type HostTokenKind,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 declare global {
   namespace Express {
@@ -245,4 +245,4 @@ export function tfRequireWith(
   return makeHandler({ ...resolveConfig(opts), defaultAction: action });
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

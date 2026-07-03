@@ -1,10 +1,10 @@
 /**
- * @trustforge/stack-auth — verifies a Stack Auth session token via
+ * @trustforge-protocol/stack-auth — verifies a Stack Auth session token via
  * `@stackframe/stack` (loaded dynamically) and projects the resolved user id
  * into a TrustForge decide call with `host_token_kind: "stack-auth"`.
  *
  * Usage (Express):
- *   import { trustforgeStackAuth } from "@trustforge/stack-auth";
+ *   import { trustforgeStackAuth } from "@trustforge-protocol/stack-auth";
  *   app.use(trustforgeStackAuth({
  *     daemonUrl: "...",
  *     projectId: process.env.STACK_PROJECT_ID!,
@@ -18,7 +18,7 @@ import {
   TrustForge,
   type AdapterMode,
   type DecideResponse,
-} from "@trustforge/sdk";
+} from "@trustforge-protocol/sdk";
 
 export interface StackAuthUser {
   id: string;
@@ -230,4 +230,4 @@ function dispatch(
   }
 }
 
-export type { DecideResponse } from "@trustforge/sdk";
+export type { DecideResponse } from "@trustforge-protocol/sdk";

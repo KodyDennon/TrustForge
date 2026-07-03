@@ -1,4 +1,4 @@
-# @trustforge/lucia
+# @trustforge-protocol/lucia
 
 Lucia v3 session-validation hook that projects every validated session into a
 TrustForge actor + capabilities.
@@ -10,14 +10,14 @@ Draft. Part of TrustForge Phase D. Not production ready.
 ## Install
 
 ```bash
-bun add @trustforge/lucia @trustforge/sdk lucia
+bun add @trustforge-protocol/lucia @trustforge-protocol/sdk lucia
 ```
 
 ## Usage
 
 ```ts
 import { Lucia } from "lucia";
-import { trustforgeForLucia } from "@trustforge/lucia";
+import { trustforgeForLucia } from "@trustforge-protocol/lucia";
 
 const lucia = new Lucia(adapter, {
   /* ... */

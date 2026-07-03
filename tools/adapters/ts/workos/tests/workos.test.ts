@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import {
   decideForWorkOSToken,
   trustforgeWorkOS,
@@ -50,7 +50,7 @@ function makeRes() {
   };
 }
 
-describe("@trustforge/workos", () => {
+describe("@trustforge-protocol/workos", () => {
   test("decideForWorkOSToken — verifies session and forwards access token", async () => {
     daemon = startMockDaemon({ adminToken: "admin" });
     const out = await decideForWorkOSToken("good-cookie", {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { startMockDaemon, type MockDaemonHandle } from "@trustforge/test-utils";
+import { startMockDaemon, type MockDaemonHandle } from "@trustforge-protocol/test-utils";
 import { tfRequestContext, withTrustforge } from "../src/index.ts";
 
 let daemon: MockDaemonHandle;
@@ -8,7 +8,7 @@ afterEach(async () => {
   await daemon.stop();
 });
 
-describe("@trustforge/bun-serve", () => {
+describe("@trustforge-protocol/bun-serve", () => {
   test("allow path runs the user handler and stamps x-tf-proof-id", async () => {
     daemon = startMockDaemon({ adminToken: "test-admin" });
     const handler = withTrustforge(
