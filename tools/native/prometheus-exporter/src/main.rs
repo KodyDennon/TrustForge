@@ -67,10 +67,6 @@ async fn main() -> std::io::Result<()> {
         "tf-prom-exporter listening"
     );
 
-    let client = reqwest::Client::builder()
-        .timeout(cfg.timeout)
-        .build()
-        .expect("build reqwest client");
     let mut state = ScrapeState::default();
     let mut tick = tokio::time::interval(Duration::from_secs(args.interval_seconds));
 
@@ -79,8 +75,7 @@ async fn main() -> std::io::Result<()> {
     let scrape_loop = tokio::spawn(async move {
         loop {
             tick.tick().await;
-            if let Err(e) = scrape_once(&cfg_for_loop, &metrics_for_loop, &mut state, &client).await
-            {
+            if let Err(e) = scrape_once(&cfg_for_loop, &metrics_for_loop, &mut state).await {
                 tracing::warn!(error = %e, "scrape failed");
             }
         }

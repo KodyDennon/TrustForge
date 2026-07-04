@@ -61,7 +61,9 @@ fn resolve_scalar(text: &str) -> Result<Value, YamlError> {
     }
     let bytes = text.as_bytes();
     let digits = |s: &[u8]| !s.is_empty() && s.iter().all(u8::is_ascii_digit);
-    let unsigned = bytes.strip_prefix(b"-").or_else(|| bytes.strip_prefix(b"+"));
+    let unsigned = bytes
+        .strip_prefix(b"-")
+        .or_else(|| bytes.strip_prefix(b"+"));
     let body = unsigned.unwrap_or(bytes);
     if digits(body) {
         if let Ok(n) = text.parse::<i64>() {
@@ -136,7 +138,10 @@ fn is_float_syntax(text: &str) -> bool {
     match exponent {
         None => true,
         Some(e) => {
-            let e = e.strip_prefix('-').or_else(|| e.strip_prefix('+')).unwrap_or(e);
+            let e = e
+                .strip_prefix('-')
+                .or_else(|| e.strip_prefix('+'))
+                .unwrap_or(e);
             !e.is_empty() && e.bytes().all(|b| b.is_ascii_digit())
         }
     }
@@ -161,13 +166,21 @@ struct Parser {
 
 impl Parser {
     fn new(input: &str) -> Result<Self, YamlError> {
-        let lines: Vec<String> = input.split('\n').map(|l| l.trim_end_matches('\r').to_string()).collect();
+        let lines: Vec<String> = input
+            .split('\n')
+            .map(|l| l.trim_end_matches('\r').to_string())
+            .collect();
         let mut items = Vec::new();
         for (i, raw) in lines.iter().enumerate() {
             let trimmed = raw.trim_end();
             let indent = count_indent(trimmed);
-            if raw[..indent.min(raw.len())].contains('\t') || raw.trim_start_matches(' ').starts_with('\t') && raw.trim().is_empty() {
-                return Err(YamlError::new("tabs are not allowed in indentation", Some(i)));
+            if raw[..indent.min(raw.len())].contains('\t')
+                || raw.trim_start_matches(' ').starts_with('\t') && raw.trim().is_empty()
+            {
+                return Err(YamlError::new(
+                    "tabs are not allowed in indentation",
+                    Some(i),
+                ));
             }
             let content = &trimmed[indent..];
             if content.is_empty() || content.starts_with('#') {
@@ -236,8 +249,7 @@ impl Parser {
 
     fn parse_sequence(&mut self, indent: usize) -> Result<Value, YamlError> {
         let mut out = Vec::new();
-        loop {
-            let Some(line) = self.peek() else { break };
+        while let Some(line) = self.peek() {
             if line.indent != indent {
                 break;
             }
@@ -271,8 +283,7 @@ impl Parser {
 
     fn parse_mapping(&mut self, indent: usize) -> Result<Value, YamlError> {
         let mut out = Map::new();
-        loop {
-            let Some(line) = self.peek() else { break };
+        while let Some(line) = self.peek() {
             if line.indent != indent {
                 break;
             }
@@ -351,8 +362,7 @@ impl Parser {
         }
         // Plain scalar with folded continuation lines.
         let mut text = strip_comment(rest).to_string();
-        loop {
-            let Some(next) = self.peek() else { break };
+        while let Some(next) = self.peek() {
             if next.indent <= indent {
                 break;
             }
@@ -382,7 +392,10 @@ impl Parser {
                 return Ok(text);
             }
             let Some(next) = self.peek() else {
-                return Err(YamlError::new("unterminated flow collection", Some(raw_line)));
+                return Err(YamlError::new(
+                    "unterminated flow collection",
+                    Some(raw_line),
+                ));
             };
             let chunk = strip_comment(next.content.trim()).to_string();
             self.pos += 1;
@@ -539,17 +552,15 @@ fn find_key(content: &str) -> Option<(String, String)> {
         match bytes[i] {
             b'[' | b'{' => depth += 1,
             b']' | b'}' => depth -= 1,
-            b':' if depth == 0 => {
-                if i + 1 == bytes.len() || bytes[i + 1] == b' ' {
-                    let key = content[..i].trim();
-                    if key.is_empty() || key.starts_with('#') {
-                        return None;
-                    }
-                    return Some((
-                        key.to_string(),
-                        strip_comment(content[i + 1..].trim()).to_string(),
-                    ));
+            b':' if depth == 0 && (i + 1 == bytes.len() || bytes[i + 1] == b' ') => {
+                let key = content[..i].trim();
+                if key.is_empty() || key.starts_with('#') {
+                    return None;
                 }
+                return Some((
+                    key.to_string(),
+                    strip_comment(content[i + 1..].trim()).to_string(),
+                ));
             }
             b'#' if i > 0 && bytes[i - 1] == b' ' => return None,
             _ => {}
@@ -571,7 +582,11 @@ fn strip_comment(s: &str) -> &str {
         match bytes[i] {
             b'\'' if !in_double => in_single = !in_single,
             b'"' if !in_single && (i == 0 || bytes[i - 1] != b'\\') => in_double = !in_double,
-            b'#' if !in_single && !in_double && i > 0 && (bytes[i - 1] == b' ' || bytes[i - 1] == b'\t') => {
+            b'#' if !in_single
+                && !in_double
+                && i > 0
+                && (bytes[i - 1] == b' ' || bytes[i - 1] == b'\t') =>
+            {
                 return s[..i].trim_end();
             }
             _ => {}
@@ -872,9 +887,8 @@ fn plain_safe(s: &str) -> bool {
         Some(c) if c.is_ascii_alphanumeric() || c == '_' => {}
         _ => return false,
     }
-    s.chars().all(|c| {
-        c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | '@' | ' ')
-    })
+    s.chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | '@' | ' '))
 }
 
 fn needs_quoting(s: &str) -> bool {
@@ -887,8 +901,14 @@ fn needs_quoting(s: &str) -> bool {
     }
     // Syntactically number-like strings must be quoted regardless of our
     // own resolution — see the TS mirror.
-    let body = s.strip_prefix('-').or_else(|| s.strip_prefix('+')).unwrap_or(s);
-    if !body.is_empty() && body.bytes().all(|b| b.is_ascii_digit() || b == b'_') && body.bytes().next().unwrap().is_ascii_digit() {
+    let body = s
+        .strip_prefix('-')
+        .or_else(|| s.strip_prefix('+'))
+        .unwrap_or(s);
+    if !body.is_empty()
+        && body.bytes().all(|b| b.is_ascii_digit() || b == b'_')
+        && body.bytes().next().unwrap().is_ascii_digit()
+    {
         return true;
     }
     if is_float_syntax(s) {
@@ -1071,7 +1091,10 @@ mod tests {
             parse("x: [1, two, {k: v}, [3]]").unwrap(),
             json!({"x": [1, "two", {"k": "v"}, [3]]})
         );
-        assert_eq!(parse("x: {a: 1, b: [2]}").unwrap(), json!({"x": {"a": 1, "b": [2]}}));
+        assert_eq!(
+            parse("x: {a: 1, b: [2]}").unwrap(),
+            json!({"x": {"a": 1, "b": [2]}})
+        );
         // Multi-line flow.
         assert_eq!(
             parse("x: [1,\n   2,\n   3]").unwrap(),

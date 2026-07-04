@@ -18,18 +18,38 @@
 //! # }
 //! ```
 
-use reqwest::Client;
 use std::time::Duration;
 
+use tf_transport::{HttpError, HttpRequest};
+
 /// Errors returned by [`TfDecideClient::decide`].
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ClientError {
-    #[error("transport error: {0}")]
-    Transport(#[from] reqwest::Error),
-    #[error("daemon returned non-success status {status}: {body}")]
+    Transport(HttpError),
     Status { status: u16, body: String },
-    #[error("decode error: {0}")]
+    Encode(String),
     Decode(String),
+}
+
+impl std::fmt::Display for ClientError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClientError::Transport(e) => write!(f, "transport error: {e}"),
+            ClientError::Status { status, body } => {
+                write!(f, "daemon returned non-success status {status}: {body}")
+            }
+            ClientError::Encode(e) => write!(f, "encode error: {e}"),
+            ClientError::Decode(e) => write!(f, "decode error: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for ClientError {}
+
+impl From<HttpError> for ClientError {
+    fn from(e: HttpError) -> Self {
+        ClientError::Transport(e)
+    }
 }
 
 /// Decide-request body sent to tf-daemon.
@@ -75,16 +95,12 @@ pub struct DecideResponse {
 pub struct TfDecideClient {
     daemon_url: String,
     admin_token: String,
-    http: Client,
+    timeout: Duration,
 }
 
 impl TfDecideClient {
     /// Build a new client. `daemon_url` must NOT end with a trailing slash.
     pub fn new(daemon_url: impl Into<String>, admin_token: impl Into<String>) -> Self {
-        let http = Client::builder()
-            .timeout(Duration::from_secs(5))
-            .build()
-            .expect("reqwest client");
         let mut url = daemon_url.into();
         while url.ends_with('/') {
             url.pop();
@@ -92,25 +108,14 @@ impl TfDecideClient {
         Self {
             daemon_url: url,
             admin_token: admin_token.into(),
-            http,
+            timeout: Duration::from_secs(5),
         }
     }
 
-    /// Build a client using a custom underlying [`reqwest::Client`].
-    pub fn with_client(
-        daemon_url: impl Into<String>,
-        admin_token: impl Into<String>,
-        http: Client,
-    ) -> Self {
-        let mut url = daemon_url.into();
-        while url.ends_with('/') {
-            url.pop();
-        }
-        Self {
-            daemon_url: url,
-            admin_token: admin_token.into(),
-            http,
-        }
+    /// Override the per-request timeout.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
     }
 
     /// The daemon URL this client is bound to (sans trailing slash).
@@ -121,25 +126,22 @@ impl TfDecideClient {
     /// Call `POST {daemon}/v1/decide` and decode the response.
     pub async fn decide(&self, req: &DecideRequest) -> Result<DecideResponse, ClientError> {
         let url = format!("{}/v1/decide", self.daemon_url);
-        let resp = self
-            .http
-            .post(&url)
+        let body = serde_json::to_vec(req).map_err(|e| ClientError::Encode(e.to_string()))?;
+        let resp = HttpRequest::post(url)
             .bearer_auth(&self.admin_token)
-            .json(req)
+            .json_body(body)
+            .timeout(self.timeout)
             .send()
             .await?;
-        let status = resp.status();
-        if !status.is_success() {
-            let body = resp.text().await.unwrap_or_default();
+        if !(200..300).contains(&resp.status) {
+            let body = String::from_utf8_lossy(&resp.body).to_string();
             return Err(ClientError::Status {
-                status: status.as_u16(),
+                status: resp.status,
                 body,
             });
         }
-        let parsed: DecideResponse = resp
-            .json()
-            .await
-            .map_err(|e| ClientError::Decode(e.to_string()))?;
+        let parsed: DecideResponse =
+            serde_json::from_slice(&resp.body).map_err(|e| ClientError::Decode(e.to_string()))?;
         Ok(parsed)
     }
 }

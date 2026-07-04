@@ -24,6 +24,7 @@ use prometheus::{
 use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Duration;
+use tf_transport::{HttpError, HttpRequest};
 
 /// Holds every Prometheus metric the exporter exposes plus the registry
 /// they belong to.
@@ -264,34 +265,36 @@ pub async fn scrape_once(
     cfg: &ScrapeConfig,
     metrics: &Metrics,
     state: &mut ScrapeState,
-    client: &reqwest::Client,
 ) -> Result<(), ScrapeError> {
     // Build helper closure that adds the bearer token when set.
     async fn get_json<T: for<'de> Deserialize<'de>>(
-        client: &reqwest::Client,
         url: &str,
         token: Option<&str>,
+        timeout: Duration,
     ) -> Result<T, ScrapeError> {
-        let mut req = client.get(url);
-        if let Some(t) = token {
-            req = req.bearer_auth(t);
+        let mut req = HttpRequest::get(url).timeout(timeout);
+        if let Some(token) = token {
+            req = req.bearer_auth(token);
         }
         let resp = req.send().await?;
-        let status = resp.status();
-        if !status.is_success() {
+        if !(200..300).contains(&resp.status) {
             return Err(ScrapeError::HttpStatus {
                 url: url.to_string(),
-                status: status.as_u16(),
+                status: resp.status,
             });
         }
-        Ok(resp.json::<T>().await?)
+        serde_json::from_slice::<T>(&resp.body).map_err(|e| ScrapeError::Json(e.to_string()))
     }
 
     let token = cfg.admin_token.as_deref();
 
     // Sessions.
-    let sessions: SessionsBody =
-        get_json(client, &format!("{}/admin/sessions", cfg.daemon_url), token).await?;
+    let sessions: SessionsBody = get_json(
+        &format!("{}/admin/sessions", cfg.daemon_url),
+        token,
+        cfg.timeout,
+    )
+    .await?;
     let sessions_open = sessions.sessions.len() as i64;
     metrics.sessions_open.set(sessions_open);
     if let Some(ref otel) = metrics.otel {
@@ -300,9 +303,9 @@ pub async fn scrape_once(
 
     // Approvals.
     let approvals: ApprovalsBody = get_json(
-        client,
         &format!("{}/admin/approvals", cfg.daemon_url),
         token,
+        cfg.timeout,
     )
     .await?;
     let approvals_pending = approvals.approvals.len() as i64;
@@ -316,8 +319,12 @@ pub async fn scrape_once(
     }
 
     // Plugins. Reset and re-tally to handle plugin unload.
-    let plugins: PluginsBody =
-        get_json(client, &format!("{}/admin/plugins", cfg.daemon_url), token).await?;
+    let plugins: PluginsBody = get_json(
+        &format!("{}/admin/plugins", cfg.daemon_url),
+        token,
+        cfg.timeout,
+    )
+    .await?;
     metrics.plugins_loaded.reset();
     let mut by_kind: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
     for p in &plugins.plugins {
@@ -333,9 +340,9 @@ pub async fn scrape_once(
 
     // Proof events. Pull the last 1000; only count what we haven't seen.
     let proofs: ProofsBody = get_json(
-        client,
         &format!("{}/admin/proofs?n=1000", cfg.daemon_url),
         token,
+        cfg.timeout,
     )
     .await?;
     for ev in &proofs.events {
@@ -423,27 +430,44 @@ fn event_dedup_key(ev: &ProofEvent) -> String {
 
 #[derive(Debug)]
 pub enum ScrapeError {
-    Http(reqwest::Error),
+    Http(HttpError),
     HttpStatus { url: String, status: u16 },
-}
-
-impl From<reqwest::Error> for ScrapeError {
-    fn from(e: reqwest::Error) -> Self {
-        ScrapeError::Http(e)
-    }
+    Json(String),
 }
 
 impl std::fmt::Display for ScrapeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ScrapeError::Http(e) => write!(f, "reqwest error: {}", e),
+            ScrapeError::Http(e) => write!(f, "http error: {}", e),
             ScrapeError::HttpStatus { url, status } => {
                 write!(f, "non-success status from {}: {}", url, status)
             }
+            ScrapeError::Json(e) => write!(f, "json error: {}", e),
         }
     }
 }
 impl std::error::Error for ScrapeError {}
+
+impl From<HttpError> for ScrapeError {
+    fn from(e: HttpError) -> Self {
+        ScrapeError::Http(e)
+    }
+}
+
+/// Minimal first-party HTTP/1.1 GET helper for local daemon scraping.
+/// Scope is deliberately plain `http://` only; TLS belongs to the
+/// transport roadmap, not this exporter-specific client.
+pub async fn http_get_text(url: &str, timeout: Duration) -> Result<String, ScrapeError> {
+    let resp = HttpRequest::get(url).timeout(timeout).send().await?;
+    if !(200..300).contains(&resp.status) {
+        return Err(ScrapeError::HttpStatus {
+            url: url.to_string(),
+            status: resp.status,
+        });
+    }
+    String::from_utf8(resp.body)
+        .map_err(|_| ScrapeError::Http(HttpError::Malformed("response body is not utf-8")))
+}
 
 /// Lightweight HTTP server that serves `/metrics` from `metrics.render()`.
 /// Used by `tf-prom-exporter` and the integration test.

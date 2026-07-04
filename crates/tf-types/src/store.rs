@@ -9,6 +9,8 @@
 //! durable ledgers, all without touching daemon code.
 //!
 //! Implementations:
+//! * `tf-store-file`       — first-party file-backed local store, all
+//!                            three traits.
 //! * `tf-store-sqlite`     — single-file embedded SQLite, all three traits.
 //! * `tf-store-postgres`   — sqlx-backed Postgres, all three traits.
 //! * `tf-store-mysql`      — sqlx-backed MySQL, all three traits.

@@ -10,7 +10,10 @@ use hyper_util::rt::TokioIo;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tf_prom_exporter::{scrape_once, serve_metrics, Metrics, ScrapeConfig, ScrapeState};
+use std::time::Duration;
+use tf_prom_exporter::{
+    http_get_text, scrape_once, serve_metrics, Metrics, ScrapeConfig, ScrapeState,
+};
 use tokio::net::TcpListener;
 
 async fn mock_daemon() -> (SocketAddr, tokio::sync::oneshot::Sender<()>) {
@@ -80,9 +83,8 @@ async fn scrape_populates_expected_metrics() {
     let cfg = ScrapeConfig::new(format!("http://{}", addr));
     let metrics = Metrics::new();
     let mut state = ScrapeState::default();
-    let client = reqwest::Client::builder().build().unwrap();
 
-    scrape_once(&cfg, &metrics, &mut state, &client)
+    scrape_once(&cfg, &metrics, &mut state)
         .await
         .expect("scrape ok");
 
@@ -174,7 +176,7 @@ async fn metrics_endpoint_serves_text_format() {
         .expect("bind");
 
     let url = format!("http://{}/metrics", serve.local);
-    let body = reqwest::get(&url).await.unwrap().text().await.unwrap();
+    let body = http_get_text(&url, Duration::from_secs(5)).await.unwrap();
     assert!(body.contains("tf_sessions_open 7"));
     assert!(body.contains("tf_decisions_total"));
 
@@ -187,15 +189,10 @@ async fn scrape_dedupes_proof_events_across_polls() {
     let cfg = ScrapeConfig::new(format!("http://{}", addr));
     let metrics = Metrics::new();
     let mut state = ScrapeState::default();
-    let client = reqwest::Client::builder().build().unwrap();
 
-    scrape_once(&cfg, &metrics, &mut state, &client)
-        .await
-        .unwrap();
+    scrape_once(&cfg, &metrics, &mut state).await.unwrap();
     let count_after_first = count_metric_lines(&metrics.render(), "tf_proof_events_total{");
-    scrape_once(&cfg, &metrics, &mut state, &client)
-        .await
-        .unwrap();
+    scrape_once(&cfg, &metrics, &mut state).await.unwrap();
     let count_after_second = count_metric_lines(&metrics.render(), "tf_proof_events_total{");
     assert_eq!(
         count_after_first, count_after_second,

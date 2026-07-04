@@ -1,0 +1,11 @@
+[package]
+readme = "README.md"
+name = "tf-transport"
+version = "0.1.6"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "TrustForge first-party transport primitives and HTTP/1.1 client."
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "net", "io-util", "time"] }

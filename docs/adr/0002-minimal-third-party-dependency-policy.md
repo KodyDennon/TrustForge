@@ -38,10 +38,14 @@ Dependencies are classified by where they sit:
    implement the *subset the protocol needs* — subsetting is a feature
    (TF-YAML rejecting anchors is what makes it billion-laughs-immune).
 
-3. **Infrastructure — third-party where owning it adds risk.**
-   Async runtimes, TLS stacks, Wasm runtimes, ASN.1/X.509 parsers,
-   Unicode tables, serde. These are kept, and each keep is justified in
-   `docs/dependency-audit.md`.
+3. **Infrastructure — either owned or explicitly audit-gated.**
+   Async runtimes, current production TLS stacks, Wasm runtimes,
+   ASN.1/X.509 parsers, Unicode tables, and serde are not treated as
+   casual utility dependencies. If TrustForge owns one of these layers,
+   it must ship behind a named feature and pass conformance,
+   interoperability, fuzzing, and external security review before it can
+   become the production default. The first-party TLS/QUIC/HTTP/3 track
+   is documented in `docs/dependency-replacement-roadmap.md`.
 
 4. **Adapters and bridges are exempt** — their entire purpose is to
    depend on the framework they adapt.
@@ -59,6 +63,8 @@ justification against these categories in the PR description.
 - We accept the maintenance cost of six mirrored module pairs; the
   no-drift rule (spec ↔ Rust ↔ TS ↔ vectors move together) applies to
   them as it does to specs.
-- We deliberately did not chase dependency-count vanity: `thiserror`
-  stays (serde-derive keeps `syn` in the graph regardless), and the
-  X.509/ASN.1 parsers stay until there is a fuzzing budget.
+- We deliberately do not chase dependency-count vanity where it
+  increases risk, but small dependency-shaped public/runtime APIs are
+  replaced when the scope is clear. `tf-decide-client` is the first
+  follow-up: its `reqwest` API surface was removed in favor of owned
+  HTTP/1.1 code for local daemon calls.

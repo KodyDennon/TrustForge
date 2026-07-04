@@ -1,14 +1,14 @@
 [package]
 readme = "README.md"
 name = "tf-actix-web"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
 description = "TrustForge middleware for Actix web. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Actix web servers."
 
 [dependencies]
-tf-decide-client = { version = "0.1.5", path = "../tf-decide-client" }
+tf-decide-client = { version = "0.1.6", path = "../tf-decide-client" }
 actix-web = { version = "4", default-features = false, features = ["macros"] }
 actix-service = "2"
 futures-util = "0.3"

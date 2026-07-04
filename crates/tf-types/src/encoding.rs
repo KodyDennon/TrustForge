@@ -127,9 +127,8 @@ impl Engine {
 
         // After canonical-padding removal (or for unpadded engines), the
         // symbol stream must have a remainder of 0, 2, or 3 — and no '='.
-        match input.len() % 4 {
-            1 => return Err(DecodeError::InvalidLength(input.len())),
-            _ => {}
+        if input.len() % 4 == 1 {
+            return Err(DecodeError::InvalidLength(input.len()));
         }
 
         let sym = |offset: usize, byte: u8| -> Result<u32, DecodeError> {

@@ -4,6 +4,8 @@ Status: executed July 2026 (waves 1–2 complete). This document is the
 inventory, the verdict per dependency, and the record of what was
 replaced with in-house code. The policy criteria live in
 [ADR-0002](adr/0002-minimal-third-party-dependency-policy.md).
+The active execution roadmap for the broader replacement program lives
+in [Dependency Replacement Roadmap](dependency-replacement-roadmap.md).
 
 ## Principles
 
@@ -41,6 +43,27 @@ Also removed without replacement (dead weight):
 - `reqwest` in `tf-proxy` — replaced by the already-present
   `hyper`/`hyper-util` client (upstream is documented plain-HTTP; TLS
   terminates at the listener).
+- `reqwest` in `tf-decide-client` — replaced by an in-house HTTP/1.1
+  client from `tf-transport`, scoped to local `tf-daemon` decide calls.
+  The public `reqwest::Client` customization API was removed; use
+  `TfDecideClient::new(...).with_timeout(...)`.
+- `reqwest` in `tf-prom-exporter` — replaced by an in-house HTTP/1.1
+  GET helper from `tf-transport`, scoped to local daemon admin scraping
+  and `/metrics` integration tests.
+- SQLite as the only local embedded store — `tf-store-file` now provides
+  a first-party file-backed store with no database dependency, proof-log
+  checksums, evidence checksum sidecars, and compaction. It still uses
+  the current `serde_json::Value` trait boundary until the planned
+  first-party JSON migration lands.
+
+Release and generated-surface fixes shipped with this slice:
+
+- `scripts/publish-crates.sh` now publishes regular native Rust
+  workspace crates outside `crates/`, starting with
+  `tf-prom-exporter`.
+- TS RPC and agent-contract generators now emit imports from
+  `@trustforge-protocol/types`, so generated files typecheck in the
+  monorepo and in downstream workspaces.
 
 ## Deliberate keeps
 

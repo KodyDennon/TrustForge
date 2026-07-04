@@ -35,7 +35,7 @@ export function generateAgentContractTs(specPath: string): string {
 
   const lines: string[] = [HEADER];
   lines.push(
-    `import { AgentGuard, type GuardDecision, type GuardQuery } from "tf-types";`,
+    `import { AgentGuard, type GuardDecision, type GuardQuery } from "@trustforge-protocol/types";`,
     "",
     `/** Loaded contract for project "${project}". */`,
     `export const CONTRACT = ${JSON.stringify(contract, null, 2)} as const;`,

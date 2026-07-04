@@ -1,15 +1,12 @@
 [package]
 readme = "README.md"
-name = "tf-cedar"
+name = "tf-store-file"
 version = "0.1.6"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "TrustForge policy engine adapter for AWS Cedar. Evaluate complex authorization policies locally against TrustForge capabilities."
+description = "TrustForge first-party file-backed store for proof ledger, revocations, and evidence bundles."
 
 [dependencies]
-cedar-policy = "4"
-serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = "1"
 tf-types = { version = "0.1.6", path = "../tf-types" }

@@ -13,8 +13,18 @@ fi
 
 cargo login "$CARGO_REGISTRY_TOKEN"
 
-# Find all crates
-CRATES=$(find crates -name Cargo.toml -not -path "*/target/*" -not -path "*/embedded/*" -exec dirname {} \;)
+# Find all publishable Rust crates. Embedded firmware examples are excluded
+# because they target board-specific bare-metal triples. Native workspace tools
+# that are regular crates must be included even though they live outside
+# `crates/`.
+CRATES=$(
+  {
+    find crates -name Cargo.toml -not -path "*/target/*" -not -path "*/embedded/*" -exec dirname {} \;
+    if [ -f tools/native/prometheus-exporter/Cargo.toml ]; then
+      dirname tools/native/prometheus-exporter/Cargo.toml
+    fi
+  } | sort
+)
 
 # Keep trying until all succeed or we make no progress
 while true; do
