@@ -1,14 +1,14 @@
 [package]
-readme.workspace = true
+readme = "README.md"
 name = "tf-session"
-version = "0.1.4"
+version = "0.1.5"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge session carrier driver. Implements the secure handshake, AEAD framing, and perfect forward secrecy for network sessions."
 
 [dependencies]
-tf-types = { version = "0.1.4", path = "../tf-types" }
+tf-types = { version = "0.1.5", path = "../tf-types" }
 tokio = { version = "1", features = ["rt", "net", "io-util", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 serde = { workspace = true }

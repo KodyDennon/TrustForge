@@ -1,7 +1,7 @@
 [package]
 
 name = "tf-stm32wl-lora"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 repository = "https://github.com/KodyDennon/TrustForge"
 description = "TrustForge embedded firmware for STM32WL-LORA. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
@@ -24,8 +24,8 @@ bench = false
 
 [dependencies]
 # Core TrustForge embedded crates — pulled by relative path.
-tf-core-no-std = { version = "0.1.4", path = "../../tf-core-no-std", default-features = false }
-tf-embedded-hal = { version = "0.1.4", path = "../../tf-embedded-hal", default-features = false }
+tf-core-no-std = { version = "0.1.5", path = "../../tf-core-no-std", default-features = false }
+tf-embedded-hal = { version = "0.1.5", path = "../../tf-embedded-hal", default-features = false }
 
 # Cortex-M4F runtime + panic handler.
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }

@@ -1,20 +1,20 @@
 [package]
-readme.workspace = true
+readme = "README.md"
 name = "tf-tonic"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
 description = "TrustForge middleware for Tonic. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Tonic servers."
 
 [dependencies]
-tf-decide-client = { version = "0.1.4", path = "../tf-decide-client" }
+tf-decide-client = { version = "0.1.5", path = "../tf-decide-client" }
 tonic = "0.12"
 tower = { version = "0.5", features = ["util"] }
 tokio = { version = "1", features = ["rt", "macros", "sync"] }
 http = "1"
 tracing = "0.1"
-tf-otel = { version = "0.1.4", path = "../../tf-otel" }
+tf-otel = { version = "0.1.5", path = "../../tf-otel" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
