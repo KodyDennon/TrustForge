@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ed25519Generate, Vault } from "tf-types";
+import { ed25519Generate, Vault } from "@trustforge-protocol/types";
 import { runDaemon, type DaemonHandle } from "../src/index";
 
 interface BootedDaemon {

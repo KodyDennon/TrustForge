@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ed25519Generate, type SessionFrame } from "tf-types";
+import { ed25519Generate, type SessionFrame } from "@trustforge-protocol/types";
 import { attachInitiator, attachResponder, wireFromWebSocket } from "../src/index";
 
 interface InMemoryWS {

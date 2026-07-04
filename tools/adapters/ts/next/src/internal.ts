@@ -87,7 +87,7 @@ export function defaultResolveCredential(req: TfRequestLike): {
   }
 
   // Generic prefix-based detection on common cookie names.
-  for (const name of ["session", "auth", "tf-session"]) {
+  for (const name of ["session", "auth", "@trustforge-protocol/session"]) {
     const v = tryCookie(name);
     if (!v) continue;
     if (v.startsWith("sess_")) {

@@ -2,7 +2,7 @@
 // file.read and file.write; file.write requires human approval per the
 // contract so we prove the plugin only runs when approval is granted.
 
-import type { NativePluginHandlers, PluginHost } from "tf-types";
+import type { NativePluginHandlers, PluginHost } from "@trustforge-protocol/types";
 
 export default function tfPluginEntry(host: PluginHost): NativePluginHandlers {
   const writes: string[] = [];

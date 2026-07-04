@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from "node:fs";
 import { parseYaml as parseYAML } from "@trustforge-protocol/types";
-import { BUILTIN_PROFILES, canonicalize } from "tf-types";
+import { BUILTIN_PROFILES, canonicalize } from "@trustforge-protocol/types";
 import { runDaemon } from "./index.js";
 
 function arg(args: string[], flag: string): string | undefined {

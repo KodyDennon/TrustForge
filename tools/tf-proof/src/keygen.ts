@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { ed25519Generate, ed25519PublicKey } from "tf-types";
+import { ed25519Generate, ed25519PublicKey } from "@trustforge-protocol/types";
 import { writeKeyFile } from "./keyfile.js";
 
 export async function runKeygen(outDir: string): Promise<{ privatePath: string; publicPath: string }> {
@@ -21,6 +21,6 @@ export async function runDerivePubkey(privateKeyFile: string, outFile?: string):
     writeKeyFile(outFile, "public", pub);
     return outFile;
   }
-  const { b64encode } = await import("tf-types");
+  const { b64encode } = await import("@trustforge-protocol/types");
   return b64encode(pub);
 }

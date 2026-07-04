@@ -7,8 +7,8 @@ import {
   ed25519Generate,
   RpcClient,
   Vault,
-} from "tf-types";
-import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "tf-session";
+} from "@trustforge-protocol/types";
+import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "@trustforge-protocol/session";
 import { runDaemon } from "../src/index";
 
 describe("daemon propagates key-derived caller to AgentGuard", () => {

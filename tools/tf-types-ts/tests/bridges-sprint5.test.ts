@@ -259,9 +259,9 @@ describe("Service-mesh bridge", () => {
 describe("TLS bridge — Sprint 5 additions", () => {
   test("deriveExporterKey produces a 32-byte deterministic key per (label, context)", () => {
     const transport = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-    const a = TlsBridge.deriveExporterKey(transport, "tf-session", new Uint8Array([0xaa]));
-    const b = TlsBridge.deriveExporterKey(transport, "tf-session", new Uint8Array([0xaa]));
-    const c = TlsBridge.deriveExporterKey(transport, "tf-session", new Uint8Array([0xbb]));
+    const a = TlsBridge.deriveExporterKey(transport, "@trustforge-protocol/session", new Uint8Array([0xaa]));
+    const b = TlsBridge.deriveExporterKey(transport, "@trustforge-protocol/session", new Uint8Array([0xaa]));
+    const c = TlsBridge.deriveExporterKey(transport, "@trustforge-protocol/session", new Uint8Array([0xbb]));
     const d = TlsBridge.deriveExporterKey(transport, "different-label", new Uint8Array([0xaa]));
     expect(a.length).toBe(32);
     expect(toHex(a)).toBe(toHex(b));

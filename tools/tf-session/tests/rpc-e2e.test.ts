@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ed25519Generate, RpcClient, RpcServer, allowAllEnforcer } from "tf-types";
+import { ed25519Generate, RpcClient, RpcServer, allowAllEnforcer } from "@trustforge-protocol/types";
 import { attachInitiator, attachResponder, rpcTransportFromEndpoint, wireFromWebSocket } from "../src/index";
 import {
   CodeHelperClient,

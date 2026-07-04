@@ -32,7 +32,7 @@ import {
   type EvidenceBundle,
   type IncidentDomain,
   type RedactionPolicy,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 function arg(args: string[], flag: string): string | undefined {
   const i = args.indexOf(flag);

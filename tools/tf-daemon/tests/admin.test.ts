@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ed25519Generate, Vault } from "tf-types";
+import { ed25519Generate, Vault } from "@trustforge-protocol/types";
 import { runDaemon } from "../src/index";
 
 async function bootDaemon(dir: string, opts: { adminToken?: string } = {}) {

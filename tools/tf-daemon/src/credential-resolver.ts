@@ -28,7 +28,7 @@ import {
   BridgesRegistry,
   type BridgeEntry,
   type BridgesRegistryKind,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 export type CredentialBridgeKind =
   | "oauth"

@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseYaml as parseYAML } from "@trustforge-protocol/types";
-import { writeTfbundle, writeTfpkt } from "tf-types";
+import { writeTfbundle, writeTfpkt } from "@trustforge-protocol/types";
 
 const ROOT = resolve(import.meta.dir, "..", "..", "..");
 const VECTORS_PATH = resolve(ROOT, "conformance/binary-format-vectors.yaml");

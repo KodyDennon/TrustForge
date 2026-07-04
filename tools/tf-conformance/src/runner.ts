@@ -29,7 +29,7 @@ import {
   writeTfbundle,
   writeTfpkt,
   type EvalContext,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 export interface VectorResult {
   name: string;
@@ -79,7 +79,7 @@ async function loadSchemaValidator(): Promise<SchemaValidator | null> {
     // Dynamic import: tf-schema is a workspace dep but uses .ts files;
     // Bun's resolver can find it via the package's `main` entry.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod: any = await import("tf-schema");
+    const mod: any = await import("@trustforge-protocol/schema");
     if (typeof mod.buildAjv === "function" && typeof mod.getValidator === "function") {
       cachedSchemaValidator = { buildAjv: mod.buildAjv, getValidator: mod.getValidator };
       return cachedSchemaValidator;
@@ -343,7 +343,7 @@ export function runBridgeVectors(root: string): ConformanceReport {
   }
   // MCP tool-name normalisation parity (FIND-006).
   if (doc.mcp_normalize && doc.mcp_normalize.length > 0) {
-    const tf = require("tf-types") as { normalizeToolName?: (n: string, p?: string) => string };
+    const tf = require("@trustforge-protocol/types") as { normalizeToolName?: (n: string, p?: string) => string };
     const norm = tf.normalizeToolName;
     for (const v of doc.mcp_normalize) {
       if (!norm) {
@@ -362,7 +362,7 @@ export function runBridgeVectors(root: string): ConformanceReport {
   // WebAuthn structured-credential → ActorIdentity parity (FIND-006).
   if (doc.webauthn && doc.webauthn.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tf = require("tf-types") as any;
+    const tf = require("@trustforge-protocol/types") as any;
     for (const v of doc.webauthn) {
       try {
         const identity = tf.webauthnToActorIdentity(v.credential, {
@@ -816,7 +816,7 @@ export async function runSecurityRegressions(): Promise<ConformanceReport> {
   const cases: VectorResult[] = [];
   // 1. Tampered signature must fail verification.
   try {
-    const tf = await import("tf-types");
+    const tf = await import("@trustforge-protocol/types");
     const priv = new Uint8Array(32);
     priv.fill(7);
     const msg = new Uint8Array([1, 2, 3, 4]);

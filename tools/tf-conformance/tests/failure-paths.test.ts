@@ -43,7 +43,7 @@ import {
   signFederationAttestation,
   verifyFederationAttestation,
   verifySessionMigration,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 const REPO_ROOT = resolve(import.meta.dir, "..", "..", "..");
 const FAIL_ROOT = resolve(REPO_ROOT, "conformance/__failure-fixtures__");

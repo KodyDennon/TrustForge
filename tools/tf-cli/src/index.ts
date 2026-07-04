@@ -61,13 +61,13 @@ import {
   type FederationAttestation,
   type Packet,
   type ProofEvent,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 import type { Policy } from "../../tf-types-ts/src/generated/policy.js";
 import {
   attachInitiator,
   rpcTransportFromEndpoint,
   type SessionEndpoint,
-} from "tf-session";
+} from "@trustforge-protocol/session";
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -2333,7 +2333,7 @@ register({
   supportsDryRun: true,
   handler: async (args) => {
     if (args.dryRun) return dryRunStub(args, REGISTRY.get("conformance run")!, { passed: 0, failed: 0 });
-    const conf = await import("tf-conformance");
+    const conf = await import("@trustforge-protocol/conformance");
     const profileId = flagOne(args, "profile");
     const daemonUrl = flagOne(args, "daemon");
     const root = resolve(flagOne(args, "root") ?? ".");

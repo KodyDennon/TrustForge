@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ed25519Generate, RpcClient, Vault, readTflog } from "tf-types";
-import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "tf-session";
+import { ed25519Generate, RpcClient, Vault, readTflog } from "@trustforge-protocol/types";
+import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "@trustforge-protocol/session";
 import { runDaemon } from "../src/index";
 
 describe("tf-daemon e2e", () => {

@@ -10,8 +10,8 @@ import {
   chainHash,
   utf8encode,
   writeTfproof,
-} from "tf-types";
-import type { ProofBundle, ProofEvent, SignatureEnvelope } from "tf-types";
+} from "@trustforge-protocol/types";
+import type { ProofBundle, ProofEvent, SignatureEnvelope } from "@trustforge-protocol/types";
 import { readKeyFile } from "./keyfile.js";
 
 export interface SignArgs {

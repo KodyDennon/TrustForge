@@ -1,4 +1,4 @@
-import type { HttpBridgeHandler, HttpFrame } from "tf-types";
+import type { HttpBridgeHandler, HttpFrame } from "@trustforge-protocol/types";
 
 /**
  * Http-bridge handler implementation for tf-daemon.

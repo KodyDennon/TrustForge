@@ -41,8 +41,8 @@ import {
   type PluginHost,
   type PluginManifest,
   type ProofEvent,
-} from "tf-types";
-import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "tf-session";
+} from "@trustforge-protocol/types";
+import { attachInitiator, rpcTransportFromEndpoint, wireFromWebSocket } from "@trustforge-protocol/session";
 import { runDaemon } from "../src/index";
 
 async function signPluginManifest(

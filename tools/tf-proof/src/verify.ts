@@ -12,8 +12,8 @@ import {
   verifyChain,
   TFLOG_MAGIC,
   TFPROOF_MAGIC,
-} from "tf-types";
-import type { ProofBundle, SignatureEnvelope } from "tf-types";
+} from "@trustforge-protocol/types";
+import type { ProofBundle, SignatureEnvelope } from "@trustforge-protocol/types";
 import { readKeyFile } from "./keyfile.js";
 
 export interface VerifyReport {

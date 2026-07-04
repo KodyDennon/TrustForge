@@ -26,7 +26,7 @@ import {
   verifyPacket,
   type Packet,
   type Priority,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 function arg(args: string[], flag: string): string | undefined {
   const i = args.indexOf(flag);

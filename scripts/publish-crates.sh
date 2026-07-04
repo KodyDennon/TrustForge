@@ -53,7 +53,7 @@ while true; do
     if [ $STATUS -eq 0 ]; then
       PROGRESS=1
       echo "Successfully published $CRATE_NAME"
-    elif echo "$OUTPUT" | grep -q "already exists"; then
+    elif echo "$OUTPUT" | grep -Eq "already exists|already uploaded"; then
       # Belt and braces: the version is on the index even if the
       # pre-check above missed it.
       PROGRESS=1

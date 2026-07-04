@@ -7,7 +7,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { b64decode, b64encode, CryptoError } from "tf-types";
+import { b64decode, b64encode, CryptoError } from "@trustforge-protocol/types";
 
 export interface KeyFile {
   readonly algorithm: "ed25519";

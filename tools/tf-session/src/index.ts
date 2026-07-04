@@ -17,7 +17,7 @@ import {
   type SessionState,
   utf8encode,
   utf8decode,
-} from "tf-types";
+} from "@trustforge-protocol/types";
 
 export interface PeerIdentity {
   selfActor: string;

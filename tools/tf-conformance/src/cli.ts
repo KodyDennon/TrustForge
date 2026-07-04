@@ -5,7 +5,7 @@
  * cutting a v0.1.0 release tag.
  */
 
-import { canonicalize } from "tf-types";
+import { canonicalize } from "@trustforge-protocol/types";
 import { resolve } from "node:path";
 import {
   runAll,

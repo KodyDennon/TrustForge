@@ -59,7 +59,7 @@ function defaultResolveCredential(event: SvelteRequestEventLike): {
     event.cookies.get("next-auth.session-token");
   if (nextAuth) return { host_token: nextAuth, host_token_kind: "next-auth-jwt" };
 
-  for (const name of ["session", "auth", "tf-session"]) {
+  for (const name of ["session", "auth", "@trustforge-protocol/session"]) {
     const v = event.cookies.get(name);
     if (!v) continue;
     if (v.startsWith("sess_")) return { host_token: v, host_token_kind: "clerk-session" };

@@ -12,7 +12,7 @@ import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, writ
 import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 import { dirname, resolve as resolvePath, join as joinPath } from "node:path";
 import { parseYaml as parseYAML } from "@trustforge-protocol/types";
-import { BridgesRegistry } from "tf-types";
+import { BridgesRegistry } from "@trustforge-protocol/types";
 import {
   hostTokenKindToBridge,
   resolveCredential,
@@ -40,14 +40,14 @@ import {
   type ProofChainLevel,
   type RpcProofEventStub,
   type SessionFrame,
-} from "tf-types";
-import type { DaemonConfig } from "tf-types";
-import type { ApprovalRequest } from "tf-types";
+} from "@trustforge-protocol/types";
+import type { DaemonConfig } from "@trustforge-protocol/types";
+import type { ApprovalRequest } from "@trustforge-protocol/types";
 import {
   attachResponder,
   rpcTransportFromEndpoint,
   type SessionEndpoint,
-} from "tf-session";
+} from "@trustforge-protocol/session";
 import { httpBridgeHandler } from "./http-bridge";
 import { recordDecideSpan, setupOtel, type OtelHandle } from "./otel";
 
@@ -62,10 +62,10 @@ export interface DaemonRuntimeOptions {
    *  onFeatureGate. */
   projectRoot?: string;
   onManifestDiagnostic?: (d: { file: string; reason: string }) => void;
-  onFeatureGate?: (gate: import("tf-types").TfFeatureGate) => void;
+  onFeatureGate?: (gate: import("@trustforge-protocol/types").TfFeatureGate) => void;
   /** Called once with the profile-gate verdict if the daemon-config
    *  claims a conformance profile. */
-  onProfileVerdict?: (v: import("tf-types").ProfileVerdict) => void;
+  onProfileVerdict?: (v: import("@trustforge-protocol/types").ProfileVerdict) => void;
   /** When false, the daemon boots even if the claimed profile's MUST
    *  features are not all satisfied. Default true. */
   refuseOnProfileFailure?: boolean;
@@ -266,7 +266,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   // best-effort; missing ones are skipped, parse failures are surfaced
   // through opts.onManifestDiagnostic if the caller cares.
   const tf = opts.projectRoot
-    ? (await import("tf-types")).loadTfManifests({ rootDir: opts.projectRoot })
+    ? (await import("@trustforge-protocol/types")).loadTfManifests({ rootDir: opts.projectRoot })
     : undefined;
   if (tf) {
     for (const d of tf.diagnostics) {
@@ -274,7 +274,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     }
   }
   const featureGate = tf
-    ? (await import("tf-types")).buildFeatureGate(tf)
+    ? (await import("@trustforge-protocol/types")).buildFeatureGate(tf)
     : undefined;
 
   const vault = await Vault.openAtPath(config.vault.path, opts.passphrase);
@@ -390,7 +390,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   // Profile verdict capture wrapper installed BEFORE gating so the
   // admin /admin/profile endpoint can serve the verdict produced at
   // boot.
-  let lastProfileVerdict: import("tf-types").ProfileVerdict | undefined;
+  let lastProfileVerdict: import("@trustforge-protocol/types").ProfileVerdict | undefined;
   const profilePassThrough = opts.onProfileVerdict;
   opts.onProfileVerdict = (v) => {
     lastProfileVerdict = v;
@@ -402,7 +402,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
   // daemon ACTUALLY loaded — not a hardcoded literal.
   const claimedProfile = (config as unknown as { profile?: string }).profile;
   if (claimedProfile) {
-    const tfMod = await import("tf-types");
+    const tfMod = await import("@trustforge-protocol/types");
     const spec = tfMod.BUILTIN_PROFILES[claimedProfile];
     if (!spec) {
       throw new Error(`unknown profile: ${claimedProfile}`);
@@ -630,7 +630,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
         return jsonResponse({ ok: true, revocation: dup, deduped: true });
       }
       // Sign the canonical revocation bytes with the daemon identity.
-      const tf = await import("tf-types");
+      const tf = await import("@trustforge-protocol/types");
       const baseRev = {
         revocation_version: "1",
         id: `rev-${Date.now().toString(16)}-${Math.floor(Math.random() * 1_000_000).toString(16)}`,
@@ -909,7 +909,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
         actor = resolved.actor;
       }
     }
-    const tf2 = await import("tf-types");
+    const tf2 = await import("@trustforge-protocol/types");
     const decision = guard.checkRaw({
       actor,
       action: req.action,
@@ -952,7 +952,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
       decision: adjusted.kind,
       reason: "reason" in adjusted ? adjusted.reason : `action ${req.action} permitted`,
       approval_id: null,
-      proof_id: (await import("tf-types")).eventHashRef(proofEvent),
+      proof_id: (await import("@trustforge-protocol/types")).eventHashRef(proofEvent),
       actor_resolved: actor,
       trust_level: decisionTrustLevel(actor, resolved),
       authority_mode: "layered",
@@ -1057,12 +1057,12 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     if (typeof draft.level !== "string" || !/^L[0-5]$/.test(draft.level)) {
       return jsonResponse({ error: "level must be L0..L5" }, 400);
     }
-    const tf = await import("tf-types");
+    const tf = await import("@trustforge-protocol/types");
     // Strip any signature the caller supplied — the daemon signs with
     // its own identity, never with an attacker-supplied envelope.
     const unsigned = { ...draft } as Record<string, unknown>;
     delete unsigned.signature;
-    const built = unsigned as unknown as import("tf-types").BuiltProofEvent;
+    const built = unsigned as unknown as import("@trustforge-protocol/types").BuiltProofEvent;
     const signed = await tf.signProofEvent(built, config.self_actor, idEntry.key_bytes);
     const eventHash = tf.eventHashRef(signed);
     return jsonResponse({
@@ -1094,7 +1094,7 @@ export async function runDaemon(opts: DaemonRuntimeOptions): Promise<DaemonHandl
     // daemon's own identity key is recognized in v0.1; cross-signer
     // verification rides through the bridges registry once federation
     // attestations land.
-    const tf = await import("tf-types");
+    const tf = await import("@trustforge-protocol/types");
     const unsigned = { ...ev } as Record<string, unknown>;
     delete unsigned.signature;
     const digest = tf.sha256(new TextEncoder().encode(tf.canonicalize(unsigned)));
@@ -1391,7 +1391,7 @@ async function appendSignedEventLine(
   signerPriv: Uint8Array,
   signer: string,
 ): Promise<void> {
-  const tf = await import("tf-types");
+  const tf = await import("@trustforge-protocol/types");
   const eventForSigning = { ...ev };
   const canonicalSigning = canonicalize(eventForSigning);
   const digest = tf.sha256(new TextEncoder().encode(canonicalSigning));

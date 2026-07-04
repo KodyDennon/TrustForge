@@ -6,8 +6,8 @@ import {
   readTflog,
   TFLOG_MAGIC,
   TFPROOF_MAGIC,
-} from "tf-types";
-import type { ProofEvent } from "tf-types";
+} from "@trustforge-protocol/types";
+import type { ProofEvent } from "@trustforge-protocol/types";
 
 export interface InspectOutput {
   format: "tfproof" | "tflog";

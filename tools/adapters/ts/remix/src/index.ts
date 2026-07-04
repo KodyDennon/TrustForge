@@ -112,7 +112,7 @@ function defaultResolveCredential(req: Request): {
   const nextAuth =
     cookies["__Secure-next-auth.session-token"] ?? cookies["next-auth.session-token"];
   if (nextAuth) return { host_token: nextAuth, host_token_kind: "next-auth-jwt" };
-  for (const name of ["session", "auth", "tf-session", "_session", "__session"]) {
+  for (const name of ["session", "auth", "@trustforge-protocol/session", "_session", "__session"]) {
     const v = cookies[name];
     if (!v) continue;
     if (v.startsWith("sess_")) return { host_token: v, host_token_kind: "clerk-session" };
