@@ -48,21 +48,34 @@ while true; do
       # pre-check above missed it.
       PROGRESS=1
       echo "$CRATE_NAME v$CRATE_VERSION already on crates.io — skipping"
+    elif echo "$OUTPUT" | grep -q "429 Too Many Requests"; then
+      # crates.io rate-limits publishes (~1/min to existing crates).
+      # Not fatal — wait a window out instead of burning passes.
+      RATE_LIMITED=1
+      echo "Rate-limited publishing $CRATE_NAME (will retry next pass)"
     else
       echo "Failed to publish $CRATE_NAME (will retry next pass)"
     fi
     cd - > /dev/null
   done
-  
+
   if [ $PENDING -eq 0 ]; then
     echo "All crates published successfully!"
     break
   fi
-  
+
   if [ $PROGRESS -eq 0 ]; then
+    if [ "${RATE_LIMITED:-0}" -eq 1 ] && [ "${STALLS:-0}" -lt 60 ]; then
+      STALLS=$(( ${STALLS:-0} + 1 ))
+      RATE_LIMITED=0
+      echo "No progress due to rate limiting (stall $STALLS/60); sleeping 65s..."
+      sleep 65
+      continue
+    fi
     echo "Failed to make progress. Remaining crates have issues."
     exit 1
   fi
+  STALLS=0
   
   echo "Made progress. Sleeping 10 seconds before next pass to let crates.io index..."
   sleep 10
