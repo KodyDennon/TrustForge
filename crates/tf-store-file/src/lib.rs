@@ -43,10 +43,18 @@ pub struct FileEvidenceArchive {
     inner: Arc<FileStore>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HealthReport {
+    pub proof_events: usize,
+    pub revocations: usize,
+    pub evidence_bundles: usize,
+}
+
 impl FileStore {
     pub fn open(root: impl AsRef<Path>) -> Result<Self, StoreError> {
         let root = root.as_ref().to_path_buf();
         fs::create_dir_all(root.join("evidence")).map_err(map_io)?;
+        cleanup_stale_temps(&root)?;
         let state = State {
             proof_order: Vec::new(),
             proof_payloads: HashMap::new(),
@@ -138,6 +146,20 @@ impl FileStore {
         let state = self.state.lock().expect("file store state poisoned");
         persist_proof_log(self, &state.proof_order, &state.proof_payloads)?;
         persist_revocations(self, &state.revocations)
+    }
+
+    /// Verify all on-disk records and evidence checksum sidecars.
+    ///
+    /// This is intended for startup probes and backup/export jobs. It
+    /// re-reads the durable files instead of trusting the in-memory indexes.
+    pub fn health_check(&self) -> Result<HealthReport, StoreError> {
+        let (proof_events, revocations) = verify_indexes_on_disk(self)?;
+        let evidence_bundles = verify_all_evidence(self)?;
+        Ok(HealthReport {
+            proof_events,
+            revocations,
+            evidence_bundles,
+        })
     }
 
     fn proof_log_path(&self) -> PathBuf {
@@ -274,6 +296,7 @@ impl EvidenceArchive for FileEvidenceArchive {
         if bundle_id.is_empty() {
             return Err(StoreError::Other("empty bundle id".into()));
         }
+        let _guard = self.inner.state.lock().expect("file store state poisoned");
         fs::create_dir_all(self.inner.evidence_dir()).map_err(map_io)?;
         let path = self
             .inner
@@ -295,7 +318,8 @@ impl EvidenceArchive for FileEvidenceArchive {
             file.sync_data().map_err(map_io)?;
         }
         fs::rename(tmp, &path).map_err(map_io)?;
-        fs::rename(checksum_tmp, checksum_path).map_err(map_io)
+        fs::rename(checksum_tmp, checksum_path).map_err(map_io)?;
+        sync_dir(&self.inner.evidence_dir())
     }
 
     fn get(&self, bundle_id: &str) -> Result<Option<Vec<u8>>, StoreError> {
@@ -314,6 +338,7 @@ impl EvidenceArchive for FileEvidenceArchive {
     }
 
     fn list(&self) -> Result<Vec<String>, StoreError> {
+        let _guard = self.inner.state.lock().expect("file store state poisoned");
         let dir = self.inner.evidence_dir();
         if !dir.exists() {
             return Ok(Vec::new());
@@ -364,7 +389,9 @@ fn persist_proof_log(
         }
         file.sync_data().map_err(map_io)?;
     }
-    fs::rename(tmp, path).map_err(map_io)
+    fs::rename(tmp, path)
+        .map_err(map_io)
+        .and_then(|_| sync_dir(&store.root))
 }
 
 fn persist_revocations(
@@ -388,7 +415,126 @@ fn persist_revocations(
         }
         file.sync_data().map_err(map_io)?;
     }
-    fs::rename(tmp, path).map_err(map_io)
+    fs::rename(tmp, path)
+        .map_err(map_io)
+        .and_then(|_| sync_dir(&store.root))
+}
+
+fn cleanup_stale_temps(root: &Path) -> Result<(), StoreError> {
+    remove_if_exists(root.join("proof.tmp"))?;
+    remove_if_exists(root.join("revocations.tmp"))?;
+    let evidence_dir = root.join("evidence");
+    if evidence_dir.exists() {
+        for entry in fs::read_dir(&evidence_dir).map_err(map_io)? {
+            let entry = entry.map_err(map_io)?;
+            if !entry.file_type().map_err(map_io)?.is_file() {
+                continue;
+            }
+            let Some(name) = entry.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            if name.ends_with(".tmp") {
+                fs::remove_file(entry.path()).map_err(map_io)?;
+            }
+        }
+        sync_dir(&evidence_dir)?;
+    }
+    sync_dir(root)
+}
+
+fn remove_if_exists(path: PathBuf) -> Result<(), StoreError> {
+    match fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(map_io(e)),
+    }
+}
+
+fn verify_indexes_on_disk(store: &FileStore) -> Result<(usize, usize), StoreError> {
+    let mut proof_events = 0usize;
+    let proof_log = store.proof_log_path();
+    if proof_log.exists() {
+        let file = File::open(&proof_log).map_err(map_io)?;
+        for (line_no, line) in BufReader::new(file).lines().enumerate() {
+            let line = line.map_err(map_io)?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            let mut parts = line.splitn(3, '\t');
+            let hash = parts.next().unwrap_or_default();
+            let checksum = parts.next().ok_or_else(|| {
+                StoreError::Other(format!("malformed proof.log line {}", line_no + 1))
+            })?;
+            let payload = parts.next().ok_or_else(|| {
+                StoreError::Other(format!("malformed proof.log line {}", line_no + 1))
+            })?;
+            if checksum != record_checksum(hash, payload) {
+                return Err(StoreError::Other(format!(
+                    "proof.log line {} checksum mismatch",
+                    line_no + 1
+                )));
+            }
+            if hash != sha256_hashref(payload.as_bytes()) {
+                return Err(StoreError::Other(format!(
+                    "proof.log line {} event hash mismatch",
+                    line_no + 1
+                )));
+            }
+            let _: Value = serde_json::from_str(payload).map_err(|e| {
+                StoreError::Other(format!("parse proof.log line {}: {e}", line_no + 1))
+            })?;
+            proof_events += 1;
+        }
+    }
+
+    let mut revocations = 0usize;
+    let revocations_path = store.revocations_path();
+    if revocations_path.exists() {
+        let file = File::open(&revocations_path).map_err(map_io)?;
+        for (line_no, line) in BufReader::new(file).lines().enumerate() {
+            let line = line.map_err(map_io)?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            let mut parts = line.splitn(3, '\t');
+            let kind = parts.next().unwrap_or_default();
+            let id = parts.next().unwrap_or_default();
+            let effective_at = parts.next().ok_or_else(|| {
+                StoreError::Other(format!("malformed revocations.tsv line {}", line_no + 1))
+            })?;
+            let _ = unescape_field(kind)?;
+            let _ = unescape_field(id)?;
+            let _ = unescape_field(effective_at)?;
+            revocations += 1;
+        }
+    }
+
+    Ok((proof_events, revocations))
+}
+
+fn verify_all_evidence(store: &FileStore) -> Result<usize, StoreError> {
+    let dir = store.evidence_dir();
+    if !dir.exists() {
+        return Ok(0);
+    }
+    let mut count = 0usize;
+    for entry in fs::read_dir(&dir).map_err(map_io)? {
+        let entry = entry.map_err(map_io)?;
+        if !entry.file_type().map_err(map_io)?.is_file() {
+            continue;
+        }
+        let Some(name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        if name.ends_with(".tmp") || name.ends_with(".sha256") {
+            continue;
+        }
+        let path = entry.path();
+        let bytes = fs::read(&path).map_err(map_io)?;
+        verify_evidence_checksum(&path, &bytes)?;
+        count += 1;
+    }
+    Ok(count)
 }
 
 fn escape_field(s: &str) -> String {
@@ -511,4 +657,10 @@ fn hex_value(b: u8) -> Result<u8, StoreError> {
 
 fn map_io(e: std::io::Error) -> StoreError {
     StoreError::Other(e.to_string())
+}
+
+fn sync_dir(path: &Path) -> Result<(), StoreError> {
+    File::open(path)
+        .and_then(|dir| dir.sync_all())
+        .map_err(map_io)
 }

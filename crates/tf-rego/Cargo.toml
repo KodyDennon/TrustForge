@@ -1,7 +1,7 @@
 [package]
 readme = "README.md"
 name = "tf-rego"
-version = "0.1.6"
+version = "0.1.7"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -12,4 +12,4 @@ regorus = { version = "0.9", default-features = false, features = ["std", "regex
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = "1"
-tf-types = { version = "0.1.6", path = "../tf-types" }
+tf-types = { version = "0.1.7", path = "../tf-types" }

@@ -24,9 +24,14 @@ until the planned `tf_types::json::Value` migration lands.
 
 Writes are serialized through an in-process mutex. Proof and evidence
 writes are flushed with `sync_data`; revocation snapshot replacement is
-atomic via write-temp, sync, and rename.
+atomic via write-temp, sync, rename, and parent-directory sync.
 
 `FileStore::compact()` rewrites the proof log and revocation snapshot
 from the rebuilt in-memory indexes. Opening the store verifies proof-log
 record checksums and event hashes; reading evidence verifies the sidecar
 checksum.
+
+`FileStore::health_check()` re-reads durable files and evidence
+sidecars from disk, returning proof/revocation/evidence counts only when
+all checks pass. Opening a store also removes stale `.tmp` files left by
+interrupted writes before rebuilding indexes.

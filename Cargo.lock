@@ -5846,7 +5846,7 @@ dependencies = [
 
 [[package]]
 name = "tf-actix-web"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "actix-rt",
  "actix-service",
@@ -5862,7 +5862,7 @@ dependencies = [
 
 [[package]]
 name = "tf-axum"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "axum",
  "bytes",
@@ -5885,7 +5885,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-aws"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "aws-config",
  "aws-credential-types",
@@ -5907,7 +5907,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-azure"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hex",
  "rand 0.8.6",
@@ -5925,7 +5925,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-doppler"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "reqwest",
  "serde",
@@ -5938,7 +5938,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-gcp"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hex",
  "rand 0.8.6",
@@ -5956,7 +5956,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-vault"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "async-trait",
  "serde",
@@ -5970,7 +5970,7 @@ dependencies = [
 
 [[package]]
 name = "tf-cedar"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "cedar-policy",
  "serde",
@@ -5981,7 +5981,7 @@ dependencies = [
 
 [[package]]
 name = "tf-code-helper-example"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "async-trait",
  "serde",
@@ -5992,7 +5992,7 @@ dependencies = [
 
 [[package]]
 name = "tf-core-no-std"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "chacha20poly1305",
  "ed25519-compact",
@@ -6004,7 +6004,7 @@ dependencies = [
 
 [[package]]
 name = "tf-core-wasm"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "js-sys",
  "serde",
@@ -6017,7 +6017,7 @@ dependencies = [
 
 [[package]]
 name = "tf-decide-client"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "http-body-util",
  "hyper 1.9.0",
@@ -6030,7 +6030,7 @@ dependencies = [
 
 [[package]]
 name = "tf-embedded-hal"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "ed25519-compact",
  "heapless 0.8.0",
@@ -6040,11 +6040,11 @@ dependencies = [
 
 [[package]]
 name = "tf-hyper"
-version = "0.1.6"
+version = "0.1.7"
 
 [[package]]
 name = "tf-otel"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "once_cell",
  "opentelemetry",
@@ -6060,11 +6060,11 @@ dependencies = [
 
 [[package]]
 name = "tf-poem"
-version = "0.1.6"
+version = "0.1.7"
 
 [[package]]
 name = "tf-prom-exporter"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "clap",
  "http-body-util",
@@ -6082,7 +6082,7 @@ dependencies = [
 
 [[package]]
 name = "tf-proxy"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "clap",
  "futures-util",
@@ -6103,7 +6103,7 @@ dependencies = [
 
 [[package]]
 name = "tf-rego"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "regorus",
  "serde",
@@ -6114,7 +6114,7 @@ dependencies = [
 
 [[package]]
 name = "tf-revoke-redis"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "redis",
  "tf-types",
@@ -6123,7 +6123,7 @@ dependencies = [
 
 [[package]]
 name = "tf-rocket"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "http-body-util",
  "hyper 1.9.0",
@@ -6136,11 +6136,11 @@ dependencies = [
 
 [[package]]
 name = "tf-salvo"
-version = "0.1.6"
+version = "0.1.7"
 
 [[package]]
 name = "tf-session"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "bytes",
  "futures",
@@ -6156,7 +6156,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-file"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "serde_json",
  "tf-types",
@@ -6164,7 +6164,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-mysql"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hex",
  "serde_json",
@@ -6177,7 +6177,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-postgres"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hex",
  "serde_json",
@@ -6190,7 +6190,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-sqlite"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hex",
  "rusqlite",
@@ -6203,7 +6203,7 @@ dependencies = [
 
 [[package]]
 name = "tf-tonic"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "http 1.4.0",
  "http-body-util",
@@ -6220,14 +6220,14 @@ dependencies = [
 
 [[package]]
 name = "tf-transport"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "tf-types"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "argon2",
  "blake3",
@@ -6263,7 +6263,7 @@ dependencies = [
 
 [[package]]
 name = "tf-warp"
-version = "0.1.6"
+version = "0.1.7"
 
 [[package]]
 name = "thiserror"

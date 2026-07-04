@@ -1,14 +1,14 @@
 [package]
 readme = "README.md"
 name = "tf-bridge-azure"
-version = "0.1.6"
+version = "0.1.7"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge identity bridge for AZURE. Translate AZURE credentials, roles, and policies into cryptographic TrustForge actors and capabilities."
 
 [dependencies]
-tf-types = { version = "0.1.6", path = "../../tf-types" }
+tf-types = { version = "0.1.7", path = "../../tf-types" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
 serde = { workspace = true }

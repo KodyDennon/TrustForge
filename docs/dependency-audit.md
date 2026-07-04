@@ -52,9 +52,22 @@ Also removed without replacement (dead weight):
   and `/metrics` integration tests.
 - SQLite as the only local embedded store — `tf-store-file` now provides
   a first-party file-backed store with no database dependency, proof-log
-  checksums, evidence checksum sidecars, and compaction. It still uses
-  the current `serde_json::Value` trait boundary until the planned
-  first-party JSON migration lands.
+  checksums, evidence checksum sidecars, compaction, stale-temp cleanup,
+  parent-directory sync after atomic renames, and disk-level
+  `health_check()` probes. It still uses the current
+  `serde_json::Value` trait boundary until the planned first-party JSON
+  migration lands.
+
+Production-hardening follow-up shipped after the first publish:
+
+- `tf-transport` now rejects ambiguous authorities, reserved
+  caller-supplied framing headers, conflicting response framing, and
+  malformed chunked responses; IPv6 bracket authorities and query-only
+  targets are covered without adding a URL parser crate.
+- `tf-store-file` now verifies durable proof/revocation/evidence files
+  via `FileStore::health_check()`, cleans interrupted temp writes on
+  open, serializes evidence writes, and fsyncs parent directories after
+  atomic renames.
 
 Release and generated-surface fixes shipped with this slice:
 

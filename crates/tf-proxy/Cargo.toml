@@ -2,7 +2,7 @@
 description = "TrustForge module for proxy. Part of the open-source trust fabric for AI-native software."
 readme = "README.md"
 name = "tf-proxy"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
@@ -20,7 +20,7 @@ tokio-rustls = "0.26"
 clap = { version = "4", features = ["derive", "env"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tf-otel = { version = "0.1.6", path = "../tf-otel" }
+tf-otel = { version = "0.1.7", path = "../tf-otel" }
 
 [lib]
 name = "tf_proxy"

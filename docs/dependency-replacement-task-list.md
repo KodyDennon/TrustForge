@@ -16,10 +16,17 @@ Status: active production implementation.
 - [x] Fix generated TS RPC/agent-contract imports to use the published
       `@trustforge-protocol/types` package instead of nonexistent
       `tf-types`.
+- [x] Harden `tf-transport` HTTP/1.1 parsing for ambiguous authorities,
+      reserved request headers, duplicate/conflicting response framing,
+      chunk framing errors, IPv6 bracket authorities, and query-only
+      request targets.
+- [x] Harden `tf-store-file` with stale-temp cleanup, parent-directory
+      sync after atomic renames, serialized evidence writes, and
+      `FileStore::health_check()` for startup/backup integrity probes.
 - [x] Extend `scripts/publish-crates.sh` so native workspace crates
       such as `tf-prom-exporter` publish with the rest of the Rust
       release set.
-- [x] Bump publishable Rust workspace crates to `0.1.6` for the next
+- [x] Bump publishable Rust workspace crates to `0.1.7` for the next
       crates.io release.
 - [x] Document the policy, roadmap, implementation state, and audit gates.
 

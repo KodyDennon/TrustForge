@@ -34,6 +34,11 @@ now use the shared first-party `tf-transport` HTTP/1.1 client.
   connection, `Connection: close`, JSON body, optional bearer token,
   timeout, `Content-Length`, chunked responses, and close-framed
   responses.
+- Production hardening: the client rejects header injection, reserved
+  framing/header overrides, ambiguous authorities, conflicting
+  `Content-Length`, mixed `Transfer-Encoding`/`Content-Length`, and
+  malformed chunk framing. IPv6 bracket authorities and query-only
+  targets are covered by first-party tests.
 - Intentional limit: no HTTPS in this local-daemon client. Production
   TLS termination belongs at the listener/proxy layer until the
   first-party transport track is audit-ready.
@@ -74,10 +79,12 @@ now use the shared first-party `tf-transport` HTTP/1.1 client.
      bundle storage, crash recovery, checksums, compaction, and index
      rebuild.
    - Keep SQLite/Postgres/MySQL/Redis as optional adapter backends.
-   - Current status: `tf-store-file` exists with an owned append-only
-     proof log, revocation snapshot, evidence files, proof/evidence
-     checksums, atomic evidence and revocation writes, compaction, and
-     reopen/index rebuild tests.
+- Current status: `tf-store-file` exists with an owned append-only
+  proof log, revocation snapshot, evidence files, proof/evidence
+  checksums, atomic evidence and revocation writes, parent-directory
+  sync after renames, stale-temp cleanup on open, compaction,
+  `FileStore::health_check()` for disk integrity probes, and
+  reopen/index rebuild tests.
 
 4. **First-party TLS, QUIC, and HTTP/3**
    - Track TLS 1.3 RFC 8446, QUIC RFC 9000, QUIC/TLS RFC 9001,

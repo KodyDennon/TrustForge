@@ -155,6 +155,71 @@ fn compact_rewrites_indexes_without_losing_data() {
 }
 
 #[test]
+fn health_check_verifies_all_durable_files() {
+    let path = fresh_dir("file-health");
+    let store = Arc::new(FileStore::open(&path).expect("open"));
+    let ledger = FileProofLedger::from_store(store.clone());
+    let cache = FileRevocationCache::from_store(store.clone());
+    let archive = FileEvidenceArchive::from_store(store.clone());
+
+    ledger.append(&json!({"kind": "health", "i": 1})).unwrap();
+    cache
+        .insert(
+            "actor",
+            "tf:actor:agent:example.com/a",
+            "2026-07-04T00:00:00Z",
+        )
+        .unwrap();
+    archive.put("bundle-health", b"health").unwrap();
+
+    assert_eq!(
+        store.health_check().unwrap(),
+        tf_store_file::HealthReport {
+            proof_events: 1,
+            revocations: 1,
+            evidence_bundles: 1,
+        }
+    );
+
+    let _ = std::fs::remove_dir_all(path);
+}
+
+#[test]
+fn open_cleans_stale_temp_files() {
+    let path = fresh_dir("file-temp-cleanup");
+    std::fs::write(path.join("proof.tmp"), b"partial").unwrap();
+    std::fs::write(path.join("revocations.tmp"), b"partial").unwrap();
+    std::fs::create_dir_all(path.join("evidence")).unwrap();
+    std::fs::write(path.join("evidence").join("abc.tmp"), b"partial").unwrap();
+
+    let store = FileStore::open(&path).expect("open");
+    assert!(!path.join("proof.tmp").exists());
+    assert!(!path.join("revocations.tmp").exists());
+    assert!(!path.join("evidence").join("abc.tmp").exists());
+    assert_eq!(store.health_check().unwrap().evidence_bundles, 0);
+
+    let _ = std::fs::remove_dir_all(path);
+}
+
+#[test]
+fn health_check_rejects_missing_evidence_checksum() {
+    let path = fresh_dir("file-health-corrupt");
+    let store = Arc::new(FileStore::open(&path).expect("open"));
+    let archive = FileEvidenceArchive::from_store(store.clone());
+    archive.put("bundle-health", b"health").unwrap();
+    std::fs::remove_file(
+        path.join("evidence")
+            .join("62756e646c652d6865616c7468.sha256"),
+    )
+    .unwrap();
+
+    let err = store.health_check().unwrap_err().to_string();
+    assert!(err.contains("missing evidence checksum"));
+
+    let _ = std::fs::remove_dir_all(path);
+}
+
+#[test]
 fn concurrent_inserts_do_not_error() {
     let path = fresh_dir("file-concurrent");
     let store = Arc::new(FileStore::open(&path).expect("open"));
