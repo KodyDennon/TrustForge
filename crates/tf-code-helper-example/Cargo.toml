@@ -1,14 +1,14 @@
 [package]
 readme.workspace = true
 name = "tf-code-helper-example"
-version = "0.1.3"
+version = "0.1.4"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge developer example. Demonstrates how to consume and compile the generated ProofRPC output for downstream applications."
 
 [dependencies]
-tf-types = { version = "0.1.3", path = "../tf-types" }
+tf-types = { version = "0.1.4", path = "../tf-types" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["rt", "sync", "macros"] }

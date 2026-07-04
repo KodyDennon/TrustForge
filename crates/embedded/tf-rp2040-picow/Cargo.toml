@@ -1,8 +1,9 @@
 [package]
 
 name = "tf-rp2040-picow"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
+repository = "https://github.com/KodyDennon/TrustForge"
 description = "TrustForge embedded firmware for RP2040-PICOW. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false
@@ -24,8 +25,8 @@ bench = false
 
 [dependencies]
 # TrustForge embedded core.
-tf-core-no-std = { version = "0.1.3", path = "../../tf-core-no-std", default-features = false }
-tf-embedded-hal = { version = "0.1.3", path = "../../tf-embedded-hal", default-features = false }
+tf-core-no-std = { version = "0.1.4", path = "../../tf-core-no-std", default-features = false }
+tf-embedded-hal = { version = "0.1.4", path = "../../tf-embedded-hal", default-features = false }
 
 # Cortex-M0+ runtime + panic handler.
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }

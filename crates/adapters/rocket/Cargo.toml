@@ -1,14 +1,14 @@
 [package]
 readme.workspace = true
 name = "tf-rocket"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
 description = "TrustForge middleware for Rocket. Provides drop-in zero-trust request verification, capability delegation, and policy enforcement for Rocket servers."
 
 [dependencies]
-tf-decide-client = { version = "0.1.3", path = "../tf-decide-client" }
+tf-decide-client = { version = "0.1.4", path = "../tf-decide-client" }
 rocket = { version = "0.5", default-features = false, features = ["json"] }
 serde_json = "1"
 tokio = { version = "1", features = ["rt", "macros"] }

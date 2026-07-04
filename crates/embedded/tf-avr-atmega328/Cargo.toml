@@ -1,8 +1,9 @@
 [package]
 
 name = "tf-avr-atmega328"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
+repository = "https://github.com/KodyDennon/TrustForge"
 description = "TrustForge embedded firmware for AVR-ATMEGA328. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
 publish = false

@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/auth0",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Auth0. Seamlessly integrate zero-trust verifiable actions into your Auth0 application.",
   "main": "./src/index.ts",

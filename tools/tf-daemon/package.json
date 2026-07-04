@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/daemon",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "The TrustForge background daemon. Handles key management, packet routing, capability caching, and secure session orchestration.",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/hono",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Hono. Seamlessly integrate zero-trust verifiable actions into your Hono application.",
   "main": "./src/index.ts",
