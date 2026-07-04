@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use crate::encoding::URL_SAFE_NO_PAD;
-use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
+use crate::jws::{decode, decode_header, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -152,7 +152,10 @@ impl GnapBridge {
         }
         let header = decode_header(token)
             .map_err(|e| BridgeError::Rejected(format!("malformed JWT: {}", e)))?;
-        let alg_name = format!("{:?}", header.alg);
+        let alg = header
+            .algorithm()
+            .map_err(|e| BridgeError::Rejected(e.to_string()))?;
+        let alg_name = alg.name().to_string();
         if !self
             .cfg
             .allowed_algorithms
@@ -176,10 +179,9 @@ impl GnapBridge {
             .find(|k| k.kid.as_deref() == Some(&kid))
             .ok_or_else(|| BridgeError::Rejected(format!("no JWK with kid {}", kid)))?;
         let key = decoding_key_for_jwk(jwk)?;
-        let mut validation = Validation::new(header.alg);
+        let mut validation = Validation::new(alg);
         validation.set_issuer(&[self.cfg.issuer.as_str()]);
-        validation.algorithms = vec![header.alg];
-        validation.validate_aud = false;
+        validation.algorithms = vec![alg];
         let data = decode::<HashMap<String, Value>>(token, &key, &validation).map_err(|e| {
             BridgeError::Rejected(format!("GNAP access token verify failed: {}", e))
         })?;
@@ -381,9 +383,7 @@ impl GnapBridge {
             }
         };
         let mut validation = Validation::new(alg);
-        validation.required_spec_claims.clear();
         validation.validate_exp = false;
-        validation.validate_aud = false;
         validation.algorithms = vec![alg];
         let payload = match decode::<HashMap<String, Value>>(proof_jwt, &key, &validation) {
             Ok(d) => d.claims,

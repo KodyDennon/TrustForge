@@ -2087,6 +2087,7 @@ dependencies = [
  "ff 0.13.1",
  "generic-array",
  "group 0.13.0",
+ "hkdf",
  "pem-rfc7468",
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
@@ -2912,7 +2913,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "system-configuration",
  "tokio",
  "tower-layer",
@@ -3218,21 +3219,6 @@ dependencies = [
  "time",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "jsonwebtoken"
-version = "9.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
-dependencies = [
- "base64 0.22.1",
- "js-sys",
- "pem",
- "ring",
- "serde",
- "serde_json",
- "simple_asn1",
 ]
 
 [[package]]
@@ -3935,6 +3921,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "p384"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe42f1670a52a47d448f14b6a5c61dd78fce51856e68edaa38f7ae3a46b8d6b6"
+dependencies = [
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.8",
+ "primeorder",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4348,7 +4346,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.39",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -4385,7 +4383,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -5278,19 +5276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_yaml"
-version = "0.9.34+deprecated"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
-dependencies = [
- "indexmap 2.14.0",
- "itoa",
- "ryu",
- "serde",
- "unsafe-libyaml",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5383,18 +5368,6 @@ name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
-
-[[package]]
-name = "simple_asn1"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d585997b0ac10be3c5ee635f1bab02d512760d14b7c468801ac8a01d9ae5f1d"
-dependencies = [
- "num-bigint",
- "num-traits",
- "thiserror 2.0.18",
- "time",
-]
 
 [[package]]
 name = "siphasher"
@@ -5873,7 +5846,7 @@ dependencies = [
 
 [[package]]
 name = "tf-actix-web"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "actix-rt",
  "actix-service",
@@ -5889,7 +5862,7 @@ dependencies = [
 
 [[package]]
 name = "tf-axum"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "axum",
  "bytes",
@@ -5912,7 +5885,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-aws"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "aws-config",
  "aws-credential-types",
@@ -5934,10 +5907,9 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-azure"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "hex",
- "jsonwebtoken",
  "rand 0.8.6",
  "reqwest",
  "rsa",
@@ -5953,7 +5925,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-doppler"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "reqwest",
  "serde",
@@ -5966,10 +5938,9 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-gcp"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "hex",
- "jsonwebtoken",
  "rand 0.8.6",
  "reqwest",
  "rsa",
@@ -5985,7 +5956,7 @@ dependencies = [
 
 [[package]]
 name = "tf-bridge-vault"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "async-trait",
  "serde",
@@ -5999,7 +5970,7 @@ dependencies = [
 
 [[package]]
 name = "tf-cedar"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "cedar-policy",
  "serde",
@@ -6010,7 +5981,7 @@ dependencies = [
 
 [[package]]
 name = "tf-code-helper-example"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "async-trait",
  "serde",
@@ -6021,7 +5992,7 @@ dependencies = [
 
 [[package]]
 name = "tf-core-no-std"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "chacha20poly1305",
  "ed25519-compact",
@@ -6033,7 +6004,7 @@ dependencies = [
 
 [[package]]
 name = "tf-core-wasm"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "js-sys",
  "serde",
@@ -6046,7 +6017,7 @@ dependencies = [
 
 [[package]]
 name = "tf-decide-client"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "http-body-util",
  "hyper 1.9.0",
@@ -6060,7 +6031,7 @@ dependencies = [
 
 [[package]]
 name = "tf-embedded-hal"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "ed25519-compact",
  "heapless 0.8.0",
@@ -6070,11 +6041,11 @@ dependencies = [
 
 [[package]]
 name = "tf-hyper"
-version = "0.1.1"
+version = "0.1.3"
 
 [[package]]
 name = "tf-otel"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "once_cell",
  "opentelemetry",
@@ -6090,11 +6061,11 @@ dependencies = [
 
 [[package]]
 name = "tf-poem"
-version = "0.1.1"
+version = "0.1.3"
 
 [[package]]
 name = "tf-prom-exporter"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "clap",
  "http-body-util",
@@ -6112,7 +6083,7 @@ dependencies = [
 
 [[package]]
 name = "tf-proxy"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "clap",
  "futures-util",
@@ -6133,7 +6104,7 @@ dependencies = [
 
 [[package]]
 name = "tf-rego"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "regorus",
  "serde",
@@ -6144,7 +6115,7 @@ dependencies = [
 
 [[package]]
 name = "tf-revoke-redis"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "redis",
  "tf-types",
@@ -6153,7 +6124,7 @@ dependencies = [
 
 [[package]]
 name = "tf-rocket"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "http-body-util",
  "hyper 1.9.0",
@@ -6166,11 +6137,11 @@ dependencies = [
 
 [[package]]
 name = "tf-salvo"
-version = "0.1.1"
+version = "0.1.3"
 
 [[package]]
 name = "tf-session"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "bytes",
  "futures",
@@ -6186,7 +6157,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-mysql"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "hex",
  "serde_json",
@@ -6199,7 +6170,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-postgres"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "hex",
  "serde_json",
@@ -6212,7 +6183,7 @@ dependencies = [
 
 [[package]]
 name = "tf-store-sqlite"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "hex",
  "rusqlite",
@@ -6225,7 +6196,7 @@ dependencies = [
 
 [[package]]
 name = "tf-tonic"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "http 1.4.0",
  "http-body-util",
@@ -6242,7 +6213,7 @@ dependencies = [
 
 [[package]]
 name = "tf-types"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "argon2",
  "blake3",
@@ -6253,15 +6224,15 @@ dependencies = [
  "hkdf",
  "hmac 0.12.1",
  "jsonschema",
- "jsonwebtoken",
  "p256 0.13.2",
+ "p384",
  "proptest",
  "rand 0.8.6",
  "rcgen",
  "regex",
+ "rsa",
  "serde",
  "serde_json",
- "serde_yaml",
  "sha1",
  "sha2 0.10.9",
  "tempfile",
@@ -6278,7 +6249,7 @@ dependencies = [
 
 [[package]]
 name = "tf-warp"
-version = "0.1.1"
+version = "0.1.3"
 
 [[package]]
 name = "thiserror"
@@ -6829,12 +6800,6 @@ dependencies = [
  "crypto-common 0.1.7",
  "subtle",
 ]
-
-[[package]]
-name = "unsafe-libyaml"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

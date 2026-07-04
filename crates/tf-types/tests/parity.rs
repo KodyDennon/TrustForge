@@ -32,7 +32,7 @@ fn repo_root() -> PathBuf {
 }
 
 fn yaml_to_json(yaml: &str) -> Value {
-    let v: serde_yaml::Value = serde_yaml::from_str(yaml).expect("parse yaml");
+    let v: serde_json::Value = tf_types::yaml::from_str(yaml).expect("parse yaml");
     serde_json::to_value(v).expect("yaml->json")
 }
 
@@ -250,7 +250,7 @@ fn parity_against_ts() {
     let parity_path = repo_root().join("conformance").join("parity.yaml");
     let raw = fs::read_to_string(&parity_path)
         .unwrap_or_else(|e| panic!("read {}: {}", parity_path.display(), e));
-    let file: ParityFile = serde_yaml::from_str(&raw).expect("parse parity.yaml");
+    let file: ParityFile = tf_types::yaml::from_str(&raw).expect("parse parity.yaml");
 
     let validators = compile_schemas();
     let mut mismatches: Vec<String> = Vec::new();

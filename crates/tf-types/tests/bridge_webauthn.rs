@@ -32,7 +32,7 @@ fn load() -> VectorsFile {
         .join("conformance")
         .join("bridge-vectors.yaml");
     let raw = fs::read_to_string(&path).unwrap();
-    serde_yaml::from_str(&raw).expect("parse bridge-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse bridge-vectors.yaml")
 }
 
 fn make_bridge(rp_id: &str) -> WebAuthnBridge {

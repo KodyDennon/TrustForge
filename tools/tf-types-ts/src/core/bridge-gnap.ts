@@ -15,7 +15,7 @@
  *     Capability[]
  */
 
-import { jwtVerify, importJWK, createLocalJWKSet, calculateJwkThumbprint } from "jose";
+import { jwtVerify, importJWK, createLocalJWKSet, calculateJwkThumbprint } from "./jws.js";
 
 import type { ActorIdentity } from "../generated/actor-identity.js";
 import type { Capability } from "../generated/_common.js";

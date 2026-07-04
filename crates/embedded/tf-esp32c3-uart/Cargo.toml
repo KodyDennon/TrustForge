@@ -1,7 +1,7 @@
 [package]
 
 name = "tf-esp32c3-uart"
-version = "0.1.1"
+version = "0.1.3"
 edition = "2021"
 description = "TrustForge embedded firmware for ESP32C3-UART. A bare-metal, no_std implementation for secure verifiable actions on edge hardware."
 license = "Apache-2.0"
@@ -22,7 +22,7 @@ test = false
 bench = false
 
 [dependencies]
-tf-core-no-std = { version = "0.1.1", path = "../../tf-core-no-std", default-features = false }
+tf-core-no-std = { version = "0.1.3", path = "../../tf-core-no-std", default-features = false }
 # `tf-embedded-hal` is intentionally NOT pulled in for K6 — its
 # `heapless::spsc::Queue` re-export requires atomic load/store, which
 # `riscv32imc` lacks (the C-extension is RV32I**M**C, no A). Targets

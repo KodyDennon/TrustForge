@@ -85,11 +85,8 @@ impl PluginRegistry {
     ) -> Result<&LoadedPlugin, PluginError> {
         let raw = fs::read_to_string(manifest_path.as_ref())
             .map_err(|e| PluginError::Io(e.to_string()))?;
-        let manifest: Value = {
-            let yaml: serde_yaml::Value =
-                serde_yaml::from_str(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
-            serde_json::to_value(yaml).map_err(|e| PluginError::Parse(e.to_string()))?
-        };
+        let manifest: Value =
+            crate::yaml::parse(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
         let kind = manifest
             .get("kind")
             .and_then(|v| v.as_str())
@@ -155,10 +152,8 @@ impl PluginRegistry {
 pub fn verify_plugin_signature<P: AsRef<Path>>(manifest_path: P) -> Result<String, PluginError> {
     let raw =
         fs::read_to_string(manifest_path.as_ref()).map_err(|e| PluginError::Io(e.to_string()))?;
-    let yaml: serde_yaml::Value =
-        serde_yaml::from_str(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
     let manifest: Value =
-        serde_json::to_value(yaml).map_err(|e| PluginError::Parse(e.to_string()))?;
+        crate::yaml::parse(&raw).map_err(|e| PluginError::Parse(e.to_string()))?;
     let plugin_id = manifest
         .get("plugin_id")
         .and_then(|v| v.as_str())

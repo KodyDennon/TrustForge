@@ -14,7 +14,7 @@ fi
 cargo login "$CARGO_REGISTRY_TOKEN"
 
 # Find all crates
-CRATES=$(find crates -name Cargo.toml -not -path "*/target/*" -exec dirname {} \;)
+CRATES=$(find crates -name Cargo.toml -not -path "*/target/*" -not -path "*/embedded/*" -exec dirname {} \;)
 
 # Keep trying until all succeed or we make no progress
 while true; do

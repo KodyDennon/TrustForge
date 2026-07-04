@@ -1,5 +1,5 @@
 import { join, relative } from "node:path";
-import { type ErrorObject } from "ajv/dist/2020.js";
+import { type ErrorObject } from "./validator";
 import {
   FIXTURES_DIR,
   REPO_ROOT,

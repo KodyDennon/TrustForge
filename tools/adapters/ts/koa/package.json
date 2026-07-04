@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/koa",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Koa. Seamlessly integrate zero-trust verifiable actions into your Koa application.",
   "main": "./src/index.ts",

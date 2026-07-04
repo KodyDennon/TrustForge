@@ -1,14 +1,14 @@
 [package]
 readme.workspace = true
 name = "tf-bridge-vault"
-version = "0.1.1"
+version = "0.1.3"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "TrustForge identity bridge for VAULT. Translate VAULT credentials, roles, and policies into cryptographic TrustForge actors and capabilities."
 
 [dependencies]
-tf-types = { version = "0.1.1", path = "../../tf-types" }
+tf-types = { version = "0.1.3", path = "../../tf-types" }
 vaultrs = "0.7"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
 serde = { workspace = true }

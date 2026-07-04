@@ -3,7 +3,7 @@
 //! identical (deterministic ed25519) signatures.
 
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
-use serde_yaml::Value as YamlValue;
+use serde_json::Value as YamlValue;
 use sha2::{Digest, Sha256};
 use std::fs;
 use tf_types::canonical::canonicalize;
@@ -36,10 +36,10 @@ fn cross_language_signature_vectors_round_trip() {
         env!("CARGO_MANIFEST_DIR")
     );
     let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path, e));
-    // Parse via serde_yaml::Value first because the YAML uses non-string
+    // Parse via serde_json::Value first because the YAML uses non-string
     // keys via the JSON-flow style.
-    let _yaml_check: YamlValue = serde_yaml::from_str(&raw).expect("yaml parse");
-    let file: File = serde_yaml::from_str(&raw).expect("vectors parse");
+    let _yaml_check: YamlValue = tf_types::yaml::from_str(&raw).expect("yaml parse");
+    let file: File = tf_types::yaml::from_str(&raw).expect("vectors parse");
 
     for v in &file.vectors {
         // 1. Canonicalize MUST match the listed bytes.

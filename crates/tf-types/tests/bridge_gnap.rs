@@ -9,7 +9,7 @@ use tf_types::encoding::URL_SAFE_NO_PAD;
 use ed25519_dalek::pkcs8::spki::der::pem::LineEnding;
 use ed25519_dalek::pkcs8::EncodePrivateKey;
 use ed25519_dalek::SigningKey as Ed25519SigningKey;
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use tf_types::jws::{encode, Algorithm, EncodingKey, Header};
 use p256::ecdsa::SigningKey as P256SigningKey;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use p256::pkcs8::LineEnding as P256LineEnding;

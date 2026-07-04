@@ -16,7 +16,7 @@ use tf_types::bridges::{Bridge, BridgeKind};
 #[derive(Deserialize)]
 struct Vectors {
     mcp_normalize: Vec<NormVector>,
-    webauthn: Vec<serde_yaml::Value>, // not used here, only to load file
+    webauthn: Vec<serde_json::Value>, // not used here, only to load file
 }
 
 #[derive(Deserialize)]
@@ -34,7 +34,7 @@ fn load_vectors() -> Vectors {
         .join("conformance")
         .join("bridge-vectors.yaml");
     let raw = fs::read_to_string(&path).unwrap();
-    serde_yaml::from_str(&raw).expect("parse bridge-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse bridge-vectors.yaml")
 }
 
 #[test]

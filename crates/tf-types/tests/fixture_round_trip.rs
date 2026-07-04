@@ -22,7 +22,7 @@ fn fixture_path(schema: &str, which: &str, name: &str) -> String {
 }
 
 fn yaml_to_json(yaml: &str) -> serde_json::Value {
-    let v: serde_yaml::Value = serde_yaml::from_str(yaml).unwrap();
+    let v: serde_json::Value = tf_types::yaml::from_str(yaml).unwrap();
     serde_json::to_value(v).unwrap()
 }
 

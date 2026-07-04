@@ -19,7 +19,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use tf_types::jws::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -213,7 +213,7 @@ impl GcpIdTokenVerifier {
         }
         let header =
             decode_header(jwt).map_err(|e| GcpBridgeError::Rejected(format!("malformed: {e}")))?;
-        if header.alg != Algorithm::RS256 {
+        if header.algorithm().ok() != Some(Algorithm::RS256) {
             return Err(GcpBridgeError::Rejected(format!(
                 "Google ID tokens require RS256, got {:?}",
                 header.alg
@@ -233,8 +233,6 @@ impl GcpIdTokenVerifier {
         validation.set_issuer(&[self.issuer.as_str()]);
         if !self.audience.is_empty() {
             validation.set_audience(&self.audience);
-        } else {
-            validation.validate_aud = false;
         }
         let data = decode::<RawClaims>(jwt, &key, &validation)
             .map_err(|e| GcpBridgeError::Rejected(format!("verify failed: {e}")))?;

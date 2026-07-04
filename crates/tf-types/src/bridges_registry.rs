@@ -217,10 +217,10 @@ impl BridgesRegistry {
 
     /// Parse + validate a YAML/JSON registry document from a string.
     pub fn from_str(text: &str) -> Result<Self, BridgesRegistryError> {
-        let raw: serde_yaml::Value =
-            serde_yaml::from_str(text).map_err(|e| BridgesRegistryError::Parse(format!("{e}")))?;
+        let raw: serde_json::Value =
+            crate::yaml::parse(text).map_err(|e| BridgesRegistryError::Parse(format!("{e}")))?;
         let doc = match raw {
-            serde_yaml::Value::Mapping(m) => m,
+            serde_json::Value::Object(m) => m,
             _ => {
                 return Err(BridgesRegistryError::Invalid(
                     "registry root must be a mapping".into(),
@@ -229,12 +229,8 @@ impl BridgesRegistry {
         };
         let mut registry_version: Option<String> = None;
         let mut default_profile: Option<String> = None;
-        let mut bridges_value: Option<serde_yaml::Value> = None;
-        for (k, v) in doc {
-            let key = k
-                .as_str()
-                .ok_or_else(|| BridgesRegistryError::Invalid("non-string key in registry".into()))?
-                .to_string();
+        let mut bridges_value: Option<serde_json::Value> = None;
+        for (key, v) in doc {
             match key.as_str() {
                 "registry_version" => {
                     let s = v.as_str().ok_or_else(|| {
@@ -243,7 +239,7 @@ impl BridgesRegistry {
                     registry_version = Some(s.to_string());
                 }
                 "default_profile" => {
-                    if let serde_yaml::Value::Null = v {
+                    if let serde_json::Value::Null = v {
                         continue;
                     }
                     let s = v.as_str().ok_or_else(|| {
@@ -276,7 +272,7 @@ impl BridgesRegistry {
         let bridges_value = bridges_value
             .ok_or_else(|| BridgesRegistryError::Invalid("bridges is required".into()))?;
         let entries = match bridges_value {
-            serde_yaml::Value::Sequence(s) => s,
+            serde_json::Value::Array(s) => s,
             _ => {
                 return Err(BridgesRegistryError::Invalid(
                     "bridges must be a sequence".into(),
@@ -327,11 +323,11 @@ impl BridgesRegistry {
 }
 
 fn parse_entry(
-    value: serde_yaml::Value,
+    value: serde_json::Value,
     index: usize,
 ) -> Result<BridgeEntry, BridgesRegistryError> {
     let map = match value {
-        serde_yaml::Value::Mapping(m) => m,
+        serde_json::Value::Object(m) => m,
         _ => {
             return Err(BridgesRegistryError::Invalid(format!(
                 "bridges[{index}] must be a mapping"
@@ -345,13 +341,7 @@ fn parse_entry(
     let mut trust_level: Option<String> = None;
     let mut capability_map: Option<BTreeMap<String, String>> = None;
     let mut profile: Option<String> = None;
-    for (k, v) in map {
-        let key = k
-            .as_str()
-            .ok_or_else(|| {
-                BridgesRegistryError::Invalid(format!("bridges[{index}] has non-string key"))
-            })?
-            .to_string();
+    for (key, v) in map {
         match key.as_str() {
             "kind" => {
                 let s = v.as_str().ok_or_else(|| {
@@ -362,7 +352,7 @@ fn parse_entry(
                 })?);
             }
             "issuer_match" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let s = v.as_str().ok_or_else(|| {
@@ -378,7 +368,7 @@ fn parse_entry(
                 issuer_match = Some(s.to_string());
             }
             "iss_pattern" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let s = v.as_str().ok_or_else(|| {
@@ -394,7 +384,7 @@ fn parse_entry(
                 iss_pattern = Some(s.to_string());
             }
             "trust_domain" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let s = v.as_str().ok_or_else(|| {
@@ -405,7 +395,7 @@ fn parse_entry(
                 trust_domain = Some(s.to_string());
             }
             "trust_level" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let s = v.as_str().ok_or_else(|| {
@@ -421,11 +411,11 @@ fn parse_entry(
                 trust_level = Some(s.to_string());
             }
             "capability_map" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let m = match v {
-                    serde_yaml::Value::Mapping(m) => m,
+                    serde_json::Value::Object(m) => m,
                     _ => {
                         return Err(BridgesRegistryError::Invalid(format!(
                             "bridges[{index}].capability_map must be a mapping"
@@ -434,11 +424,7 @@ fn parse_entry(
                 };
                 let mut out = BTreeMap::new();
                 for (mk, mv) in m {
-                    let mk = mk.as_str().ok_or_else(|| {
-                        BridgesRegistryError::Invalid(format!(
-                            "bridges[{index}].capability_map has non-string key"
-                        ))
-                    })?;
+                    let mk = mk.as_str();
                     let mv = mv.as_str().ok_or_else(|| {
                         BridgesRegistryError::Invalid(format!(
                             "bridges[{index}].capability_map[{mk}] must be a string"
@@ -454,7 +440,7 @@ fn parse_entry(
                 capability_map = Some(out);
             }
             "profile" => {
-                if let serde_yaml::Value::Null = v {
+                if let serde_json::Value::Null = v {
                     continue;
                 }
                 let s = v.as_str().ok_or_else(|| {

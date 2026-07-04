@@ -61,7 +61,7 @@ fn load() -> VectorFile {
         .join("conformance")
         .join("relay-forwarding-vectors.yaml");
     let raw = fs::read_to_string(&path).unwrap();
-    serde_yaml::from_str(&raw).expect("parse")
+    tf_types::yaml::from_str(&raw).expect("parse")
 }
 
 #[test]

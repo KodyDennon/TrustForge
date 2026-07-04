@@ -55,7 +55,7 @@ fn load_vectors() -> VectorFile {
         .join("negative-capability-vectors.yaml");
     let raw =
         fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
-    serde_yaml::from_str(&raw).expect("parse negative-capability-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse negative-capability-vectors.yaml")
 }
 
 #[test]

@@ -53,7 +53,7 @@ fn load_vectors() -> VectorsFile {
         .join("session-vectors.yaml");
     let raw =
         fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
-    serde_yaml::from_str(&raw).expect("parse session-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse session-vectors.yaml")
 }
 
 fn from_hex(s: &str) -> Vec<u8> {

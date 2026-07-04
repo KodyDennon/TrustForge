@@ -12,7 +12,7 @@ use tf_types::crypto::{b64encode, Ed25519Signer};
 use tf_types::plugin::{NativeHandler, PluginError, PluginRegistry};
 
 fn write_manifest(path: &std::path::Path, manifest: &Value) {
-    std::fs::write(path, serde_yaml::to_string(manifest).unwrap()).unwrap();
+    std::fs::write(path, tf_types::yaml::to_string(manifest).unwrap()).unwrap();
 }
 
 fn sign_manifest(manifest: Value, priv_key: &[u8; 32]) -> Value {

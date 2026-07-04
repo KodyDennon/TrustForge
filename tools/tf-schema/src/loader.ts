@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
-import Ajv2020, { type ValidateFunction } from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
+import { SchemaRegistry, type ValidateFunction } from "./validator";
 import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 
 export const REPO_ROOT = resolve(import.meta.dir, "..", "..", "..");
@@ -25,20 +24,21 @@ export function listSchemas(): { name: string; path: string }[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function buildAjv(): Ajv2020 {
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
-  addFormats(ajv);
+/** Build the schema registry (name kept from the ajv era so call sites
+ *  didn't churn; the engine is the in-house `validator.ts`). */
+export function buildAjv(): SchemaRegistry {
+  const registry = new SchemaRegistry();
   for (const { name, path } of listSchemas()) {
-    ajv.addSchema(loadFile(path) as object, `${name}.schema.json`);
+    registry.addSchema(loadFile(path) as object, `${name}.schema.json`);
   }
-  return ajv;
+  return registry;
 }
 
-export function getValidator(ajv: Ajv2020, schemaName: string): ValidateFunction {
+export function getValidator(registry: SchemaRegistry, schemaName: string): ValidateFunction {
   const key = `${schemaName}.schema.json`;
-  const v = ajv.getSchema(key);
+  const v = registry.getSchema(key);
   if (!v) throw new Error(`schema not registered: ${key}`);
-  return v as ValidateFunction;
+  return v;
 }
 
 export function walkFiles(dir: string, exts: Set<string>): string[] {

@@ -481,10 +481,10 @@ fn exporter_binding_yaml_fixture_loads() {
     let yaml_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../conformance/tls-exporter-vectors.yaml");
     let text = std::fs::read_to_string(&yaml_path).expect("read tls-exporter-vectors.yaml");
-    let parsed: serde_yaml::Value = serde_yaml::from_str(&text).expect("parse yaml");
+    let parsed: serde_json::Value = tf_types::yaml::from_str(&text).expect("parse yaml");
     let vectors = parsed
         .get("vectors")
-        .and_then(|v| v.as_sequence())
+        .and_then(|v| v.as_array())
         .expect("vectors[]");
     assert!(!vectors.is_empty());
     let first = &vectors[0];

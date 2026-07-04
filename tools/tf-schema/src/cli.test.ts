@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import Ajv2020 from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
+import { SchemaRegistry } from "./validator";
 import { parseYaml as parseYAML } from "@trustforge-protocol/types";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
@@ -11,12 +10,11 @@ const COMMON_PATH = join(REPO_ROOT, "schemas", "_common.schema.json");
 const EXAMPLE_PATH = join(REPO_ROOT, "examples", "agent-contracts", "minimal.yaml");
 
 function makeValidator() {
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
-  addFormats(ajv);
+  const registry = new SchemaRegistry();
   const common = JSON.parse(readFileSync(COMMON_PATH, "utf8"));
-  ajv.addSchema(common, "_common.schema.json");
+  registry.addSchema(common, "_common.schema.json");
   const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8"));
-  return ajv.compile(schema);
+  return registry.compile(schema);
 }
 
 const validate = makeValidator();

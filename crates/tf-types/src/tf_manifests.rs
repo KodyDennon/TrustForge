@@ -71,7 +71,7 @@ pub fn load_tf_manifests(paths: &TfManifestPaths) -> TfManifests {
         }
         match fs::read_to_string(path)
             .map_err(|e| e.to_string())
-            .and_then(|raw| serde_yaml::from_str::<Value>(&raw).map_err(|e| e.to_string()))
+            .and_then(|raw| crate::yaml::parse(&raw).map_err(|e| e.to_string()))
         {
             Ok(v) => *target = Some(v),
             Err(reason) => diags.push(TfDiagnostic {

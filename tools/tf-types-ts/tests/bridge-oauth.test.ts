@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { exportJWK, generateKeyPair, SignJWT } from "../src/core/jws.js";
 import { BridgeFailure, OAuthBridge } from "../src/index";
 
 async function makeKeySet(alg: "ES256" | "RS256" | "EdDSA") {

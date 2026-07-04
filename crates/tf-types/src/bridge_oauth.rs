@@ -1,4 +1,5 @@
-//! OAuth/GNAP bridge — verify a JWT bearer token using `jsonwebtoken`,
+//! OAuth/GNAP bridge — verify a JWT bearer token using the in-house
+//! `crate::jws` module,
 //! against a static or remote JWKS, and project the verified claims into a
 //! TrustForge actor identity + capabilities.
 //!
@@ -8,7 +9,7 @@
 
 use std::collections::HashMap;
 
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use crate::jws::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -96,7 +97,10 @@ impl OAuthBridge {
         }
         let header = decode_header(token)
             .map_err(|e| BridgeError::Rejected(format!("malformed JWT: {}", e)))?;
-        let alg_name = format!("{:?}", header.alg);
+        let alg = header
+            .algorithm()
+            .map_err(|e| BridgeError::Rejected(e.to_string()))?;
+        let alg_name = alg.name().to_string();
         if !self
             .cfg
             .allowed_algorithms
@@ -122,11 +126,11 @@ impl OAuthBridge {
             .ok_or_else(|| BridgeError::Rejected(format!("no JWK with kid {}", kid)))?;
         let key = decoding_key_for(jwk)?;
 
-        let mut validation = Validation::new(header.alg);
+        let mut validation = Validation::new(alg);
         validation.set_issuer(&[self.cfg.issuer.as_str()]);
         validation.set_audience(&self.cfg.audience);
         validation.leeway = self.cfg.clock_tolerance_seconds;
-        validation.algorithms = vec![header.alg];
+        validation.algorithms = vec![alg];
 
         let data = decode::<OAuthClaims>(token, &key, &validation)
             .map_err(|e| BridgeError::Rejected(format!("JWT verify failed: {}", e)))?;
@@ -314,18 +318,7 @@ fn secs_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
 }
 
 pub fn parse_algorithm(name: &str) -> Result<Algorithm, BridgeError> {
-    match name.to_ascii_uppercase().as_str() {
-        "ES256" => Ok(Algorithm::ES256),
-        "ES384" => Ok(Algorithm::ES384),
-        "RS256" => Ok(Algorithm::RS256),
-        "RS384" => Ok(Algorithm::RS384),
-        "RS512" => Ok(Algorithm::RS512),
-        "EDDSA" => Ok(Algorithm::EdDSA),
-        other => Err(BridgeError::InvalidInput(format!(
-            "unsupported algorithm: {}",
-            other
-        ))),
-    }
+    Algorithm::parse(name).map_err(|e| BridgeError::InvalidInput(e.to_string()))
 }
 
 /// Project a JWK into the TrustForge `PublicKey` shape (raw bytes,

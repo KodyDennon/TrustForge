@@ -42,6 +42,7 @@ pub mod format;
 pub mod glob;
 pub mod guard;
 pub mod instance_id;
+pub mod jws;
 pub mod offline_approval;
 pub mod packet;
 pub mod permission;
@@ -62,6 +63,7 @@ pub mod trust_domain;
 pub mod trust_overlay;
 pub mod vault;
 pub mod webauthn_attestation;
+pub mod yaml;
 
 pub use actor_id::{
     actor_id_equals, format_actor_id, parse_actor_id, ActorIdParseError, ParsedActorId,

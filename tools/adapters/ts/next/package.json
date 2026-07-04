@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/next",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Next. Seamlessly integrate zero-trust verifiable actions into your Next application.",
   "main": "./src/index.ts",

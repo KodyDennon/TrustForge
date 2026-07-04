@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import Ajv2020 from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
+import { SchemaRegistry } from "../src/validator";
 import { bundleSchema } from "../src/bundle";
 
 describe("bundle", () => {
@@ -13,9 +12,7 @@ describe("bundle", () => {
 
   test("bundled agent-contract is self-contained and AJV-compilable", async () => {
     const bundled = await bundleSchema("agent-contract");
-    const ajv = new Ajv2020({ allErrors: true, strict: true });
-    addFormats(ajv);
-    const v = ajv.compile(bundled);
+    const v = new SchemaRegistry().compile(bundled as object);
     const valid = {
       contract_version: "1",
       spec_version: "TF-0006-draft",

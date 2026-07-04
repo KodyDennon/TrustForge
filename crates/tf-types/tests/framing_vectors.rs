@@ -38,7 +38,7 @@ fn load_vectors() -> VectorsFile {
         .join("conformance")
         .join("framing-vectors.yaml");
     let raw = fs::read_to_string(&path).expect("read framing-vectors.yaml");
-    serde_yaml::from_str(&raw).expect("parse framing-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse framing-vectors.yaml")
 }
 
 fn hex_of(bytes: &[u8]) -> String {

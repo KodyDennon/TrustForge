@@ -28,7 +28,7 @@ fn load() -> VectorFile {
         .join("conformance")
         .join("trust-overlay-vectors.yaml");
     let raw = fs::read_to_string(&path).unwrap();
-    serde_yaml::from_str(&raw).expect("parse trust-overlay-vectors.yaml")
+    tf_types::yaml::from_str(&raw).expect("parse trust-overlay-vectors.yaml")
 }
 
 fn level_to_str(level: &TrustLevel) -> &'static str {

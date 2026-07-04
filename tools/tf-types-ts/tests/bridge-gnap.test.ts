@@ -12,7 +12,7 @@ import {
   exportJWK,
   generateKeyPair,
   SignJWT,
-} from "jose";
+} from "../src/core/jws.js";
 
 import { GnapBridge, type GnapClient, type GnapGrantRequest } from "../src/index";
 

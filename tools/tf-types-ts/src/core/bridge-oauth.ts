@@ -4,7 +4,8 @@
  * derived capabilities.
  *
  * Algorithms supported: ES256, ES384, ES512, RS256, RS384, RS512, EdDSA.
- * Verification is delegated to the audited `jose` library.
+ * Verification is delegated to the in-house `jws.ts` envelope over
+ * audited primitives (noble curves + WebCrypto RSA).
  */
 
 import {
@@ -15,7 +16,7 @@ import {
   type JWTPayload,
   type JWTVerifyResult,
   type ResolvedKey,
-} from "jose";
+} from "./jws.js";
 
 import type { ActorIdentity } from "../generated/actor-identity.js";
 import type { Capability } from "../generated/_common.js";
