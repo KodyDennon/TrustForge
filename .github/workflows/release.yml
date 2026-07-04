@@ -29,10 +29,15 @@ jobs:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
           
+      # NOTE: OIDC trusted publishing must be configured per-package on
+      # npmjs.com for this to work; the v0.1.3 release fell back to a
+      # local `npm publish --workspaces` with a token because it wasn't.
+      # Failures must be loud — the old `|| true` marked the v0.1.3 npm
+      # job green while every PUT was rejected (E404 on PUT = auth).
       - name: Publish to NPM via OIDC
         run: |
-          npm publish --workspaces --access public --provenance || true
-          npm publish --access public --provenance || true
+          npm publish --workspaces --access public --provenance
+          npm publish --access public --provenance
 
   cargo-publish:
     name: Publish Cargo Crates
