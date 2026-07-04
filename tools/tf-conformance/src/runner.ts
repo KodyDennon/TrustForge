@@ -503,12 +503,11 @@ export function runBinaryFormatVectors(root: string): ConformanceReport {
     tfbundle?: BundleFixture[];
     tfpkt?: PacketFixture[];
   };
-  const { parse: parseInner } = require("yaml") as { parse: (s: string) => unknown };
 
   for (const v of doc.tfbundle ?? []) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const body = parseInner(v.input_yaml) as any;
+      const body = parseYAML(v.input_yaml) as any;
       const sig = v.signature_hex ? bytesFromHex(v.signature_hex) : undefined;
       const got = toHex(writeTfbundle(body, sig));
       const ok = got === v.expected_hex;
@@ -524,7 +523,7 @@ export function runBinaryFormatVectors(root: string): ConformanceReport {
   for (const v of doc.tfpkt ?? []) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pkt = parseInner(v.input_yaml) as any;
+      const pkt = parseYAML(v.input_yaml) as any;
       const got = toHex(writeTfpkt(pkt));
       const ok = got === v.expected_hex;
       cases.push({
