@@ -87,6 +87,7 @@ Options:
   --permissions <csv>       npm trust permissions. Default: ${DEFAULT_PERMISSIONS.join(",")}
   --otp <code>              npm OTP. Prefer NPM_OTP to avoid shell history.
   --no-open                 Print passkey URL instead of opening it.
+  --no-login                Do not run npm login --auth-type=web on auth failure.
   --no-published-check      Skip npm registry package-existence validation.
   --no-gh-verify            Skip local GitHub workflow validation.
   --no-package-verify       Skip local package repository metadata validation.
@@ -122,6 +123,7 @@ function parseArgs(argv) {
       .map((permission) => permission.trim())
       .filter(Boolean),
     otp: process.env.NPM_OTP || "",
+    allowLogin: true,
     openBrowser: true,
     verifyPublished: true,
     verifyGithub: true,
@@ -144,6 +146,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-open") {
       args.openBrowser = false;
+      continue;
+    }
+    if (arg === "--no-login") {
+      args.allowLogin = false;
       continue;
     }
     if (arg === "--no-published-check") {
@@ -445,12 +451,18 @@ async function validatePublishedPackages(packages) {
   }
 }
 
-function loadToken(rootDir) {
+function tokenConfigFiles(rootDir, preferHome = false) {
+  const project = path.join(rootDir, ".npmrc");
+  const home = path.join(os.homedir(), ".npmrc");
+  return preferHome ? [home, project] : [project, home];
+}
+
+function loadToken(rootDir, required = true, preferHome = false) {
   if (process.env.NPM_TOKEN) {
     return process.env.NPM_TOKEN.trim();
   }
 
-  for (const file of [path.join(rootDir, ".npmrc"), path.join(os.homedir(), ".npmrc")]) {
+  for (const file of tokenConfigFiles(rootDir, preferHome)) {
     if (!fs.existsSync(file)) {
       continue;
     }
@@ -462,9 +474,10 @@ function loadToken(rootDir) {
     }
   }
 
-  throw new Error(
-    "NPM_TOKEN is required, or an npm auth token must exist in .npmrc. Run `npm login --auth-type=web` first if needed.",
-  );
+  if (!required) {
+    return "";
+  }
+  throw new Error("NPM_TOKEN is required, or an npm auth token must exist in .npmrc.");
 }
 
 function authHeaders(auth, body) {
@@ -688,12 +701,59 @@ async function withWebAuthRetry(operation, auth, args) {
   try {
     return await operation();
   } catch (error) {
+    if (error instanceof WebAuthChallenge) {
+      auth.otp = await resolveWebAuthOtp(error.challenge, args);
+      return operation();
+    }
+    if (shouldAttemptNpmLogin(error, auth, args)) {
+      await runInteractiveNpmLogin();
+      const token = loadToken(auth.rootDir, true, true);
+      if (token === auth.token) {
+        throw new Error("npm login completed, but the npm auth token did not change; refusing to retry with the same token");
+      }
+      auth.token = token;
+      auth.loginAttempted = true;
+      auth.otp = "";
+      return operation();
+    }
+    if (error instanceof NpmApiError && error.status === 403 && !auth.otp && !args.allowLogin) {
+      throw new Error(
+        `${error.message}\nPasskey setup needs an npm web-login token here. Re-run without --no-login, or run npm login --auth-type=web first.`,
+      );
+    }
     if (!(error instanceof WebAuthChallenge)) {
       throw error;
     }
-    auth.otp = await resolveWebAuthOtp(error.challenge, args);
-    return operation();
   }
+}
+
+function shouldAttemptNpmLogin(error, auth, args) {
+  return (
+    args.allowLogin &&
+    !process.env.NPM_TOKEN &&
+    !auth.otp &&
+    !auth.loginAttempted &&
+    error instanceof NpmApiError &&
+    (error.status === 401 || error.status === 403)
+  );
+}
+
+async function runInteractiveNpmLogin() {
+  console.log("npm trust API rejected the current token. Starting npm web login for passkey authentication...");
+  const result = childProcess.spawnSync(
+    "npm",
+    ["login", "--auth-type=web", "--registry", REGISTRY],
+    {
+      stdio: "inherit",
+    },
+  );
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`npm login failed with exit code ${result.status}`);
+  }
+  console.log("npm web login completed; retrying trusted publishing setup with the refreshed token.");
 }
 
 async function configurePackage(pkg, desired, auth, args) {
@@ -770,9 +830,19 @@ async function main() {
   }
 
   const auth = {
+    loginAttempted: false,
     otp: args.otp.trim(),
-    token: loadToken(rootDir),
+    rootDir,
+    token: loadToken(rootDir, false),
   };
+  if (!auth.token) {
+    if (!args.allowLogin) {
+      throw new Error("NPM_TOKEN is required, or an npm auth token must exist in .npmrc");
+    }
+    await runInteractiveNpmLogin();
+    auth.loginAttempted = true;
+    auth.token = loadToken(rootDir);
+  }
 
   let configured = 0;
   let skipped = 0;

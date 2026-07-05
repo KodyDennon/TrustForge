@@ -78,6 +78,10 @@ For passkey/WebAuthn accounts, omit `NPM_OTP`. If npm returns a web auth
 challenge, the script opens npm's `authUrl`, waits for passkey confirmation, and
 polls npm's `doneUrl` for the short-lived OTP needed by the trust API.
 
+If the current `.npmrc` token cannot manage npm trust settings, the script runs
+`npm login --auth-type=web --registry=https://registry.npmjs.org`, lets you
+complete passkey login, reloads the refreshed user npm token, and retries.
+
 If the registry returns a plain `403` without a web challenge, the token does
 not have enough package-write/trust permission for this operation or npm did not
 offer passkey auth for that endpoint/token combination. In that case, log in
