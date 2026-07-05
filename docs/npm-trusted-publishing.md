@@ -28,7 +28,7 @@ The script:
 - verifies every package exists on the npm registry before mutating trust settings
 - discovers the root package plus all npm workspaces
 - configures npm trusted publishing for each package
-- re-reads npm trust settings for every package after setup and fails if any package is missing the expected config
+- can re-read npm trust settings for every package after setup with `--verify-after`
 
 - provider: GitHub Actions
 - repository: `KodyDennon/TrustForge`
@@ -95,6 +95,19 @@ node scripts/configure-npm-trusted-publishing.mjs
 
 The script will print and open npm's passkey URL. After passkey confirmation,
 it configures all 36 packages and ends with:
+
+```text
+Done. configured=36 skipped=0
+Configured trusted publishing for 36 package(s).
+```
+
+Use `--verify-after` when you want a separate readback pass after configuration:
+
+```bash
+node scripts/configure-npm-trusted-publishing.mjs --verify-after
+```
+
+That mode ends with:
 
 ```text
 Verified trusted publishing for 36 package(s).

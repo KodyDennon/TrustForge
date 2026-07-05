@@ -45,13 +45,20 @@ jobs:
   cargo-publish:
     name: Publish Cargo Crates
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for crates.io OIDC Trusted Publishing
+      contents: read
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Authenticate with crates.io via OIDC
+        id: cargo-auth
+        uses: rust-lang/crates-io-auth-action@v1
         
       - name: Publish Crates
         run: bash scripts/publish-crates.sh
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.cargo-auth.outputs.token }}

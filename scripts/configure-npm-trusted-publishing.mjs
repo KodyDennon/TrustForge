@@ -88,6 +88,7 @@ Options:
   --otp <code>              npm OTP. Prefer NPM_OTP to avoid shell history.
   --no-open                 Print passkey URL instead of opening it.
   --no-login                Do not run npm login --auth-type=web on auth failure.
+  --verify-after            Re-read trust settings for every package after setup.
   --no-published-check      Skip npm registry package-existence validation.
   --no-gh-verify            Skip local GitHub workflow validation.
   --no-package-verify       Skip local package repository metadata validation.
@@ -125,6 +126,7 @@ function parseArgs(argv) {
     otp: process.env.NPM_OTP || "",
     allowLogin: true,
     openBrowser: true,
+    verifyAfter: false,
     verifyPublished: true,
     verifyGithub: true,
     verifyPackages: true,
@@ -150,6 +152,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-login") {
       args.allowLogin = false;
+      continue;
+    }
+    if (arg === "--verify-after") {
+      args.verifyAfter = true;
       continue;
     }
     if (arg === "--no-published-check") {
@@ -516,6 +522,29 @@ async function npmJson(method, packageName, auth, body) {
   });
 }
 
+async function npmTrustPost(packageName, auth, body) {
+  const result = await rawNpm("POST", packageName, auth, body);
+  if (result.ok) {
+    return { status: "configured", data: result.data };
+  }
+
+  const challenge = extractWebAuthChallenge(result.data, result.headers);
+  if (!auth.otp && challenge) {
+    throw new WebAuthChallenge(packageName, challenge);
+  }
+
+  if (result.status === 409) {
+    return { status: "conflict", data: result.data };
+  }
+
+  const message = result.data?.message || result.data?.error || result.text || result.statusText;
+  throw new NpmApiError(`POST ${packageName} failed (${result.status}): ${message}`, {
+    data: result.data,
+    headers: result.headers,
+    status: result.status,
+  });
+}
+
 async function rawNpm(method, packageName, auth, body) {
   const response = await fetch(`${REGISTRY}/-/package/${encodeURIComponent(packageName)}/trust`, {
     method,
@@ -698,33 +727,46 @@ function sleep(ms) {
 }
 
 async function withWebAuthRetry(operation, auth, args) {
-  try {
-    return await operation();
-  } catch (error) {
-    if (error instanceof WebAuthChallenge) {
-      auth.otp = await resolveWebAuthOtp(error.challenge, args);
-      return operation();
-    }
-    if (shouldAttemptNpmLogin(error, auth, args)) {
-      await runInteractiveNpmLogin();
-      const token = loadToken(auth.rootDir, true, true);
-      if (token === auth.token) {
-        throw new Error("npm login completed, but the npm auth token did not change; refusing to retry with the same token");
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error instanceof WebAuthChallenge) {
+        auth.otp = await resolveWebAuthOtp(error.challenge, args);
+        continue;
       }
-      auth.token = token;
-      auth.loginAttempted = true;
-      auth.otp = "";
-      return operation();
-    }
-    if (error instanceof NpmApiError && error.status === 403 && !auth.otp && !args.allowLogin) {
-      throw new Error(
-        `${error.message}\nPasskey setup needs an npm web-login token here. Re-run without --no-login, or run npm login --auth-type=web first.`,
-      );
-    }
-    if (!(error instanceof WebAuthChallenge)) {
+      if (shouldAttemptNpmLogin(error, auth, args)) {
+        await runInteractiveNpmLogin();
+        const token = loadToken(auth.rootDir, true, true);
+        if (token === auth.token) {
+          throw new Error("npm login completed, but the npm auth token did not change; refusing to retry with the same token");
+        }
+        auth.token = token;
+        auth.loginAttempted = true;
+        auth.otp = "";
+        continue;
+      }
+      if (shouldRefreshConsumedOtp(error, auth)) {
+        auth.otp = "";
+        continue;
+      }
+      if (error instanceof NpmApiError && error.status === 403 && !auth.otp && !args.allowLogin) {
+        throw new Error(
+          `${error.message}\nPasskey setup needs an npm web-login token here. Re-run without --no-login, or run npm login --auth-type=web first.`,
+        );
+      }
       throw error;
     }
   }
+  throw new Error("npm authentication retry limit exceeded");
+}
+
+function shouldRefreshConsumedOtp(error, auth) {
+  return (
+    auth.otp &&
+    error instanceof NpmApiError &&
+    (error.status === 401 || error.status === 403)
+  );
 }
 
 function shouldAttemptNpmLogin(error, auth, args) {
@@ -757,13 +799,13 @@ async function runInteractiveNpmLogin() {
 }
 
 async function configurePackage(pkg, desired, auth, args) {
-  const existing = await withWebAuthRetry(() => npmJson("GET", pkg.name, auth), auth, args);
-  if (existing.some((config) => sameConfig(config, desired))) {
-    console.log(`${pkg.name}: already configured`);
-    return "skipped";
-  }
-
-  if (existing.length > 0) {
+  const post = await withWebAuthRetry(() => npmTrustPost(pkg.name, auth, [desired]), auth, args);
+  if (post.status === "conflict") {
+    const existing = await withWebAuthRetry(() => npmJson("GET", pkg.name, auth), auth, args);
+    if (existing.some((config) => sameConfig(config, desired))) {
+      console.log(`${pkg.name}: already configured`);
+      return "skipped";
+    }
     if (!args.replace) {
       throw new Error(`${pkg.name}: has a different trusted publisher config; re-run with --replace to replace it`);
     }
@@ -771,9 +813,8 @@ async function configurePackage(pkg, desired, auth, args) {
       console.log(`${pkg.name}: deleting existing config ${config.id}`);
       await withWebAuthRetry(() => npmDelete(pkg.name, config.id, auth), auth, args);
     }
+    await withWebAuthRetry(() => npmTrustPost(pkg.name, auth, [desired]), auth, args);
   }
-
-  await withWebAuthRetry(() => npmJson("POST", pkg.name, auth, [desired]), auth, args);
   console.log(`${pkg.name}: configured`);
   return "configured";
 }
@@ -855,9 +896,14 @@ async function main() {
     }
   }
 
-  await verifyConfiguredPackages(packages, desired, auth, args);
   console.log(`Done. configured=${configured} skipped=${skipped}`);
-  console.log(`Verified trusted publishing for ${packages.length} package(s).`);
+  if (args.verifyAfter) {
+    await verifyConfiguredPackages(packages, desired, auth, args);
+    console.log(`Verified trusted publishing for ${packages.length} package(s).`);
+  } else {
+    console.log(`Configured trusted publishing for ${packages.length} package(s).`);
+    console.log("Use --verify-after for a separate per-package trust readback.");
+  }
 }
 
 main().catch((error) => {

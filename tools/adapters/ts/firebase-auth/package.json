@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/firebase-auth",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Firebase auth. Seamlessly integrate zero-trust verifiable actions into your Firebase auth application.",
   "main": "./src/index.ts",

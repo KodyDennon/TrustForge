@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/iron-session",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Iron session. Seamlessly integrate zero-trust verifiable actions into your Iron session application.",
   "main": "./src/index.ts",

@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/supabase-auth",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Supabase auth. Seamlessly integrate zero-trust verifiable actions into your Supabase auth application.",
   "main": "./src/index.ts",

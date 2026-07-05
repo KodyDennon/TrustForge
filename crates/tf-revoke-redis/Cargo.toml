@@ -1,7 +1,7 @@
 [package]
 readme = "README.md"
 name = "tf-revoke-redis"
-version = "0.1.7"
+version = "0.1.8"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -10,4 +10,4 @@ description = "TrustForge revocation cache backed by Redis. High-performance, di
 [dependencies]
 redis = { version = "0.27", default-features = false }
 thiserror = "1"
-tf-types = { version = "0.1.7", path = "../tf-types" }
+tf-types = { version = "0.1.8", path = "../tf-types" }

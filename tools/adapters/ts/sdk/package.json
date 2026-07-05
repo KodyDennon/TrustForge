@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Sdk. Seamlessly integrate zero-trust verifiable actions into your Sdk application.",
   "main": "./src/index.ts",

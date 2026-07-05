@@ -26,8 +26,12 @@ Status: active production implementation.
 - [x] Extend `scripts/publish-crates.sh` so native workspace crates
       such as `tf-prom-exporter` publish with the rest of the Rust
       release set.
-- [x] Bump publishable Rust workspace crates to `0.1.7` for the next
+- [x] Bump publishable Rust workspace crates to `0.1.8` for the next
       crates.io release.
+- [x] Configure npm trusted publishing for all 36 npm packages and switch
+      release publishing to npm OIDC provenance.
+- [x] Configure crates.io trusted publishing for all 31 publishable Rust
+      crates and switch Cargo release publishing to GitHub OIDC.
 - [x] Document the policy, roadmap, implementation state, and audit gates.
 
 ## Next production slices
@@ -45,7 +49,8 @@ Status: active production implementation.
 - [ ] Add `tf-quic` experimental QUIC transport over UDP.
 - [ ] Add `tf-http3` experimental HTTP/3 + QPACK layer.
 - [ ] Add transport interop/fuzz targets and external audit gate docs.
-- [ ] Verify crates.io dependency pages after the `0.1.6` publish.
+- [ ] Verify crates.io and npm registry pages after the trusted-publishing
+      release.
 
 ## Hard gates
 

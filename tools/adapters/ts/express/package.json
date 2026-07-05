@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/express",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Express. Seamlessly integrate zero-trust verifiable actions into your Express application.",
   "main": "./src/index.ts",
