@@ -8,6 +8,44 @@ const REGISTRY = "https://registry.npmjs.org";
 const DEFAULT_WORKFLOW = "release.yml";
 const DEFAULT_PERMISSIONS = ["createPackage"];
 const REQUIRED_REPOSITORY_URL_PREFIX = "git+https://github.com/";
+const EXPECTED_PACKAGES = [
+  "@trustforge-protocol/auth0",
+  "@trustforge-protocol/better-auth",
+  "@trustforge-protocol/bun-serve",
+  "@trustforge-protocol/clerk",
+  "@trustforge-protocol/cli",
+  "@trustforge-protocol/conformance",
+  "@trustforge-protocol/core",
+  "@trustforge-protocol/daemon",
+  "@trustforge-protocol/dashboard",
+  "@trustforge-protocol/evidence",
+  "@trustforge-protocol/express",
+  "@trustforge-protocol/fastify",
+  "@trustforge-protocol/firebase-auth",
+  "@trustforge-protocol/h3",
+  "@trustforge-protocol/hono",
+  "@trustforge-protocol/iron-session",
+  "@trustforge-protocol/kinde",
+  "@trustforge-protocol/koa",
+  "@trustforge-protocol/logto",
+  "@trustforge-protocol/lucia",
+  "@trustforge-protocol/nestjs",
+  "@trustforge-protocol/next",
+  "@trustforge-protocol/next-auth",
+  "@trustforge-protocol/packet",
+  "@trustforge-protocol/passport",
+  "@trustforge-protocol/proof",
+  "@trustforge-protocol/remix",
+  "@trustforge-protocol/schema",
+  "@trustforge-protocol/sdk",
+  "@trustforge-protocol/session",
+  "@trustforge-protocol/stack-auth",
+  "@trustforge-protocol/supabase-auth",
+  "@trustforge-protocol/sveltekit",
+  "@trustforge-protocol/test-utils",
+  "@trustforge-protocol/types",
+  "@trustforge-protocol/workos",
+];
 
 class NpmApiError extends Error {
   constructor(message, details = {}) {
@@ -49,6 +87,7 @@ Options:
   --permissions <csv>       npm trust permissions. Default: ${DEFAULT_PERMISSIONS.join(",")}
   --otp <code>              npm OTP. Prefer NPM_OTP to avoid shell history.
   --no-open                 Print passkey URL instead of opening it.
+  --no-published-check      Skip npm registry package-existence validation.
   --no-gh-verify            Skip local GitHub workflow validation.
   --no-package-verify       Skip local package repository metadata validation.
 
@@ -84,6 +123,7 @@ function parseArgs(argv) {
       .filter(Boolean),
     otp: process.env.NPM_OTP || "",
     openBrowser: true,
+    verifyPublished: true,
     verifyGithub: true,
     verifyPackages: true,
   };
@@ -104,6 +144,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-open") {
       args.openBrowser = false;
+      continue;
+    }
+    if (arg === "--no-published-check") {
+      args.verifyPublished = false;
       continue;
     }
     if (arg === "--no-gh-verify") {
@@ -273,6 +317,30 @@ function workspacePackages(rootDir, onlyPackage) {
   return [...unique.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
+function assertExpectedPackageSet(packages, onlyPackage) {
+  if (onlyPackage) {
+    if (!EXPECTED_PACKAGES.includes(onlyPackage)) {
+      throw new Error(`${onlyPackage} is not in the TrustForge npm trusted-publishing package inventory`);
+    }
+    return;
+  }
+
+  const actual = packages.map((pkg) => pkg.name).sort();
+  const expected = [...EXPECTED_PACKAGES].sort();
+  const missing = expected.filter((name) => !actual.includes(name));
+  const extra = actual.filter((name) => !expected.includes(name));
+  if (missing.length > 0 || extra.length > 0) {
+    const lines = [];
+    if (missing.length > 0) {
+      lines.push(`missing expected packages: ${missing.join(", ")}`);
+    }
+    if (extra.length > 0) {
+      lines.push(`unexpected publishable packages: ${extra.join(", ")}`);
+    }
+    throw new Error(`npm package inventory mismatch; refusing partial trusted-publishing setup:\n${lines.join("\n")}`);
+  }
+}
+
 function trustedConfig(args) {
   const claims = {
     repository: args.repository,
@@ -357,6 +425,23 @@ function validateGithubWorkflow(rootDir, args) {
     .map(([, message]) => message);
   if (failures.length > 0) {
     throw new Error(`GitHub release workflow is not trusted-publishing ready:\n${failures.join("\n")}`);
+  }
+}
+
+async function validatePublishedPackages(packages) {
+  const failures = [];
+  for (const pkg of packages) {
+    const response = await fetch(`${REGISTRY}/${encodeURIComponent(pkg.name)}`, {
+      headers: {
+        "User-Agent": "TrustForge trusted-publishing setup",
+      },
+    });
+    if (!response.ok) {
+      failures.push(`${pkg.name}: registry lookup failed (${response.status})`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`npm registry package validation failed:\n${failures.join("\n")}`);
   }
 }
 
@@ -633,6 +718,19 @@ async function configurePackage(pkg, desired, auth, args) {
   return "configured";
 }
 
+async function verifyConfiguredPackages(packages, desired, auth, args) {
+  const failures = [];
+  for (const pkg of packages) {
+    const configs = await withWebAuthRetry(() => npmJson("GET", pkg.name, auth), auth, args);
+    if (!configs.some((config) => sameConfig(config, desired))) {
+      failures.push(pkg.name);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`trusted publishing verification failed for: ${failures.join(", ")}`);
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   validateArgs(args);
@@ -644,12 +742,16 @@ async function main() {
   if (packages.length === 0) {
     throw new Error("no packages found");
   }
+  assertExpectedPackageSet(packages, args.onlyPackage);
 
   if (args.verifyGithub) {
     validateGithubWorkflow(rootDir, args);
   }
   if (args.verifyPackages && !args.onlyPackage) {
     validatePackageMetadata(packages, args);
+  }
+  if (args.verifyPublished) {
+    await validatePublishedPackages(packages);
   }
 
   console.log(`Repository: ${args.repository}`);
@@ -683,7 +785,9 @@ async function main() {
     }
   }
 
+  await verifyConfiguredPackages(packages, desired, auth, args);
   console.log(`Done. configured=${configured} skipped=${skipped}`);
+  console.log(`Verified trusted publishing for ${packages.length} package(s).`);
 }
 
 main().catch((error) => {

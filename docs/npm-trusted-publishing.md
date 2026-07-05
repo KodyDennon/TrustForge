@@ -23,9 +23,12 @@ The script:
 
 - infers the GitHub repository from `gh repo view`
 - validates `.github/workflows/release.yml` exists and has OIDC-ready npm publish settings
+- refuses to run unless the discovered npm package set exactly matches the 36-package TrustForge inventory
 - validates every npm package's `repository.url` matches the GitHub repository
+- verifies every package exists on the npm registry before mutating trust settings
 - discovers the root package plus all npm workspaces
 - configures npm trusted publishing for each package
+- re-reads npm trust settings for every package after setup and fails if any package is missing the expected config
 
 - provider: GitHub Actions
 - repository: `KodyDennon/TrustForge`
@@ -79,6 +82,19 @@ If the registry returns a plain `403` without a web challenge, the token does
 not have enough package-write/trust permission for this operation or npm did not
 offer passkey auth for that endpoint/token combination. In that case, log in
 again with npm web auth or provide a token that can manage package trust.
+
+The normal passkey path is:
+
+```bash
+node scripts/configure-npm-trusted-publishing.mjs
+```
+
+The script will print and open npm's passkey URL. After passkey confirmation,
+it configures all 36 packages and ends with:
+
+```text
+Verified trusted publishing for 36 package(s).
+```
 
 After the trusted publisher entries are configured, token-based publish access
 can be restricted from npm package settings.
