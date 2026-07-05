@@ -16,11 +16,16 @@ npm trusted publishing is configured per package in npm registry state, not in
 includes a helper:
 
 ```bash
-NPM_TOKEN=... NPM_OTP=123456 \
-  node scripts/configure-npm-trusted-publishing.mjs
+node scripts/configure-npm-trusted-publishing.mjs
 ```
 
-The script discovers the root package plus all npm workspaces and configures:
+The script:
+
+- infers the GitHub repository from `gh repo view`
+- validates `.github/workflows/release.yml` exists and has OIDC-ready npm publish settings
+- validates every npm package's `repository.url` matches the GitHub repository
+- discovers the root package plus all npm workspaces
+- configures npm trusted publishing for each package
 
 - provider: GitHub Actions
 - repository: `KodyDennon/TrustForge`
@@ -42,17 +47,38 @@ NPM_TOKEN=... NPM_OTP=123456 \
   node scripts/configure-npm-trusted-publishing.mjs --replace
 ```
 
+For one package:
+
+```bash
+node scripts/configure-npm-trusted-publishing.mjs \
+  --package @trustforge-protocol/core
+```
+
 ## Auth Requirements
 
 The npm trust API requires:
 
 - an npm token with write access to each package
 - npm 2FA enabled on the account
-- a current `NPM_OTP` one-time password for trust API reads and writes
 
 The script reads `NPM_TOKEN` from the environment first. If omitted, it can use
 a token already present in `.npmrc` or `~/.npmrc`. It never prints the token or
 OTP.
+
+For TOTP accounts, provide a current one-time password:
+
+```bash
+NPM_OTP=123456 node scripts/configure-npm-trusted-publishing.mjs
+```
+
+For passkey/WebAuthn accounts, omit `NPM_OTP`. If npm returns a web auth
+challenge, the script opens npm's `authUrl`, waits for passkey confirmation, and
+polls npm's `doneUrl` for the short-lived OTP needed by the trust API.
+
+If the registry returns a plain `403` without a web challenge, the token does
+not have enough package-write/trust permission for this operation or npm did not
+offer passkey auth for that endpoint/token combination. In that case, log in
+again with npm web auth or provide a token that can manage package trust.
 
 After the trusted publisher entries are configured, token-based publish access
 can be restricted from npm package settings.

@@ -1,37 +1,72 @@
 #!/usr/bin/env node
+import childProcess from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 const REGISTRY = "https://registry.npmjs.org";
-const DEFAULT_REPOSITORY = "KodyDennon/TrustForge";
 const DEFAULT_WORKFLOW = "release.yml";
 const DEFAULT_PERMISSIONS = ["createPackage"];
+const REQUIRED_REPOSITORY_URL_PREFIX = "git+https://github.com/";
+
+class NpmApiError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = "NpmApiError";
+    this.status = details.status;
+    this.data = details.data;
+    this.headers = details.headers;
+  }
+}
+
+class WebAuthChallenge extends Error {
+  constructor(packageName, challenge) {
+    super(`${packageName}: npm requires web/passkey authentication`);
+    this.name = "WebAuthChallenge";
+    this.packageName = packageName;
+    this.challenge = challenge;
+  }
+}
 
 function usage() {
-  console.log(`Configure npm trusted publishing for TrustForge packages.
+  console.log(`Configure npm trusted publishing for all TrustForge npm packages.
 
 Usage:
-  NPM_TOKEN=... NPM_OTP=123456 node scripts/configure-npm-trusted-publishing.mjs [options]
+  node scripts/configure-npm-trusted-publishing.mjs [options]
+
+Common:
+  node scripts/configure-npm-trusted-publishing.mjs --dry-run
+  node scripts/configure-npm-trusted-publishing.mjs
+  NPM_OTP=123456 node scripts/configure-npm-trusted-publishing.mjs
 
 Options:
-  --dry-run             Print intended changes without calling npm.
-  --replace             Delete mismatched existing trusted publisher configs.
-  --package <name>      Configure one package instead of all npm workspaces.
-  --repository <owner/repo>
-                        GitHub repository claim. Default: ${DEFAULT_REPOSITORY}
-  --workflow <file>     GitHub Actions workflow filename. Default: ${DEFAULT_WORKFLOW}
-  --permissions <csv>   npm trust permissions. Default: ${DEFAULT_PERMISSIONS.join(",")}
+  --dry-run                 Print intended changes without mutating npm.
+  --replace                 Delete mismatched existing trusted publisher configs.
+  --package <name>          Configure one npm package instead of all workspaces.
+  --repository <owner/repo> GitHub repository claim. Default: inferred from gh.
+  --workflow <file>         GitHub Actions workflow filename. Default: ${DEFAULT_WORKFLOW}
+  --environment <name>      Optional GitHub environment claim.
+  --permissions <csv>       npm trust permissions. Default: ${DEFAULT_PERMISSIONS.join(",")}
+  --otp <code>              npm OTP. Prefer NPM_OTP to avoid shell history.
+  --no-open                 Print passkey URL instead of opening it.
+  --no-gh-verify            Skip local GitHub workflow validation.
+  --no-package-verify       Skip local package repository metadata validation.
 
 Environment:
-  NPM_TOKEN             npm access token with write access to every package.
-  NPM_OTP               Current npm two-factor one-time password.
-  NPM_TRUST_REPOSITORY  Optional default for --repository.
-  NPM_TRUST_WORKFLOW    Optional default for --workflow.
-  NPM_TRUST_PERMISSIONS Optional default for --permissions.
+  NPM_TOKEN                 npm access token with write access to every package.
+  NPM_OTP                   Current npm OTP. Passkey users can omit this.
+  NPM_TRUST_REPOSITORY      Optional default for --repository.
+  NPM_TRUST_WORKFLOW        Optional default for --workflow.
+  NPM_TRUST_ENVIRONMENT     Optional default for --environment.
+  NPM_TRUST_PERMISSIONS     Optional default for --permissions.
 
-The npm trust API requires 2FA for read/write operations. The script never
-prints the token or OTP.
+Passkey behavior:
+  If NPM_OTP is omitted, the script asks npm for a web/passkey challenge. When
+  npm returns authUrl/doneUrl, the script opens authUrl, waits for you to touch
+  the passkey in the browser, polls doneUrl for the temporary OTP, then continues
+  configuring every package.
+
+The script never prints npm tokens or OTPs.
 `);
 }
 
@@ -40,12 +75,17 @@ function parseArgs(argv) {
     dryRun: false,
     replace: false,
     onlyPackage: null,
-    repository: process.env.NPM_TRUST_REPOSITORY || DEFAULT_REPOSITORY,
+    repository: process.env.NPM_TRUST_REPOSITORY || null,
     workflow: process.env.NPM_TRUST_WORKFLOW || DEFAULT_WORKFLOW,
+    environment: process.env.NPM_TRUST_ENVIRONMENT || "",
     permissions: (process.env.NPM_TRUST_PERMISSIONS || DEFAULT_PERMISSIONS.join(","))
       .split(",")
       .map((permission) => permission.trim())
       .filter(Boolean),
+    otp: process.env.NPM_OTP || "",
+    openBrowser: true,
+    verifyGithub: true,
+    verifyPackages: true,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -62,6 +102,18 @@ function parseArgs(argv) {
       args.replace = true;
       continue;
     }
+    if (arg === "--no-open") {
+      args.openBrowser = false;
+      continue;
+    }
+    if (arg === "--no-gh-verify") {
+      args.verifyGithub = false;
+      continue;
+    }
+    if (arg === "--no-package-verify") {
+      args.verifyPackages = false;
+      continue;
+    }
     if (arg === "--package") {
       args.onlyPackage = requireValue(argv, ++i, arg);
       continue;
@@ -74,6 +126,10 @@ function parseArgs(argv) {
       args.workflow = requireValue(argv, ++i, arg);
       continue;
     }
+    if (arg === "--environment") {
+      args.environment = requireValue(argv, ++i, arg);
+      continue;
+    }
     if (arg === "--permissions") {
       args.permissions = requireValue(argv, ++i, arg)
         .split(",")
@@ -81,22 +137,11 @@ function parseArgs(argv) {
         .filter(Boolean);
       continue;
     }
-    throw new Error(`unknown argument: ${arg}`);
-  }
-
-  if (!/^[^/\s]+\/[^/\s]+$/.test(args.repository)) {
-    throw new Error(`invalid GitHub repository: ${args.repository}`);
-  }
-  if (!/^[^/\s]+\.ya?ml$/.test(args.workflow)) {
-    throw new Error(`workflow must be a filename ending in .yml or .yaml: ${args.workflow}`);
-  }
-  for (const permission of args.permissions) {
-    if (!["createPackage", "createStagedPackage"].includes(permission)) {
-      throw new Error(`unsupported npm trust permission: ${permission}`);
+    if (arg === "--otp") {
+      args.otp = requireValue(argv, ++i, arg);
+      continue;
     }
-  }
-  if (args.permissions.length === 0) {
-    throw new Error("at least one permission is required");
+    throw new Error(`unknown argument: ${arg}`);
   }
 
   return args;
@@ -112,6 +157,57 @@ function requireValue(argv, index, flag) {
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function run(command, args, options = {}) {
+  try {
+    return childProcess
+      .execFileSync(command, args, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", options.inheritStderr ? "inherit" : "pipe"],
+      })
+      .trim();
+  } catch (error) {
+    if (options.optional) {
+      return "";
+    }
+    const stderr = error.stderr?.toString().trim();
+    throw new Error(stderr || `${command} ${args.join(" ")} failed`);
+  }
+}
+
+function inferRepository() {
+  const output = run("gh", ["repo", "view", "--json", "nameWithOwner"], { optional: true });
+  if (!output) {
+    return null;
+  }
+  return JSON.parse(output).nameWithOwner || null;
+}
+
+function validateArgs(args) {
+  if (!args.repository) {
+    args.repository = inferRepository();
+  }
+  if (!args.repository) {
+    throw new Error("could not infer GitHub repository; pass --repository owner/repo");
+  }
+  if (!/^[^/\s]+\/[^/\s]+$/.test(args.repository)) {
+    throw new Error(`invalid GitHub repository: ${args.repository}`);
+  }
+  if (!/^[^/\s]+\.ya?ml$/.test(args.workflow)) {
+    throw new Error(`workflow must be a filename ending in .yml or .yaml: ${args.workflow}`);
+  }
+  if (args.environment && /\s/.test(args.environment)) {
+    throw new Error("environment names containing whitespace are not supported by this script");
+  }
+  for (const permission of args.permissions) {
+    if (!["createPackage", "createStagedPackage"].includes(permission)) {
+      throw new Error(`unsupported npm trust permission: ${permission}`);
+    }
+  }
+  if (args.permissions.length === 0) {
+    throw new Error("at least one permission is required");
+  }
 }
 
 function workspacePackageDirs(rootDir) {
@@ -144,30 +240,52 @@ function workspacePackageDirs(rootDir) {
   return [...dirs].sort();
 }
 
-function packageNames(rootDir, onlyPackage) {
-  if (onlyPackage) {
-    return [onlyPackage];
-  }
-
-  const names = [];
+function workspacePackages(rootDir, onlyPackage) {
+  const packages = [];
   for (const dir of workspacePackageDirs(rootDir)) {
-    const pkg = readJson(path.join(dir, "package.json"));
-    if (!pkg.private && pkg.name) {
-      names.push(pkg.name);
+    const manifestPath = path.join(dir, "package.json");
+    const manifest = readJson(manifestPath);
+    if (!manifest.private && manifest.name) {
+      packages.push({
+        dir,
+        manifest,
+        manifestPath,
+        name: manifest.name,
+      });
     }
   }
-  return [...new Set(names)].sort();
+
+  const unique = new Map(packages.map((pkg) => [pkg.name, pkg]));
+  if (onlyPackage) {
+    const pkg = unique.get(onlyPackage);
+    if (pkg) {
+      return [pkg];
+    }
+    return [
+      {
+        dir: rootDir,
+        manifest: { name: onlyPackage },
+        manifestPath: null,
+        name: onlyPackage,
+      },
+    ];
+  }
+  return [...unique.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function trustedConfig(args) {
+  const claims = {
+    repository: args.repository,
+    workflow_ref: {
+      file: args.workflow,
+    },
+  };
+  if (args.environment) {
+    claims.environment = args.environment;
+  }
   return {
     type: "github",
-    claims: {
-      repository: args.repository,
-      workflow_ref: {
-        file: args.workflow,
-      },
-    },
+    claims,
     permissions: args.permissions,
   };
 }
@@ -184,6 +302,62 @@ function sameConfig(left, right) {
 
 function normalizeArray(values) {
   return [...(values || [])].sort();
+}
+
+function expectedRepositoryUrl(repository) {
+  return `${REQUIRED_REPOSITORY_URL_PREFIX}${repository}.git`;
+}
+
+function manifestRepositoryUrl(manifest) {
+  if (typeof manifest.repository === "string") {
+    return manifest.repository;
+  }
+  return manifest.repository?.url || "";
+}
+
+function validatePackageMetadata(packages, args) {
+  const expected = expectedRepositoryUrl(args.repository);
+  const failures = [];
+  for (const pkg of packages) {
+    if (!pkg.manifestPath) {
+      continue;
+    }
+    const actual = manifestRepositoryUrl(pkg.manifest);
+    if (actual !== expected) {
+      failures.push(`${pkg.name}: repository.url is ${JSON.stringify(actual)}, expected ${expected}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`package repository metadata does not match npm OIDC requirements:\n${failures.join("\n")}`);
+  }
+}
+
+function validateGithubWorkflow(rootDir, args) {
+  const ghRepo = inferRepository();
+  if (ghRepo && ghRepo !== args.repository) {
+    throw new Error(`gh is pointed at ${ghRepo}, but trusted publishing repository is ${args.repository}`);
+  }
+
+  const workflowPath = path.join(rootDir, ".github", "workflows", args.workflow);
+  if (!fs.existsSync(workflowPath)) {
+    throw new Error(`workflow file does not exist: ${workflowPath}`);
+  }
+
+  const workflow = fs.readFileSync(workflowPath, "utf8");
+  const checks = [
+    [/id-token:\s*write/, "workflow must grant permissions.id-token: write"],
+    [/npm\s+publish/, "workflow must run npm publish"],
+    [/setup-node@/, "workflow should use actions/setup-node for npm registry setup"],
+    [/node-version:\s*['"]?(2[4-9]|2[2-9]\.[1-9]|22\.(1[4-9]|[2-9][0-9]))/, "workflow should use Node 22.14+ or 24+"],
+    [/npm\s+install\s+-g\s+npm@latest/, "workflow should install npm@latest for trusted publishing support"],
+  ];
+
+  const failures = checks
+    .filter(([pattern]) => !pattern.test(workflow))
+    .map(([, message]) => message);
+  if (failures.length > 0) {
+    throw new Error(`GitHub release workflow is not trusted-publishing ready:\n${failures.join("\n")}`);
+  }
 }
 
 function loadToken(rootDir) {
@@ -203,21 +377,84 @@ function loadToken(rootDir) {
     }
   }
 
-  throw new Error("NPM_TOKEN is required, or an npm auth token must exist in .npmrc");
+  throw new Error(
+    "NPM_TOKEN is required, or an npm auth token must exist in .npmrc. Run `npm login --auth-type=web` first if needed.",
+  );
 }
 
-async function npmJson(method, packageName, token, otp, body) {
+function authHeaders(auth, body) {
+  const headers = {
+    Authorization: `Bearer ${auth.token}`,
+    "User-Agent": "TrustForge trusted-publishing setup",
+  };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (auth.otp) {
+    headers["npm-otp"] = auth.otp;
+  } else {
+    headers["npm-auth-type"] = "web";
+    headers["npm-command"] = "trust";
+  }
+  return headers;
+}
+
+async function npmJson(method, packageName, auth, body) {
+  const result = await rawNpm(method, packageName, auth, body);
+  if (result.ok) {
+    return result.data;
+  }
+
+  const challenge = extractWebAuthChallenge(result.data, result.headers);
+  if (!auth.otp && challenge) {
+    throw new WebAuthChallenge(packageName, challenge);
+  }
+
+  const message = result.data?.message || result.data?.error || result.text || result.statusText;
+  throw new NpmApiError(`${method} ${packageName} failed (${result.status}): ${message}`, {
+    data: result.data,
+    headers: result.headers,
+    status: result.status,
+  });
+}
+
+async function rawNpm(method, packageName, auth, body) {
   const response = await fetch(`${REGISTRY}/-/package/${encodeURIComponent(packageName)}/trust`, {
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "TrustForge trusted-publishing setup",
-      "npm-otp": otp,
-    },
+    headers: authHeaders(auth, body),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
+  return responseResult(response, text);
+}
+
+async function npmDelete(packageName, configId, auth) {
+  const response = await fetch(
+    `${REGISTRY}/-/package/${encodeURIComponent(packageName)}/trust/${encodeURIComponent(configId)}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(auth),
+    },
+  );
+  const result = responseResult(response, await response.text());
+  if (result.ok) {
+    return;
+  }
+
+  const challenge = extractWebAuthChallenge(result.data, result.headers);
+  if (!auth.otp && challenge) {
+    throw new WebAuthChallenge(packageName, challenge);
+  }
+
+  const message = result.data?.message || result.data?.error || result.text || result.statusText;
+  throw new NpmApiError(`DELETE ${packageName}/${configId} failed (${result.status}): ${message}`, {
+    data: result.data,
+    headers: result.headers,
+    status: result.status,
+  });
+}
+
+function responseResult(response, text) {
   let data = null;
   if (text) {
     try {
@@ -226,81 +463,224 @@ async function npmJson(method, packageName, token, otp, body) {
       data = { message: text };
     }
   }
-  if (!response.ok) {
-    const message = data?.message || data?.error || text || response.statusText;
-    throw new Error(`${method} ${packageName} failed (${response.status}): ${message}`);
-  }
-  return data;
+
+  const headers = Object.fromEntries(response.headers.entries());
+  return {
+    data,
+    headers,
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    text,
+  };
 }
 
-async function npmDelete(packageName, configId, token, otp) {
-  const response = await fetch(
-    `${REGISTRY}/-/package/${encodeURIComponent(packageName)}/trust/${encodeURIComponent(configId)}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "TrustForge trusted-publishing setup",
-        "npm-otp": otp,
-      },
-    },
-  );
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`DELETE ${packageName}/${configId} failed (${response.status}): ${text}`);
+function extractWebAuthChallenge(data, headers) {
+  const authUrl = findUrl(data, ["authUrl", "auth_url", "auth", "url"]) || findUrl(headers, ["npm-notice"]);
+  const doneUrl = findUrl(data, ["doneUrl", "done_url", "done", "statusUrl", "status_url"]);
+  if (!authUrl && !doneUrl) {
+    return null;
   }
+  return { authUrl, doneUrl, raw: data };
+}
+
+function findUrl(value, preferredKeys = []) {
+  const urls = [];
+  visit(value, (key, child) => {
+    if (typeof child === "string" && /^https?:\/\//.test(child)) {
+      const score = preferredKeys.some((preferred) => key.toLowerCase().includes(preferred.toLowerCase()))
+        ? 0
+        : 1;
+      urls.push({ score, url: child });
+    }
+    if (typeof child === "string") {
+      for (const match of child.matchAll(/https?:\/\/[^\s"'<>]+/g)) {
+        urls.push({ score: 2, url: match[0] });
+      }
+    }
+  });
+  urls.sort((left, right) => left.score - right.score);
+  return urls[0]?.url || "";
+}
+
+function visit(value, callback, key = "") {
+  callback(key, value);
+  if (Array.isArray(value)) {
+    for (const [index, child] of value.entries()) {
+      visit(child, callback, String(index));
+    }
+    return;
+  }
+  if (value && typeof value === "object") {
+    for (const [childKey, child] of Object.entries(value)) {
+      visit(child, callback, childKey);
+    }
+  }
+}
+
+async function resolveWebAuthOtp(challenge, args) {
+  if (!challenge.authUrl || !challenge.doneUrl) {
+    throw new Error(
+      "npm requested web/passkey auth, but did not return both authUrl and doneUrl. Re-run with NPM_OTP if your account has TOTP fallback.",
+    );
+  }
+
+  console.log("npm requested passkey/WebAuthn confirmation.");
+  console.log(`Open: ${challenge.authUrl}`);
+  if (args.openBrowser) {
+    openUrl(challenge.authUrl);
+  }
+
+  const deadline = Date.now() + 180_000;
+  while (Date.now() < deadline) {
+    const otp = await pollDoneUrl(challenge.doneUrl);
+    if (otp) {
+      console.log("Passkey confirmation accepted by npm.");
+      return otp;
+    }
+    await sleep(2_000);
+  }
+  throw new Error("timed out waiting for npm passkey confirmation");
+}
+
+function openUrl(url) {
+  const command =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+  const result = childProcess.spawnSync(command, args, { stdio: "ignore" });
+  if (result.error || result.status !== 0) {
+    console.log("Could not open browser automatically; use the URL above.");
+  }
+}
+
+async function pollDoneUrl(doneUrl) {
+  const response = await fetch(doneUrl, {
+    headers: {
+      "User-Agent": "TrustForge trusted-publishing setup",
+    },
+  });
+  const text = await response.text();
+  if (!response.ok && response.status !== 202 && response.status !== 400) {
+    return "";
+  }
+
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
+  return findOtp(data) || findOtp(text);
+}
+
+function findOtp(value) {
+  let found = "";
+  visit(value, (key, child) => {
+    if (found || typeof child !== "string") {
+      return;
+    }
+    if (/otp|code|token/i.test(key)) {
+      const preferred = child.match(/\b\d{6,16}\b/);
+      if (preferred) {
+        found = preferred[0];
+      }
+    }
+    const fallback = child.match(/\b\d{16}\b/);
+    if (fallback) {
+      found = fallback[0];
+    }
+  });
+  return found;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withWebAuthRetry(operation, auth, args) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!(error instanceof WebAuthChallenge)) {
+      throw error;
+    }
+    auth.otp = await resolveWebAuthOtp(error.challenge, args);
+    return operation();
+  }
+}
+
+async function configurePackage(pkg, desired, auth, args) {
+  const existing = await withWebAuthRetry(() => npmJson("GET", pkg.name, auth), auth, args);
+  if (existing.some((config) => sameConfig(config, desired))) {
+    console.log(`${pkg.name}: already configured`);
+    return "skipped";
+  }
+
+  if (existing.length > 0) {
+    if (!args.replace) {
+      throw new Error(`${pkg.name}: has a different trusted publisher config; re-run with --replace to replace it`);
+    }
+    for (const config of existing) {
+      console.log(`${pkg.name}: deleting existing config ${config.id}`);
+      await withWebAuthRetry(() => npmDelete(pkg.name, config.id, auth), auth, args);
+    }
+  }
+
+  await withWebAuthRetry(() => npmJson("POST", pkg.name, auth, [desired]), auth, args);
+  console.log(`${pkg.name}: configured`);
+  return "configured";
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  validateArgs(args);
+
   const rootDir = process.cwd();
-  const names = packageNames(rootDir, args.onlyPackage);
+  const packages = workspacePackages(rootDir, args.onlyPackage);
   const desired = trustedConfig(args);
 
-  if (names.length === 0) {
+  if (packages.length === 0) {
     throw new Error("no packages found");
   }
 
-  console.log(`Configuring ${names.length} package(s) for ${args.repository} / ${args.workflow}`);
+  if (args.verifyGithub) {
+    validateGithubWorkflow(rootDir, args);
+  }
+  if (args.verifyPackages && !args.onlyPackage) {
+    validatePackageMetadata(packages, args);
+  }
+
+  console.log(`Repository: ${args.repository}`);
+  console.log(`Workflow: .github/workflows/${args.workflow}`);
+  console.log(`Permissions: ${args.permissions.join(",")}`);
+  if (args.environment) {
+    console.log(`Environment: ${args.environment}`);
+  }
+  console.log(`Packages: ${packages.length}`);
 
   if (args.dryRun) {
-    for (const name of names) {
-      console.log(`[dry-run] ${name}: would ensure ${JSON.stringify(desired)}`);
+    for (const pkg of packages) {
+      console.log(`[dry-run] ${pkg.name}: would ensure ${JSON.stringify(desired)}`);
     }
     return;
   }
 
-  const token = loadToken(rootDir);
-  const otp = (process.env.NPM_OTP || "").trim();
-  if (!otp) {
-    throw new Error("NPM_OTP is required because npm trust API operations require 2FA");
-  }
+  const auth = {
+    otp: args.otp.trim(),
+    token: loadToken(rootDir),
+  };
 
   let configured = 0;
   let skipped = 0;
-  for (const name of names) {
-    const existing = await npmJson("GET", name, token, otp);
-    if (existing.some((config) => sameConfig(config, desired))) {
-      console.log(`${name}: already configured`);
+  for (const pkg of packages) {
+    const result = await configurePackage(pkg, desired, auth, args);
+    if (result === "configured") {
+      configured += 1;
+    } else {
       skipped += 1;
-      continue;
     }
-
-    if (existing.length > 0) {
-      if (!args.replace) {
-        throw new Error(
-          `${name}: has a different trusted publisher config; re-run with --replace to replace it`,
-        );
-      }
-      for (const config of existing) {
-        console.log(`${name}: deleting existing config ${config.id}`);
-        await npmDelete(name, config.id, token, otp);
-      }
-    }
-
-    await npmJson("POST", name, token, otp, [desired]);
-    console.log(`${name}: configured`);
-    configured += 1;
   }
 
   console.log(`Done. configured=${configured} skipped=${skipped}`);
@@ -308,5 +688,8 @@ async function main() {
 
 main().catch((error) => {
   console.error(error.message);
+  if (error instanceof NpmApiError && error.status === 403 && !process.env.NPM_OTP) {
+    console.error("npm returned 403 without a web/passkey challenge. If this account has TOTP fallback, re-run with NPM_OTP.");
+  }
   process.exit(1);
 });
