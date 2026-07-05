@@ -26,8 +26,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure trusted publishing capable npm
+        run: npm install -g npm@latest
           
       # NOTE: OIDC trusted publishing must be configured per-package on
       # npmjs.com for this to work; the v0.1.3 release fell back to a
