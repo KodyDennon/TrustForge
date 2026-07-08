@@ -25,6 +25,7 @@ The `tools/tf-schema` tool generates TypeScript and Rust bindings from the JSON 
   ```bash
   bun run tools/tf-schema/src/cli.ts codegen --target ts
   bun run tools/tf-schema/src/cli.ts codegen --target rust
+  bun run tools/tf-schema/src/cli.ts codegen --target docs
   bun run tools/tf-schema/src/cli.ts codegen --target rpc-ts --spec examples/proofrpc/code-helper.tfrpc.yaml
   bun run tools/tf-schema/src/cli.ts codegen --target rpc-rust --spec examples/proofrpc/code-helper.tfrpc.yaml --out crates/tf-code-helper-example/src/generated
   bun run tools/tf-schema/src/cli.ts codegen --target agent-contract-ts --spec examples/agent-contracts/full.yaml
@@ -34,8 +35,8 @@ The `tools/tf-schema` tool generates TypeScript and Rust bindings from the JSON 
 
 ### 2. Rust Lints (Clippy)
 
-TrustForge enforces a strict zero-warning policy on Rust code. CI uses `cargo clippy -D warnings`.
-- When making Rust changes, always verify with:
+TrustForge targets a zero-warning Rust posture. Current CI surfaces clippy drift as an advisory warning, while local Rust changes should still be checked with `-D warnings` before handoff.
+- When making Rust changes, verify with:
   ```bash
   cargo clippy --workspace --all-targets -- -D warnings
   ```

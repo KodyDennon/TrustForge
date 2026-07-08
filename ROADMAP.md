@@ -1,6 +1,6 @@
 # TrustForge Roadmap
 
-## Status snapshot (v0.1.0 experimental, v0.2 hardening in progress)
+## Status snapshot (0.1.x experimental, v0.2 hardening in progress)
 
 The phases below describe the design programme. The current codebase
 implements substantial portions of phases 0 through 10, but the
@@ -16,10 +16,14 @@ or package target:
 - **Phase 6** (daemon + CLI) — `tools/tf-daemon` and `tools/tf-cli`
   are working references. v0.2 hardening is focused on installability,
   local socket contracts, and truthful release artifacts.
-- **Phase 7** (plugins) — child-process sandbox (sandbox-exec on macOS,
-  seccomp on Linux) plus `wasmtime` host integration on Rust.
+- **Phase 7** (plugins) — native plugin loading is refused by default
+  unless sandboxed; macOS uses `sandbox-exec`, Linux is best-effort
+  child-process isolation today, and Rust has `wasmtime` host
+  integration for Wasm plugins.
 - **Phase 8** (bridges) — WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS
-  all shipped on both sides; service-mesh and matrix bridges TS-only.
+  DID, Matrix, and service-mesh bridge code exists on both TS and Rust
+  sides. Tested depth still varies by bridge; each bridge README and
+  vector file is the source for its supported surface.
 - **Phase 9** (constrained/offline) — packets, fragmentation,
   PacketReceiver nonce cache, OfflineRevocationListRuntime, delivery
   receipts, proof-of-forwarding, LoRa simulation.

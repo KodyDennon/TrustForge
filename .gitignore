@@ -16,6 +16,10 @@ node_modules/
 # Local config
 .env
 .env.local
+.tf/daemon-identity.json
+.tf/proof.tflog
+.tf/revocations.json
+.tf/vault.json
 
 # Claude Code agent local state
 .claude/

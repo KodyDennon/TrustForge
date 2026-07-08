@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/session",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "TrustForge session carrier driver. Implements the secure handshake, AEAD framing, and perfect forward secrecy for network sessions.",
   "main": "./src/index.ts",

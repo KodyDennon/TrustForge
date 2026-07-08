@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **TrustForge** project. The short form used in identifiers, URIs, CLI, crate names, and file extensions is `tf` (e.g. `tf:actor:…`, `.tf/`, `.tfproof`, `tf-core`, `TF-0001`).
 
-The repo is currently in **Phase 1/2 (core implementation & prototyping)**. Unlike earlier phases, a significant amount of the reference implementation exists in Rust (`crates/`) and TypeScript (`tools/`).
+The repo is currently in the **0.1.x experimental line with v0.2 hardening underway**. A significant amount of the reference implementation exists in Rust (`crates/`) and TypeScript (`tools/`), but coverage is uneven across bridges, native integrations, constrained devices, and packaging targets.
 
 - `crates/tf-types/` — core protocol types, handshake state machines, and compatibility bridges.
 - `crates/tf-session/` — Rust carrier driver for session handshakes (TCP/duplex).
@@ -15,11 +15,11 @@ The repo is currently in **Phase 1/2 (core implementation & prototyping)**. Unli
 - `schemas/` — JSON Schema definitions for all protocol objects.
 - `conformance/` — cross-language parity vectors.
 
-The project is moving toward a functional site-to-site prototype. Do not claim code doesn't exist; instead, verify its status in the `crates/` and `tools/` directories.
+The project has a functional site-to-site prototype surface. Do not claim code doesn't exist; instead, verify its status in the `crates/`, `tools/`, `docs/native-support-matrix.md`, and per-adapter README files.
 
 ## How the specification is organized
 
-TrustForge is written as an **RFC-style spec series together with a reference implementation** (Rust, not yet written). The two must not drift — spec changes and implementation must move together.
+TrustForge is written as an **RFC-style spec series together with TypeScript and Rust reference implementations**. The two must not drift — spec changes and implementation must move together.
 
 - `docs/specs/TF-XXXX-*.md` — numbered specs, `TF-0000` (manifesto) through `TF-0013` (site-to-site binary path). Read these before answering architecture questions. `TF-0001-core-architecture.md` defines the 12 core layers and canonical object vocabulary.
 - `docs/bridges/` — compatibility bridge specs (WebAuthn, SPIFFE, OAuth/GNAP, MCP/A2A, TLS/DID/Matrix). TrustForge integrates with existing standards rather than replacing them; new protocol work should check for a relevant bridge first.

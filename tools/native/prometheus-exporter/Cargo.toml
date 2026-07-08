@@ -1,7 +1,7 @@
 [package]
 readme.workspace = true
 name = "tf-prom-exporter"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 license.workspace = true
 repository.workspace = true
@@ -18,8 +18,8 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tf-otel = { version = "0.1.8", path = "../../../crates/tf-otel" }
-tf-transport = { version = "0.1.8", path = "../../../crates/tf-transport" }
+tf-otel = { version = "0.1.9", path = "../../../crates/tf-otel" }
+tf-transport = { version = "0.1.9", path = "../../../crates/tf-transport" }
 
 [lib]
 name = "tf_prom_exporter"

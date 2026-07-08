@@ -1,0 +1,26 @@
+daemon_version: "1"
+self_actor: "tf:actor:service:example.com/tf-daemon"
+listen:
+  kind: websocket
+  bind: "127.0.0.1"
+  port: 8787
+vault:
+  path: ".tf/vault.json"
+contract_path: ".tf/agent-contract.yaml"
+proof_log_path: ".tf/proof.tflog"
+profile: "tf-home-compatible"
+http:
+  tcp:
+    enabled: true
+    bind: "127.0.0.1"
+    port: 8642
+    auth: bearer
+  unix:
+    enabled: true
+    path: "/run/trustforge/decide.sock"
+    auth: local-peer
+admin:
+  enabled: true
+  token_env: TF_ADMIN_TOKEN
+  bind: "127.0.0.1"
+  revocation_path: ".tf/revocations.json"

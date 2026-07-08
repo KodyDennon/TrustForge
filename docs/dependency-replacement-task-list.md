@@ -26,7 +26,7 @@ Status: active production implementation.
 - [x] Extend `scripts/publish-crates.sh` so native workspace crates
       such as `tf-prom-exporter` publish with the rest of the Rust
       release set.
-- [x] Bump publishable Rust workspace crates to `0.1.8` for the next
+- [x] Bump publishable Rust workspace crates to `0.1.9` for the next
       crates.io release.
 - [x] Configure npm trusted publishing for all 36 npm packages and switch
       release publishing to npm OIDC provenance.

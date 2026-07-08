@@ -34,10 +34,13 @@ bun run --filter '*' typecheck
 bun test
 
 cargo check --workspace
+cargo check --workspace --all-targets
 cargo test --workspace
 ```
 
-A passing PR must keep all four green. CI runs the same commands.
+A passing PR must keep these green. CI also runs schema validation,
+schema linting, codegen-diff, conformance, cargo-deny, and advisory
+Rust fmt/clippy checks.
 
 ## Conformance gate
 
@@ -60,8 +63,9 @@ PR. Adding a new capability? Add a vector to the relevant
 2. Add at least one `valid/` and one `invalid/` fixture. Invalid fixtures
    pair with `<name>.expected-error.yaml` describing the expected
    AJV-style error.
-3. Run `bun run tools/tf-schema/src/cli.ts codegen --target ts` and
-   `--target rust`. Commit the regenerated bindings.
+3. Run `bun run tools/tf-schema/src/cli.ts codegen --target ts`,
+   `--target rust`, and `--target docs`. Commit the regenerated
+   bindings and schema reference docs.
 4. Add the parity entry to `conformance/parity.yaml` (the schema CLI
    has a `parity` subcommand that re-derives this).
 5. Add `docs/schemas/<name>.md` (the lint suite enforces this).

@@ -14,11 +14,11 @@ TrustForge's core thesis: the next era of security is not login; it is **verifia
 
 The project is split into a **spec series** (see [`docs/specs/`](docs/specs/)) and a reference implementation in TypeScript (Bun) and Rust. Both are active, but coverage is uneven across the broad native and bridge surface.
 
-This is the **0.1.1 experimental** line with v0.2 hardening underway. Core schemas, type bindings, conformance vectors, the Bun daemon, the CLI, and several adapters are working references. Many native integrations are mock-tested, hardware-untested, docs-only, or planned. Nothing is production-ready; use this repo for spec review, local interop experiments, and contributor development.
+This is the current **0.1.x experimental** line with v0.2 hardening underway. The source tree currently carries TrustForge npm package metadata at 0.1.6 and publishable Rust workspace crates at 0.1.9. Core schemas, type bindings, conformance vectors, the Bun daemon, the CLI, and several adapters are working references. Many native integrations are mock-tested, hardware-untested, docs-only, or planned. Nothing is production-ready; use this repo for spec review, local interop experiments, and contributor development.
 
 ---
 
-## What ships in 0.1.1
+## What ships in the current 0.1.x line
 
 | Surface | Status |
 |---|---|
@@ -41,7 +41,7 @@ docs/
   schemas/                  Generated per-schema Markdown reference
 
 schemas/
-  *.schema.json             36 JSON Schemas
+  *.schema.json             36 domain JSON Schemas plus _common.schema.json
   fixtures/<name>/{valid,invalid,composite}/
 
 conformance/
@@ -89,6 +89,7 @@ bun test
 bun run tools/tf-conformance/src/cli.ts run
 
 cargo test --workspace
+cargo check --workspace --all-targets
 ```
 
 The required local gates for this line are `bun test`, `bun run --filter '*' typecheck`, `bun run tools/tf-conformance/src/cli.ts run`, `cargo test --workspace`, and `cargo check --workspace --all-targets`.
@@ -96,22 +97,36 @@ The required local gates for this line are `bun test`, `bun run --filter '*' typ
 ### Run the daemon
 
 ```bash
-# 1. Mint a daemon identity into a vault.
-TF_VAULT_PASS=dev-pw bun run tools/tf-cli/src/cli.ts actor create \
-  --type service --name tf-daemon --domain example.com
+# 1. Create the local development vault referenced by .tf/daemon.yaml.
+TF_VAULT_PASSPHRASE=dev-pw \
+  bun run tools/tf-cli/src/cli.ts vault init --path .tf/vault.json
 
-# 2. Boot the daemon with admin HTTP enabled.
+# 2. Generate the daemon identity and store its signing key in the vault.
+bun run tools/tf-cli/src/cli.ts actor create \
+  --type service --name tf-daemon --domain example.com \
+  --out .tf/daemon-identity.json \
+  --quiet
+
+TF_VAULT_PASSPHRASE=dev-pw \
+  bun run tools/tf-cli/src/cli.ts vault store \
+  --path .tf/vault.json \
+  --id daemon-identity \
+  --purpose signing \
+  --algorithm ed25519 \
+  --key .tf/daemon-identity.json
+
+# 3. Boot the daemon with admin HTTP enabled.
 TF_VAULT_PASS=dev-pw TF_ADMIN_TOKEN=$(openssl rand -hex 16) \
   bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml
 
 # Optional preflight without booting listeners.
 bun run tools/tf-daemon/src/cli.ts run --config .tf/daemon.yaml --dry-run
 
-# 3. Browse the dashboard (read-only).
+# 4. Browse the dashboard (read-only).
 TF_ADMIN_TOKEN=$TF_ADMIN_TOKEN \
   bun run tools/tf-dashboard/src/cli.ts --daemon http://127.0.0.1:8787
 
-# 4. Inspect, approve, revoke from the CLI.
+# 5. Inspect, approve, revoke from the CLI.
 tf session inspect
 tf approval list
 tf approve <id>

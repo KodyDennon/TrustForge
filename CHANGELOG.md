@@ -4,7 +4,12 @@ All notable changes to TrustForge are recorded here. Versions follow
 [Semantic Versioning](https://semver.org/) once we hit 1.0; before then
 the API is explicitly experimental.
 
-## 0.2.0 — Unreleased
+Current source metadata is on a patch line: TrustForge npm workspace
+packages are at 0.1.6 and publishable Rust workspace crates are at
+0.1.9. The sections below track the first public cut plus unreleased
+hardening work.
+
+## 0.1.6 / Rust 0.1.9 — Unreleased
 
 ### Changed
 
@@ -53,8 +58,9 @@ uniformly implemented or production-reviewed.
   flagged out as full normative MUST/SHOULD/MUST_NOT documents.
 
 #### Schemas + types
-* 36 JSON Schemas under `schemas/` covering every machine-readable
-  artifact (manifests + runtime objects).
+* 36 domain JSON Schemas plus `_common.schema.json` under `schemas/`
+  covering every machine-readable artifact (manifests + runtime
+  objects).
 * Valid and invalid fixtures for every schema, with `expected-error`
   files describing the failure surface.
 * `profile-spec.schema.json` + `conformance-vector.schema.json` formalise

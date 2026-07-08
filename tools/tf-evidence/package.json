@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/evidence",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "TrustForge evidence archive manager. Record, query, and cryptographically verify historical actions and capability delegations.",
   "main": "./src/cli.ts",

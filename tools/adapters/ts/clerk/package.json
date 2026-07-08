@@ -1,6 +1,6 @@
 {
   "name": "@trustforge-protocol/clerk",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "TrustForge authentication and policy enforcement adapter for Clerk. Seamlessly integrate zero-trust verifiable actions into your Clerk application.",
   "main": "./src/index.ts",
