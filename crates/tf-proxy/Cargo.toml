@@ -31,5 +31,5 @@ name = "tf-proxy"
 path = "src/main.rs"
 
 [dev-dependencies]
-tokio-tungstenite = "0.24"
+tokio-tungstenite = "0.29"
 futures-util = "0.3"
