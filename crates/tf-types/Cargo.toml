@@ -25,7 +25,7 @@ rand = "0.8"
 sha2 = "0.10"
 blake3 = "1"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
-hkdf = "0.12"
+hkdf = "0.13"
 chacha20poly1305 = "0.10"
 flate2 = "1"
 hmac = "0.12"
